@@ -1,13 +1,14 @@
--- Events Clock: countdowns to the fishing contests and, on Classic Era, the
--- time-of-day fish windows. All times are realm time. Nothing here runs
+-- Events Clock: countdowns to the fishing contests, the Derby Dasher timer
+-- and, on Classic Era, the time-of-day and seasonal fish. All times are realm time. Nothing here runs
 -- unless fishing mode is on or the player asks with /tb events.
 local _, ns = ...
-local L, Compat = ns.L, ns.Compat
+local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
 local Events = ns:NewModule("Events")
 
 local DAY, WEEK = 1440, 10080
 local REMIND_BEFORE = 15 -- minutes
+local DASHER_WARNING = 300 -- seconds
 
 -- weekday: 1 = Sunday ... 7 = Saturday, nil = every day. Minutes from midnight.
 local SCHEDULE = {
@@ -17,8 +18,9 @@ if Compat.isRetail then
   table.insert(SCHEDULE, { name = L["Hallowfall Fishing Derby"], weekday = 7, start = 0, stop = DAY })
 end
 if Compat.isClassicEra then
-  table.insert(SCHEDULE, { name = L["Sunscale Salmon window"], start = 6 * 60, stop = 12 * 60, quiet = true })
-  table.insert(SCHEDULE, { name = L["Nightfin Snapper window"], start = 18 * 60, stop = DAY, quiet = true })
+  -- Best hours. Nightfin never drops 12:00-18:00, Sunscale never 00:00-06:00.
+  table.insert(SCHEDULE, { name = L["Nightfin Snapper peak"], start = 0, stop = 6 * 60, quiet = true })
+  table.insert(SCHEDULE, { name = L["Sunscale Salmon peak"], start = 12 * 60, stop = 18 * 60, quiet = true })
 end
 
 local function RealmNow()
@@ -55,8 +57,20 @@ local function Duration(minutes)
   return string.format(L["%dm"], minutes)
 end
 
--- The event worth showing: whatever is running, else whatever starts next.
+-- Seconds left on the Hallowfall derby's one-hour buff, nil without it.
+local function DasherRemaining()
+  local spellID = Data.spells.derbyDasher
+  local remaining = spellID and Compat.AuraRemaining(spellID)
+  if remaining and remaining ~= math.huge then return remaining end
+end
+
+-- The event worth showing: a running derby timer first, then whatever is
+-- on, else whatever starts next.
 function Events:Headline()
+  local dasher = DasherRemaining()
+  if dasher then
+    return string.format(L["Derby Dasher: %s left"], ns.FormatTime(dasher))
+  end
   local weekday, minute = RealmNow()
   local best, bestActive, bestMinutes
   for _, event in ipairs(SCHEDULE) do
@@ -84,6 +98,12 @@ function Events:Print()
       print(string.format("   %s - " .. L["starts in %s"], event.name, Duration(minutes)))
     end
   end
+  if Compat.isClassicEra then
+    local month = tonumber(date("%m"))
+    local inSeason = (month >= 9 or month <= 3) and L["Winter Squid (September to March)"]
+      or L["Raw Summer Bass (April to August)"]
+    print(string.format("   " .. L["In season: %s"], inSeason))
+  end
 end
 
 function Events:Enable()
@@ -94,6 +114,15 @@ end
 -- Reminders while fishing: once shortly before a contest and once at its start.
 function Events:Tick()
   if not ns.db.eventAlerts then return end
+
+  local dasher = DasherRemaining()
+  if not dasher then
+    self.dasherWarned = nil
+  elseif dasher <= DASHER_WARNING and not self.dasherWarned then
+    self.dasherWarned = true
+    ns.Alerts:Fire("event", string.format(L["Derby Dasher runs out in %s!"], ns.FormatTime(dasher)))
+  end
+
   local now = GetTime()
   if now < (self.nextCheck or 0) then return end
   self.nextCheck = now + 30
@@ -105,12 +134,12 @@ function Events:Tick()
       if active then
         if not self.said[index .. "start"] then
           self.said[index .. "start"] = true
-          ns.HUD:Alert(string.format(L["%s is on!"], event.name))
+          ns.Alerts:Fire("event", string.format(L["%s is on!"], event.name))
         end
       elseif minutes <= REMIND_BEFORE then
         if not self.said[index .. "soon"] then
           self.said[index .. "soon"] = true
-          ns.HUD:Alert(string.format(L["%s starts in %s."], event.name, Duration(minutes)))
+          ns.Alerts:Fire("event", string.format(L["%s starts in %s."], event.name, Duration(minutes)))
         end
       else
         self.said[index .. "start"], self.said[index .. "soon"] = nil, nil

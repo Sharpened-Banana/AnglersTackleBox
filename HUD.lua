@@ -1,4 +1,4 @@
--- Session window and alerts. The frame is built the first time fishing mode
+-- Session window. The frame is built the first time fishing mode
 -- turns on, so a character that never fishes never pays for it.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
@@ -148,13 +148,4 @@ end
 
 function HUD:Tick()
   self:Refresh()
-end
-
-function HUD:Alert(text)
-  ns:Print(text)
-  if not ns.db.alerts then return end
-  if RaidNotice_AddMessage and RaidWarningFrame then
-    RaidNotice_AddMessage(RaidWarningFrame, text, ChatTypeInfo["RAID_WARNING"])
-  end
-  PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
 end

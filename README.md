@@ -29,6 +29,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb doubleclick [on\|off]` | A quick double right-click does the same as the key |
 | `/tb set <name>`, `/tb set none` | Equipment set to wear while fishing |
 | `/tb hud` | Show or hide the session window |
+| `/tb log` | Catch log window: per-zone catches, share, value and pools |
 | `/tb stats`, `/tb reset` | Print or restart session stats |
 | `/tb events` | Countdowns to the fishing contests (realm time) |
 | `/tb goals` | Progress on unfinished fishing achievements |

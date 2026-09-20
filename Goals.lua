@@ -1,8 +1,8 @@
--- Collections Tracker, first cut: progress on every unfinished achievement
--- in the game's own Fishing category, read live so no ID list can go stale.
--- Runs only when asked (/tb goals).
+-- Collections Tracker: progress on every unfinished achievement in the
+-- game's own Fishing category (read live, so no ID list can go stale), plus
+-- the fishing mounts. Runs only when asked (/tb goals).
 local _, ns = ...
-local L = ns.L
+local L, Data = ns.L, ns.Data
 
 local Goals = {}
 ns.Goals = Goals
@@ -34,7 +34,25 @@ local function Progress(achievementID)
   return done / total, string.format("%d/%d", done, total)
 end
 
+local function PrintMounts()
+  if not C_MountJournal or #Data.mounts == 0 then return end
+  local missing, total = {}, 0
+  for _, mount in ipairs(Data.mounts) do
+    local mountID = mount.spell and C_MountJournal.GetMountFromSpell(mount.spell)
+      or mount.item and C_MountJournal.GetMountFromItem(mount.item)
+    if mountID then
+      total = total + 1
+      local name, _, _, _, _, _, _, _, _, _, collected = C_MountJournal.GetMountInfoByID(mountID)
+      if not collected then missing[#missing + 1] = name end
+    end
+  end
+  if total == 0 then return end
+  ns:Print(string.format(L["Fishing mounts: %d of %d collected."], total - #missing, total))
+  for _, name in ipairs(missing) do print("   " .. name) end
+end
+
 function Goals:Print()
+  PrintMounts()
   local categoryID = FishingCategory()
   if not categoryID then
     ns:Print(L["No fishing achievements on this game version."])

@@ -152,7 +152,16 @@ local function BuildPanel()
     L["Warn this long before the lure runs out."], 0, 300, 10, Seconds)
 
   Checkbox(db, defaults, "alerts", L["Alerts"],
-    L["Screen and sound alerts for rare catches and lure warnings."])
+    L["Screen and sound alerts. The chat line always prints."])
+  Checkbox(db, defaults, "alertFlash", L["Flash the screen on alerts"],
+    L["A visual cue for players who fish with the sound off."])
+  local alertDefaults = {}
+  for _, kind in ipairs(ns.Alerts.categories) do
+    alertDefaults[kind.key] = true
+    if db.alertTypes[kind.key] == nil then db.alertTypes[kind.key] = true end
+    Checkbox(db.alertTypes, alertDefaults, kind.key, string.format(L["Alert: %s"], kind.label),
+      L["Screen and sound alert for this kind of event."])
+  end
   Checkbox(db, defaults, "eventAlerts", L["Fishing event reminders"],
     L["While fishing, reminds you shortly before a fishing contest and when it starts."])
   Checkbox(db.hud, defaults.hud, "shown", L["Show session window"],
@@ -223,6 +232,7 @@ commands.help = function()
     L["/tb doubleclick [on|off] - double right-click does the same as the key"],
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
     L["/tb hud - show or hide the session window"],
+    L["/tb log - open the catch log window"],
     L["/tb stats - session and zone catch stats"],
     L["/tb reset - restart the session counters"],
     L["/tb events - fishing contest countdowns"],
@@ -344,6 +354,7 @@ commands.midnight = function()
 end
 commands.tokka = commands.midnight
 commands.hud = function() ns.HUD:Toggle() end
+commands.log = function() ns.LogWindow:Toggle() end
 commands.stats = function() ns.Log:PrintStats() end
 commands.reset = function() ns.Log:ResetSession() end
 commands.options = function() Options:Open() end

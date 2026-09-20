@@ -97,6 +97,17 @@ GetBindingAction = function() return "" end
 GetBindingName = function(a) return a end
 PlaySound = function() end
 SlashCmdList = {}
+UISpecialFrames = {}
+GetLocale = function() return "enUS" end
+UnitGUID = function(unit) return unit == "nameplate1" and "Creature-0-1-2-3-263682-000000" or "Creature-0-1-2-3-1-000000" end
+strsplit = function(sep, text) local out = {} for part in (text .. sep):gmatch("(.-)" .. sep) do out[#out + 1] = part end return table.unpack(out) end
+local tooltipCalls = {}
+TooltipDataProcessor = { AddTooltipPostCall = function(_, fn) tooltipCalls[#tooltipCalls + 1] = fn end }
+Enum.TooltipDataType = { Object = 9 }
+GameTooltip = {}
+function hover(name) for _, fn in ipairs(tooltipCalls) do fn(GameTooltip, { lines = { { leftText = name } } }) end end
+C_MountJournal = { GetMountFromSpell = function(id) return id == 64731 and 312 or nil end, GetMountFromItem = function() end,
+  GetMountInfoByID = function() return "Sea Turtle", 64731, 1, false, true, 0, false, false, nil, false, false end }
 local realm = { weekday = 1, hour = 13, minute = 50 } -- Sunday, ten minutes before the Extravaganza
 GetGameTime = function() return realm.hour, realm.minute end
 C_DateAndTime = { GetCurrentCalendarTime = function() return { weekday = realm.weekday } end }
@@ -115,7 +126,7 @@ print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 
 local ns = {}
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Log.lua", "HUD.lua", "Events.lua", "Goals.lua", "Midnight.lua", "Planner.lua", "Engine.lua", "Options.lua" }) do
+  "Lures.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Midnight.lua", "Planner.lua", "Engine.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("Tacklebox", ns)
 end
 local btn = TackleboxActionButton
@@ -140,19 +151,35 @@ check(ns.Engine.state == "CHANNELING" and bindings.F == "CLICK TackleboxActionBu
 keydown = false; advance(0.06)
 check(bindings.F == "INTERACTTARGET", "key released -> armed to reel in")
 
-loot = { { id = 220134, name = "Test Fish", qty = 2, quality = 1 }, { id = 1, name = "Nether-Warped Egg", qty = 1, quality = 4 } }
+loot = { { id = 220134, name = "Test Fish", qty = 2, quality = 1 }, { id = 268730, name = "Nether-Warped Egg", qty = 1, quality = 1 } }
 fire("LOOT_READY"); fire("LOOT_OPENED")
 check(ns.Engine.state == "LOOTING" and bindings.F == "CLICK TackleboxActionButton", "loot opened -> LOOTING, key already casts")
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
 check(ns.Engine.state == "READY", "loot closed -> READY")
 local st = ns.Log:Stats()
 check(st.casts == 1 and st.catches == 1 and st.value == 750, "log: 1 cast, 1 catch, value 750c")
+check(printed[#printed]:find("hatches into a mount", 1, true), "alerts: special catch matched by item ID")
 check(ns.chardb.log[2395][220134].count == 2 and ns.chardb.log[2395][220134].subs.Fairbreeze == 2, "log keyed by map, item, subzone")
 check(st.sinceRare == 0, "rare catch resets the streak")
 
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 check(ns.Engine.state == "READY" and bindings.F == "CLICK TackleboxActionButton", "miss -> re-armed to cast at once")
+
+-- pools
+hover("Mailbox"); hover("Sunwell Swarm")
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
+loot = { { id = 220134, name = "Test Fish", qty = 1, quality = 1 } }
+fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
+local pools = ns.chardb.log[2395][220134].pools
+check(pools and pools["Sunwell Swarm"] == 1 and pools.Mailbox == nil, "pool: hovered pool credited, non-pool objects ignored")
+fire("PLAYER_STARTED_MOVING")
+check(ns.Log.pool == nil, "pool: forgotten once the player moves")
+
+-- npc alert
+fire("NAME_PLATE_UNIT_ADDED", "nameplate2"); local before = #printed
+fire("NAME_PLATE_UNIT_ADDED", "nameplate1"); fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
+check(#printed == before + 1, "alerts: Birdie announced once, other nameplates ignored")
 
 -- lure flow
 counts[555] = 3; SlashCmdList.TACKLEBOX("lure 555"); advance(1)
@@ -204,6 +231,9 @@ realm.weekday = 7
 check(ns.Events:Headline():find("Hallowfall Fishing Derby: 9h 0m left", 1, true), "events: Saturday derby runs all day")
 realm.weekday = 2
 check(ns.Events:Headline() == "Hallowfall Fishing Derby in 4d 9h", "events: next week's event picked (" .. ns.Events:Headline() .. ")")
+auras[456024] = { expirationTime = now + 1500 }
+check(ns.Events:Headline() == "Derby Dasher: 25:00 left", "events: Derby Dasher timer takes over the headline")
+auras[456024] = nil
 SlashCmdList.TACKLEBOX("events"); SlashCmdList.TACKLEBOX("goals")
 C_Reputation = { GetNumFactions = function() return 2 end,
   GetFactionDataByIndex = function(i) return i == 1 and { isHeader = true, name = "Midnight" } or { factionID = 2777, name = "Captain Tokka's Crew" } end,
@@ -214,7 +244,7 @@ C_CurrencyInfo.GetCurrencyListInfo = function() return { name = "Coiled Filament
 C_CurrencyInfo.GetCurrencyListLink = function() return "|Hcurrency:3344|h[Coiled Filament]|h" end
 C_CurrencyInfo.GetCurrencyInfo = function() return { quantity = 625 } end
 SlashCmdList.TACKLEBOX("midnight")
-check(ns.db.ids.tokkaFaction == 2777 and ns.db.ids.filamentCurrency == 3344, "midnight: faction and currency found by name and remembered")
+check(ns.db.ids.tokkaFaction == 2777, "midnight: faction found by name and remembered")
 check(ns.Midnight:FilamentCount() == 625, "midnight: filament count read")
 
 SlashCmdList.TACKLEBOX("stats")
@@ -224,7 +254,9 @@ check(cvars.Sound_SFXVolume == "0.4" and cvars.Sound_MusicVolume == "0.6" and cv
 local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do if e ~= "PLAYER_LOGOUT" and e ~= "PLAYER_ENTERING_WORLD" then live = live + 1 end end end
 advance(5)
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers")
-check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 3, "session summary saved")
+check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session summary saved")
+SlashCmdList.TACKLEBOX("log")
+check(TackleboxLogWindow and TackleboxLogWindow.shown, "log window opens")
 
 -- always on
 SlashCmdList.TACKLEBOX("always on")

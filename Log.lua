@@ -8,6 +8,8 @@ local Log = ns:NewModule("Log")
 
 local MAX_SESSIONS = 30
 local SESSION_IDLE = 600 -- always-on: a session closes after this long without fishing
+local HOVER_WINDOW = 20 -- seconds a hovered pool stays valid before a cast
+local HookTooltips
 local LOOT_SLOT_ITEM = Enum and Enum.LootSlotType and Enum.LootSlotType.Item or 1
 
 local function NewSession()
@@ -20,7 +22,10 @@ end
 
 -- Copper value of one item: auction price when a pricing addon is loaded,
 -- vendor price otherwise.
-local function UnitValue(itemID)
+local UnitValue
+function Log.UnitValue(itemID) return UnitValue(itemID) end
+
+function UnitValue(itemID)
   local api = Auctionator and Auctionator.API and Auctionator.API.v1
   if api and api.GetAuctionPriceByItemID then
     local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
@@ -37,7 +42,8 @@ end
 -- With always-on the session starts at the first cast instead.
 function Log:Enable()
   self.session = not ns.db.alwaysOn and NewSession() or nil
-  self.lootSeen = nil
+  self.lootSeen, self.pool, self.hovered = nil, nil, nil
+  HookTooltips()
 end
 
 function Log:Disable()
@@ -82,6 +88,8 @@ function Log:OnCast()
     self.session = NewSession()
     ns.HUD:UpdateVisibility()
   end
+  local hovered = self.hovered
+  if hovered and GetTime() - hovered.at <= HOVER_WINDOW then self.pool = hovered.name end
   local s = self.session
   if s.casts == 0 then s.t0 = GetTime() end -- the clock starts at the first cast
   s.casts = s.casts + 1
@@ -126,21 +134,61 @@ local function Record(itemID, name, quantity, quality)
   s.items[itemID] = (s.items[itemID] or 0) + quantity
   s.value = s.value + UnitValue(itemID) * quantity
 
-  local special = Data.special[name]
+  if Log.pool then
+    entry.pools = entry.pools or {}
+    entry.pools[Log.pool] = (entry.pools[Log.pool] or 0) + quantity
+  end
+
+  local special = Data.special[itemID]
   local isRare = special ~= nil or (quality or 0) >= ns.db.alertQuality
   if isRare then
     s.sinceRare = 0
-    if ns.db.alerts then
-      if special == "teleport" then
-        ns.HUD:Alert(string.format(L["%s: looting it teleports you!"], name))
-      elseif special == "hostile" then
-        ns.HUD:Alert(string.format(L["%s: a hostile spirit is coming."], name))
-      else
-        ns.HUD:Alert(string.format(L["Caught %s!"], name))
-      end
+    if special == "teleport" then
+      ns.Alerts:Fire("teleport", string.format(L["%s: it teleports you to a random zone!"], name))
+    elseif special == "hostile" then
+      ns.Alerts:Fire("hostile", string.format(L["%s: a hostile spirit is coming."], name))
+    elseif special == "mount" then
+      ns.Alerts:Fire("mount", string.format(L["%s! That hatches into a mount!"], name))
+    else
+      ns.Alerts:Fire("rare", string.format(L["Caught %s!"], name))
     end
   end
 end
+
+---------------------------------------------------------------------------
+-- Pools: the game never says which pool a cast landed in. The best signal
+-- is the pool the player hovered shortly before casting; it sticks until
+-- they move. Retail only (object tooltips), and only while fishing mode is on.
+---------------------------------------------------------------------------
+
+local tooltipHooked
+
+local function LooksLikePool(name)
+  if GetLocale() ~= "enUS" then return true end
+  for _, word in ipairs(Data.poolWords) do
+    if name:find(word, 1, true) then return true end
+  end
+  return false
+end
+
+function HookTooltips()
+  if tooltipHooked or not TooltipDataProcessor or not (Enum.TooltipDataType and Enum.TooltipDataType.Object) then
+    return
+  end
+  tooltipHooked = true
+  TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Object, function(tooltip, data)
+    if not ns.Core.mode or ns.Core.suspended or tooltip ~= GameTooltip then return end
+    local line = data and data.lines and data.lines[1]
+    local name = line and line.leftText
+    if name and not Compat.IsSecret(name) and LooksLikePool(name) then
+      Log.hovered = { name = name, at = GetTime() }
+    end
+  end)
+end
+
+ns:OnModeEvent("PLAYER_STARTED_MOVING", function()
+  Log.pool, Log.hovered = nil, nil
+end)
 
 local function OnLoot()
   local s = Log.session

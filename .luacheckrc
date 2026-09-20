@@ -7,7 +7,7 @@ globals = {
   "TackleboxDB", "TackleboxCharDB",
   "Tacklebox_ToggleFishingMode", "Tacklebox_OnAddonCompartmentClick",
   "BINDING_HEADER_TACKLEBOX", "BINDING_NAME_TACKLEBOX_TOGGLE",
-  "SLASH_TACKLEBOX1", "SLASH_TACKLEBOX2", "SlashCmdList",
+  "SLASH_TACKLEBOX1", "SLASH_TACKLEBOX2", "SlashCmdList", "UISpecialFrames",
 }
 
 read_globals = {
@@ -39,6 +39,8 @@ read_globals = {
   "GetAchievementCriteriaInfo", "GetAchievementLink", "PROFESSIONS_FISHING",
   -- Midnight helpers
   "C_Reputation", "C_GossipInfo", "_G",
+  -- Alerts, pools, log window, mounts
+  "UnitGUID", "strsplit", "GetLocale", "TooltipDataProcessor", "GameTooltip", "C_MountJournal",
   -- Misc
   "C_Timer", "C_Map", "C_CVar", "GetCVar", "SetCVar", "C_CurrencyInfo", "GetCoinTextureString",
   "issecretvalue", "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CLASSIC",

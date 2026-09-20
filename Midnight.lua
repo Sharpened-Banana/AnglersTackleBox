@@ -26,7 +26,12 @@ end
 local function FindCurrency()
   local ids = ns.db.ids
   if ids.filamentCurrency then return ids.filamentCurrency end
-  if not C_CurrencyInfo or not C_CurrencyInfo.GetCurrencyListSize then return nil end
+  if not C_CurrencyInfo then return nil end
+  local known = Data.midnight.currencyID
+  if known and C_CurrencyInfo.GetCurrencyInfo and C_CurrencyInfo.GetCurrencyInfo(known) then
+    return known
+  end
+  if not C_CurrencyInfo.GetCurrencyListSize then return nil end
   for index = 1, C_CurrencyInfo.GetCurrencyListSize() do
     local info = C_CurrencyInfo.GetCurrencyListInfo(index)
     if info and not info.isHeader and info.name == Data.midnight.currencyName then

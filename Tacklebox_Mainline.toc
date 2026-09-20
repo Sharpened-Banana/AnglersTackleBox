@@ -17,6 +17,8 @@ Gear.lua
 Lures.lua
 Log.lua
 HUD.lua
+Alerts.lua
+LogWindow.lua
 Events.lua
 Goals.lua
 Midnight.lua

@@ -72,7 +72,7 @@ function Lures:Tick()
   if Compat.GetItemCount(itemID) == 0 then
     if not self.emptySaid then
       self.emptySaid = true
-      ns.HUD:Alert(L["Out of lures!"])
+      ns.Alerts:Fire("lure", L["Out of lures!"])
     end
     return
   end
@@ -82,12 +82,12 @@ function Lures:Tick()
   if not remaining then
     if self.warned and not self.expiredSaid then
       self.expiredSaid = true
-      ns.HUD:Alert(L["Lure expired. Next press applies a new one."])
+      ns.Alerts:Fire("lure", L["Lure expired. Next press applies a new one."])
     end
   elseif remaining <= ns.db.lureWarn then
     if not self.warned then
       self.warned = true
-      ns.HUD:Alert(string.format(L["Lure expires in %d seconds."], math.floor(remaining)))
+      ns.Alerts:Fire("lure", string.format(L["Lure expires in %d seconds."], math.floor(remaining)))
     end
   else
     self.warned, self.expiredSaid = nil, nil

@@ -44,6 +44,8 @@ ns.defaults = {
   lureWarn = 60,        -- seconds before expiry
   alerts = true,
   alertQuality = 3,     -- alert on catches of this quality and up
+  alertFlash = false,   -- flash the screen edges with each alert
+  alertTypes = {},      -- [category] = false turns one kind of alert off
   audio = {
     enabled = true,
     sfxVolume = 1.0,

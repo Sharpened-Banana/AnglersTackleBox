@@ -24,3 +24,9 @@ Data.lureDuration = 600
 Data.knownLures = Data.lures
 
 Data.special = {}
+Data.npcs = {}
+Data.spells = {}
+Data.mounts = {}
+Data.poolWords = {
+  "School", "Pool", "Swarm", "Debris", "Wreckage", "Patch", "Slick", "Waters",
+}
