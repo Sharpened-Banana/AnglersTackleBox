@@ -23,6 +23,14 @@ function ns:Print(msg)
   print("|cff4fc3f7Tacklebox|r: " .. tostring(msg))
 end
 
+-- Reports are lists of { text = ..., header = bool } so chat and the menu
+-- window can show the same thing.
+function ns:PrintLines(lines)
+  for _, line in ipairs(lines) do
+    if line.header then self:Print(line.text) else print("   " .. line.text) end
+  end
+end
+
 function ns.FormatTime(seconds)
   seconds = math.max(0, math.floor(seconds or 0))
   return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
@@ -380,10 +388,15 @@ function Tacklebox_ToggleFishingMode()
   Core:ToggleMode()
 end
 
+function Tacklebox_ToggleMenu()
+  ns.Menu:Toggle()
+end
+
+-- Left-click opens the box; right-click is the quick fishing-mode switch.
 function Tacklebox_OnAddonCompartmentClick(_, button)
   if button == "RightButton" then
-    ns.Options:Open()
-  else
     Core:ToggleMode()
+  else
+    ns.Menu:Toggle()
   end
 end

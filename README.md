@@ -21,6 +21,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | Command | What it does |
 | --- | --- |
 | `/tb` | Toggle fishing mode |
+| `/tb menu` | Open the Tacklebox window (also: left-click the addon compartment icon) |
 | `/tb always [on\|off]` | Keep fishing mode on all the time; `/tb` still pauses it |
 | `/tb bind`, `/tb key F`, `/tb key none` | Pick, set or clear the fishing key |
 | `/tb lure <link or ID>`, `/tb lure auto`, `/tb lure off` | Choose the lure to keep up |

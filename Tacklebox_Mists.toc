@@ -23,4 +23,5 @@ Events.lua
 Goals.lua
 Planner.lua
 Engine.lua
+Menu.lua
 Options.lua

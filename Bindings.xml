@@ -2,4 +2,7 @@
   <Binding name="TACKLEBOX_TOGGLE" header="TACKLEBOX" category="ADDONS">
     Tacklebox_ToggleFishingMode()
   </Binding>
+  <Binding name="TACKLEBOX_MENU" category="ADDONS">
+    Tacklebox_ToggleMenu()
+  </Binding>
 </Bindings>

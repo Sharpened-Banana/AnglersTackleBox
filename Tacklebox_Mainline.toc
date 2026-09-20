@@ -24,4 +24,5 @@ Goals.lua
 Midnight.lua
 Planner.lua
 Engine.lua
+Menu.lua
 Options.lua

@@ -1,18 +1,18 @@
--- Catch log window: what you have caught in each zone, with share of the
--- zone's catch, current value and the pools it came from. Built the first
--- time it is opened (/tb log).
+-- Catch log view: what you have caught in each zone, with share of the
+-- zone's catch, current value and the pools it came from. Lives in the
+-- menu's Catch Log compartment (/tb log).
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
 local Window = {}
 ns.LogWindow = Window
 
-local WIDTH, HEIGHT, ROW_HEIGHT = 480, 440, 16
+local ROW_HEIGHT = 16
 local COLUMNS = {
-  { key = "name", x = 8, width = 230, justify = "LEFT" },
-  { key = "count", x = 245, width = 55, justify = "RIGHT" },
-  { key = "share", x = 305, width = 50, justify = "RIGHT" },
-  { key = "value", x = 360, width = 90, justify = "RIGHT" },
+  { key = "name", x = 4, width = 200, justify = "LEFT" },
+  { key = "count", x = 208, width = 50, justify = "RIGHT" },
+  { key = "share", x = 262, width = 50, justify = "RIGHT" },
+  { key = "value", x = 316, width = 90, justify = "RIGHT" },
 }
 
 local function MapName(mapID)
@@ -66,29 +66,16 @@ local function SetRow(row, name, count, share, value)
   row.value:SetText(value or "")
 end
 
-local function Build()
-  local frame = CreateFrame("Frame", "TackleboxLogWindow", UIParent, "BasicFrameTemplateWithInset")
-  frame:SetSize(WIDTH, HEIGHT)
-  frame:SetPoint("CENTER")
-  frame:SetFrameStrata("HIGH")
-  frame:SetClampedToScreen(true)
-  frame:SetMovable(true)
-  frame:EnableMouse(true)
-  frame:RegisterForDrag("LeftButton")
-  frame:SetScript("OnDragStart", frame.StartMoving)
-  frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-  table.insert(UISpecialFrames, "TackleboxLogWindow") -- Escape closes it
-
-  local title = frame.TitleText or (frame.TitleContainer and frame.TitleContainer.TitleText)
-  if type(title) == "table" then title:SetText(L["Tacklebox catch log"]) end
-
-  frame.zone = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  frame.zone:SetPoint("TOP", 0, -34)
+-- Builds the view inside a menu panel.
+function Window:Attach(frame)
+  self.frame = frame
+  frame.zone = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  frame.zone:SetPoint("TOP", 0, -6)
 
   local function Arrow(text, point, x, step)
     local button = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     button:SetSize(28, 22)
-    button:SetPoint(point, x, -30)
+    button:SetPoint(point, x, 0)
     button:SetText(text)
     button:SetScript("OnClick", function()
       Window.index = (Window.index or 1) + step
@@ -96,32 +83,30 @@ local function Build()
     end)
     return button
   end
-  frame.prev = Arrow("<", "TOPLEFT", 14, -1)
-  frame.next = Arrow(">", "TOPRIGHT", -14, 1)
+  frame.prev = Arrow("<", "TOPLEFT", 0, -1)
+  frame.next = Arrow(">", "TOPRIGHT", 0, 1)
 
   local headers = { name = L["Catch"], count = L["Count"], share = L["Share"], value = L["Value"] }
   for _, column in ipairs(COLUMNS) do
     local text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    text:SetPoint("TOPLEFT", 12 + column.x, -62)
+    text:SetPoint("TOPLEFT", column.x, -30)
     text:SetWidth(column.width)
     text:SetJustifyH(column.justify)
     text:SetText(headers[column.key])
   end
 
   frame.scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-  frame.scroll:SetPoint("TOPLEFT", 12, -80)
-  frame.scroll:SetPoint("BOTTOMRIGHT", -32, 50)
+  frame.scroll:SetPoint("TOPLEFT", 0, -46)
+  frame.scroll:SetPoint("BOTTOMRIGHT", -24, 36)
   frame.content = CreateFrame("Frame", nil, frame.scroll)
-  frame.content:SetSize(WIDTH - 50, ROW_HEIGHT)
+  frame.content:SetSize(410, ROW_HEIGHT)
   frame.scroll:SetScrollChild(frame.content)
   frame.rows = {}
 
   frame.total = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  frame.total:SetPoint("BOTTOMLEFT", 14, 30)
+  frame.total:SetPoint("BOTTOMLEFT", 4, 16)
   frame.allTime = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  frame.allTime:SetPoint("BOTTOMLEFT", 14, 14)
-  frame:Hide() -- new frames start shown; Toggle decides
-  return frame
+  frame.allTime:SetPoint("BOTTOMLEFT", 4, 0)
 end
 
 function Window:Refresh()
@@ -173,17 +158,11 @@ function Window:Refresh()
     casts, catches, Compat.CoinString(value), ns.FormatTime(seconds)))
 end
 
-function Window:Toggle()
-  if not self.frame then self.frame = Build() end
-  if self.frame:IsShown() then
-    self.frame:Hide()
-    return
-  end
-  -- Open on the zone the player is standing in, when it has catches.
+-- Start on the zone the player is standing in, when it has catches.
+function Window:ShowHere()
   local here = C_Map and C_Map.GetBestMapForUnit("player")
   for index, zone in ipairs(Zones()) do
     if zone.mapID == here then self.index = index end
   end
-  self.frame:Show()
   self:Refresh()
 end

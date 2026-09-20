@@ -6,6 +6,7 @@ local Options = ns:NewModule("Options")
 
 BINDING_HEADER_TACKLEBOX = "Tacklebox"
 BINDING_NAME_TACKLEBOX_TOGGLE = L["Toggle fishing mode"]
+BINDING_NAME_TACKLEBOX_MENU = L["Open the Tacklebox window"]
 
 ---------------------------------------------------------------------------
 -- The fishing key
@@ -224,6 +225,7 @@ commands.help = function()
   ns:Print(L["Commands:"])
   for _, line in ipairs({
     L["/tb - toggle fishing mode"],
+    L["/tb menu - open the Tacklebox window"],
     L["/tb always [on|off] - keep fishing mode on all the time"],
     L["/tb bind - pick the fishing key (/tb key F sets it directly, /tb key none clears it)"],
     L["/tb lure <item link or ID> - choose the lure (/tb lure auto, /tb lure off)"],
@@ -354,7 +356,9 @@ commands.midnight = function()
 end
 commands.tokka = commands.midnight
 commands.hud = function() ns.HUD:Toggle() end
-commands.log = function() ns.LogWindow:Toggle() end
+commands.menu = function() ns.Menu:Toggle() end
+commands.log = function() ns.Menu:Toggle("log") end
+commands.lures = function() ns.Menu:Toggle("lures") end
 commands.stats = function() ns.Log:PrintStats() end
 commands.reset = function() ns.Log:ResetSession() end
 commands.options = function() Options:Open() end

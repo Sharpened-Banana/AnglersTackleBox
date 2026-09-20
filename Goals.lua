@@ -34,7 +34,7 @@ local function Progress(achievementID)
   return done / total, string.format("%d/%d", done, total)
 end
 
-local function PrintMounts()
+local function MountLines(lines)
   if not C_MountJournal or #Data.mounts == 0 then return end
   local missing, total = {}, 0
   for _, mount in ipairs(Data.mounts) do
@@ -47,16 +47,18 @@ local function PrintMounts()
     end
   end
   if total == 0 then return end
-  ns:Print(string.format(L["Fishing mounts: %d of %d collected."], total - #missing, total))
-  for _, name in ipairs(missing) do print("   " .. name) end
+  lines[#lines + 1] = { text = string.format(L["Fishing mounts: %d of %d collected."], total - #missing, total),
+    header = true }
+  for _, name in ipairs(missing) do lines[#lines + 1] = { text = name } end
 end
 
-function Goals:Print()
-  PrintMounts()
+function Goals:Lines()
+  local lines = {}
+  MountLines(lines)
   local categoryID = FishingCategory()
   if not categoryID then
-    ns:Print(L["No fishing achievements on this game version."])
-    return
+    lines[#lines + 1] = { text = L["No fishing achievements on this game version."], header = true }
+    return lines
   end
 
   local rows, finished, count = {}, 0, GetCategoryNumAchievements(categoryID) or 0
@@ -78,13 +80,19 @@ function Goals:Print()
     return a.name < b.name
   end)
 
-  ns:Print(string.format(L["Fishing achievements: %d of %d done."], finished, finished + #rows))
+  lines[#lines + 1] = { text = string.format(L["Fishing achievements: %d of %d done."], finished, finished + #rows),
+    header = true }
   for i = 1, math.min(MAX_LINES, #rows) do
     local row = rows[i]
     local link = GetAchievementLink and GetAchievementLink(row.id) or row.name
-    print(string.format("   %s  |cffffd100%s|r", link, row.text))
+    lines[#lines + 1] = { text = string.format("%s  |cffffd100%s|r", link, row.text) }
   end
   if #rows > MAX_LINES then
-    print(string.format("   " .. L["...and %d more."], #rows - MAX_LINES))
+    lines[#lines + 1] = { text = string.format(L["...and %d more."], #rows - MAX_LINES) }
   end
+  return lines
+end
+
+function Goals:Print()
+  ns:PrintLines(self:Lines())
 end

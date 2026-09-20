@@ -87,23 +87,36 @@ function Events:Headline()
   return string.format(L["%s in %s"], best.name, Duration(bestMinutes))
 end
 
-function Events:Print()
+function Events:Lines()
   local weekday, minute = RealmNow()
-  ns:Print(L["Fishing events (realm time):"])
+  local lines = { { text = L["Fishing events (realm time):"], header = true } }
+  local dasher = DasherRemaining()
+  if dasher then
+    lines[#lines + 1] = {
+      text = string.format("|cff40ff40" .. L["Derby Dasher: %s left"] .. "|r", ns.FormatTime(dasher)),
+    }
+  end
   for _, event in ipairs(SCHEDULE) do
     local active, minutes = Status(event, weekday, minute)
     if active then
-      print(string.format("   |cff40ff40%s|r - " .. L["on now, %s left"], event.name, Duration(minutes)))
+      lines[#lines + 1] = {
+        text = string.format("|cff40ff40%s|r - " .. L["on now, %s left"], event.name, Duration(minutes)),
+      }
     else
-      print(string.format("   %s - " .. L["starts in %s"], event.name, Duration(minutes)))
+      lines[#lines + 1] = { text = string.format("%s - " .. L["starts in %s"], event.name, Duration(minutes)) }
     end
   end
   if Compat.isClassicEra then
     local month = tonumber(date("%m"))
     local inSeason = (month >= 9 or month <= 3) and L["Winter Squid (September to March)"]
       or L["Raw Summer Bass (April to August)"]
-    print(string.format("   " .. L["In season: %s"], inSeason))
+    lines[#lines + 1] = { text = string.format(L["In season: %s"], inSeason) }
   end
+  return lines
+end
+
+function Events:Print()
+  ns:PrintLines(self:Lines())
 end
 
 function Events:Enable()

@@ -19,12 +19,16 @@ local function Frame(name)
   function f:UnregisterAllEvents() self.events = {} end
   function f:SetScript(s, fn) self.scripts[s] = fn end
   function f:SetAttribute(k, v) self.attrs[k] = v end
-  function f:Show() self.shown = true end
-  function f:Hide() self.shown = false end
+  function f:Show() local was = self.shown; self.shown = true; if not was and self.scripts.OnShow then self.scripts.OnShow(self) end end
+  function f:Hide() local was = self.shown; self.shown = false; if was and self.scripts.OnHide then self.scripts.OnHide(self) end end
   function f:SetShown(v) self.shown = v and true or false end
   function f:IsShown() return self.shown end
   function f:GetPoint() return "CENTER", nil, "CENTER", 0, 0 end
   function f:CreateFontString() return Frame() end
+  function f:CreateTexture() return Frame() end
+  function f:GetHighlightTexture() return Frame() end
+  function f:CreateAnimationGroup() return Frame() end
+  function f:CreateAnimation() return Frame() end
   frames[#frames + 1] = f
   if name then _G[name] = f end
   return f
@@ -126,7 +130,7 @@ print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 
 local ns = {}
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Midnight.lua", "Planner.lua", "Engine.lua", "Options.lua" }) do
+  "Lures.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("Tacklebox", ns)
 end
 local btn = TackleboxActionButton
@@ -255,8 +259,20 @@ local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do if e ~
 advance(5)
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers")
 check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session summary saved")
+-- the Tacklebox window
+local cursor
+GetCursorInfo = function() if cursor then return "item", cursor end end
+ClearCursor = function() cursor = nil end
+SlashCmdList.TACKLEBOX("menu")
+check(TackleboxMenu and TackleboxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
+for _, key in ipairs({ "lures", "log", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
+check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
+advance(2)
+check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")
 SlashCmdList.TACKLEBOX("log")
-check(TackleboxLogWindow and TackleboxLogWindow.shown, "log window opens")
+check(TackleboxMenu.shown and ns.Menu.selected == "log", "/tb log switches to the catch log compartment")
+SlashCmdList.TACKLEBOX("log")
+check(not TackleboxMenu.shown and ns.Menu.ticker == nil, "menu closes and its ticker stops")
 
 -- always on
 SlashCmdList.TACKLEBOX("always on")

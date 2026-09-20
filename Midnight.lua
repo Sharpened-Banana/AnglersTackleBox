@@ -73,28 +73,35 @@ function Midnight:FilamentCount()
   if count and count > 0 then return count end
 end
 
-function Midnight:Print()
+function Midnight:Lines()
   local names = Data.midnight
+  local lines = {}
+  local function Add(text) lines[#lines + 1] = { text = text, header = true } end
 
   local factionID = FindFaction()
   if factionID then
     local standing, progress, span = Reputation(factionID)
     if progress then
-      ns:Print(string.format("%s: %s, %d/%d", names.factionName, standing or "?", progress, span))
+      Add(string.format("%s: %s, %d/%d", names.factionName, standing or "?", progress, span))
     else
-      ns:Print(string.format("%s: %s", names.factionName, standing or "?"))
+      Add(string.format("%s: %s", names.factionName, standing or "?"))
     end
   else
-    ns:Print(string.format(L["%s: not found in your reputation list yet (check that its header isn't collapsed)."],
+    Add(string.format(L["%s: not found in your reputation list yet (check that its header isn't collapsed)."],
       names.factionName))
   end
 
   local filament = self:FilamentCount()
   if filament then
     local goal = names.mountCost
-    ns:Print(string.format(L["%s: %d of %d for the mount (%d%%)."], names.currencyName,
+    Add(string.format(L["%s: %d of %d for the mount (%d%%)."], names.currencyName,
       filament, goal, math.floor(math.min(1, filament / goal) * 100)))
   else
-    ns:Print(string.format(L["%s: none found yet."], names.currencyName))
+    Add(string.format(L["%s: none found yet."], names.currencyName))
   end
+  return lines
+end
+
+function Midnight:Print()
+  ns:PrintLines(self:Lines())
 end
