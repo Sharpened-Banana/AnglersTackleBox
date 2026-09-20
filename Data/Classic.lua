@@ -3,8 +3,8 @@ local _, ns = ...
 local Data = {}
 ns.Data = Data
 
--- Angler's Fishing Raft exists from Mists on; on Classic Era the item is
--- simply never found.
+-- Angler's Fishing Raft. Where the item doesn't exist it is simply never
+-- found, so the raft option does nothing.
 Data.raft = { item = 85500, spell = 124036 }
 
 -- Lures to pick from automatically, best first.
