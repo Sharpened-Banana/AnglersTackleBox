@@ -34,10 +34,19 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb hud` | Show or hide the session window |
 | `/tb log` | Catch log window: per-zone catches, share, value and pools |
 | `/tb stats`, `/tb reset` | Print or restart session stats |
+| `/tb find <fish>` | Where you catch it, from your own log (no argument opens the Journal) |
+| `/tb gold` | Best zones and spots by gold per hour |
+| `/tb records`, `/tb share [party\|guild\|say]` | Personal records; post this session to chat |
+| `/tb camera save\|on\|off` | Fishing camera zoom preset |
+| `/tb pins`, `/tb minimap` | Toggle world map pins and the minimap button |
 | `/tb events` | Countdowns to the fishing contests (realm time) |
 | `/tb goals` | Progress on unfinished fishing achievements |
 | `/tb midnight` | Captain Tokka's Crew reputation and Coiled Filament toward the mount |
 | `/tb options` | Open the settings panel |
+
+## Leaving the gold module out of a release
+
+Everything gold-related (rankings, value alert, sell helper, history chart) lives in `Gold.lua`, and nothing else depends on it. To keep it private, remove `Gold.lua` from the three TOC files and add it to `ignore:` in `.pkgmeta`. The Gold compartment and `/tb gold` disappear by themselves.
 
 ## Development
 

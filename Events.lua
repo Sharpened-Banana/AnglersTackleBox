@@ -99,6 +99,7 @@ function Events:Lines()
       text = string.format("|cff40ff40" .. L["Derby Dasher: %s left"] .. "|r", ns.FormatTime(dasher)),
     }
   end
+  ns.Goals:DerbyLines(lines)
   for _, event in ipairs(SCHEDULE) do
     local active, minutes = Status(event, weekday, minute)
     if active then

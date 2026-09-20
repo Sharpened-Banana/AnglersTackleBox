@@ -239,6 +239,10 @@ commands.help = function()
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
     L["/tb hud - show or hide the session window"],
     L["/tb log - open the catch log window"],
+    L["/tb find <fish> - where you catch it, from your own log"],
+    L["/tb gold - best zones and spots by gold per hour"],
+    L["/tb records - personal records;  /tb share [party|guild|say] - post this session to chat"],
+    L["/tb camera save|on|off - fishing camera zoom;  /tb pins, /tb minimap - toggle map pins, minimap button"],
     L["/tb stats - session and zone catch stats"],
     L["/tb reset - restart the session counters"],
     L["/tb events - fishing contest countdowns"],
@@ -387,6 +391,50 @@ commands.midnight = function()
 end
 commands.tokka = commands.midnight
 commands.hud = function() ns.HUD:Toggle() end
+commands.find = function(rest)
+  if rest == "" then
+    ns.Menu:Open("journal")
+  else
+    ns:PrintLines(ns.Journal:Find(rest))
+  end
+end
+commands.journal = function() ns.Menu:Toggle("journal") end
+
+commands.gold = function()
+  if ns.Gold then
+    ns:PrintLines(ns.Gold:Lines())
+  else
+    ns:Print(L["The gold module isn't part of this build."])
+  end
+end
+
+commands.records = function() ns:PrintLines(ns.Records:Lines()) end
+commands.share = function(rest) ns.Records:Share(rest) end
+
+commands.camera = function(rest)
+  local lower = rest:lower()
+  if lower == "save" then
+    ns.Camera:Save()
+  else
+    ns.db.camera.enabled = OnOff(lower, ns.db.camera.enabled)
+    ns:Print(ns.db.camera.enabled and L["Fishing camera on."] or L["Fishing camera off."])
+    if ns.db.camera.enabled and not ns.db.camera.zoom then
+      ns:Print(L["Zoom to where you like it, then type /tb camera save."])
+    end
+  end
+end
+
+commands.pins = function(rest)
+  ns.db.mapPins = OnOff(rest:lower(), ns.db.mapPins)
+  ns.Spots:RefreshPins()
+  ns:Print(ns.db.mapPins and L["Fishing spots shown on the world map."] or L["Fishing spots hidden."])
+end
+
+commands.minimap = function(rest)
+  ns.db.minimap.hide = not OnOff(rest:lower(), not ns.db.minimap.hide)
+  ns.Broker:UpdateButton()
+end
+
 commands.menu = function() ns.Menu:Toggle() end
 commands.log = function() ns.Menu:Toggle("log") end
 commands.lures = function() ns.Menu:Toggle("lures") end

@@ -180,6 +180,7 @@ end
 local lastClick = 0
 btn:SetScript("PostClick", function()
   local now = GetTime()
+  ns.Core.lastInput = now -- for the away warning
   if now - lastClick < 0.25 then return end -- key down and key up both click
   lastClick = now
   if Engine.prep and Engine.armed ~= "reel" and Engine.armed ~= nil then

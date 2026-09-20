@@ -86,6 +86,19 @@ Data.mounts = {
   { item = 275653 },  -- Sea-Dwelling Isle Serpent
 }
 
+-- Rare drops worth counting attempts for. A cast counts when it is in scope:
+-- on the given continent (pools only, where noted), or when it brought up a
+-- fish from the given item ID range. "chance" is a community estimate.
+Data.rareDrops = {
+  { key = "seaTurtle", name = "Sea Turtle", item = 46109, mountSpell = 64731,
+    continent = 113, poolOnly = true, chance = 0.002 },
+  { key = "netherEgg", name = "Nether-Warped Egg", item = 268730, mountItem = 260916,
+    fishRange = { 238360, 238390 } },
+}
+
+-- Hallowfall Fishing Derby quest variants.
+Data.derbyQuests = { 82778, 83529, 83530, 83531, 83532 }
+
 -- A hovered world object counts as a fishing pool when its name has one of
 -- these words (enUS). Other locales accept any hovered object.
 Data.poolWords = {

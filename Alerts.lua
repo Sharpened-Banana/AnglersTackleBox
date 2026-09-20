@@ -13,6 +13,9 @@ Alerts.categories = {
   { key = "npc", label = L["Master Grenadier Birdie"] },
   { key = "lure", label = L["Lure warnings"] },
   { key = "event", label = L["Fishing events"] },
+  { key = "value", label = L["Valuable catches"] },
+  { key = "record", label = L["Personal records"] },
+  { key = "afk", label = L["Away warnings"] },
 }
 
 local NPC_THROTTLE = 120

@@ -25,6 +25,22 @@ end
 local UnitValue
 function Log.UnitValue(itemID) return UnitValue(itemID) end
 
+-- Auction price (nil without a pricing addon) and vendor price, in copper.
+function Log.Prices(itemID)
+  local auction
+  local api = Auctionator and Auctionator.API and Auctionator.API.v1
+  if api and api.GetAuctionPriceByItemID then
+    local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
+    if ok and price then auction = price end
+  end
+  if not auction and TSM_API and TSM_API.GetCustomPriceValue then
+    local ok, price = pcall(TSM_API.GetCustomPriceValue, "dbmarket", "i:" .. itemID)
+    if ok and price then auction = price end
+  end
+  local _, _, _, _, _, _, _, _, _, _, vendor = Compat.GetItemInfo(itemID)
+  return auction, vendor or 0
+end
+
 function UnitValue(itemID)
   local api = Auctionator and Auctionator.API and Auctionator.API.v1
   if api and api.GetAuctionPriceByItemID then
@@ -64,11 +80,14 @@ function Log:EndSession()
   if not s or s.casts == 0 then return end
 
   local sessions = ns.chardb.sessions
-  table.insert(sessions, {
+  local summary = {
     start = s.start, stop = time(),
     casts = s.casts, catches = s.catches, value = s.value,
     mapID = C_Map and C_Map.GetBestMapForUnit("player") or nil,
-  })
+  }
+  table.insert(sessions, summary)
+  self.lastSession = s -- the sell helper still wants its items
+  ns:Fire("SESSION_END", summary, s)
 
   -- Old sessions roll up into daily totals so the file stays small.
   while #sessions > MAX_SESSIONS do
@@ -88,6 +107,7 @@ function Log:OnCast()
     self.session = NewSession()
     ns.HUD:UpdateVisibility()
   end
+  if self.session.casts == 0 then ns:Fire("SESSION_START") end
   local hovered = self.hovered
   if hovered and GetTime() - hovered.at <= HOVER_WINDOW then self.pool = hovered.name end
   local s = self.session
@@ -131,8 +151,10 @@ local function Record(itemID, name, quantity, quality)
   entry.name = name
   entry.subs[subzone] = (entry.subs[subzone] or 0) + quantity
 
+  local unit = UnitValue(itemID)
   s.items[itemID] = (s.items[itemID] or 0) + quantity
-  s.value = s.value + UnitValue(itemID) * quantity
+  s.value = s.value + unit * quantity
+  ns:Fire("CATCH", itemID, name, quantity, quality, unit)
 
   if Log.pool then
     entry.pools = entry.pools or {}
@@ -199,7 +221,7 @@ local function OnLoot()
   if not Compat.IsFishingLoot(recentlyFished) then return end
   Log.lootSeen = true
 
-  local caught = false
+  local caught, looted = false, {}
   for slot = 1, GetNumLootItems() do
     if GetLootSlotType(slot) == LOOT_SLOT_ITEM then
       local link = GetLootSlotLink(slot)
@@ -208,12 +230,16 @@ local function OnLoot()
         local itemID = tonumber(link:match("item:(%d+)"))
         if itemID then
           Record(itemID, name, quantity or 1, quality)
+          looted[itemID] = (looted[itemID] or 0) + (quantity or 1)
           caught = true
         end
       end
     end
   end
-  if caught then s.catches = s.catches + 1 end
+  if caught then
+    s.catches = s.catches + 1
+    ns:Fire("CAST_LOOTED", looted, Log.pool)
+  end
   ns.HUD:Refresh()
 end
 

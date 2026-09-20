@@ -23,6 +23,22 @@ function ns:Print(msg)
   print("|cff4fc3f7Tacklebox|r: " .. tostring(msg))
 end
 
+-- Internal messages, so optional modules can react to catches and sessions
+-- without the log knowing about them: CAST_LOOTED, CATCH, SESSION_START,
+-- SESSION_END.
+local listeners = {}
+
+function ns:On(message, handler)
+  listeners[message] = listeners[message] or {}
+  table.insert(listeners[message], handler)
+end
+
+function ns:Fire(message, ...)
+  local handlers = listeners[message]
+  if not handlers then return end
+  for i = 1, #handlers do handlers[i](...) end
+end
+
 -- Reports are lists of { text = ..., header = bool } so chat and the menu
 -- window can show the same thing.
 function ns:PrintLines(lines)
@@ -55,6 +71,11 @@ ns.defaults = {
   alerts = true,
   alertQuality = 3,     -- alert on catches of this quality and up
   alertFlash = false,   -- flash the screen edges with each alert
+  valueAlert = 0,       -- gold; alert on a single catch worth at least this (0 = off)
+  mapPins = true,       -- show fished spots on the world map
+  afkWarning = true,
+  camera = { enabled = false }, -- zoom preset applied while fishing
+  minimap = { hide = false, angle = 215 },
   alertTypes = {},      -- [category] = false turns one kind of alert off
   audio = {
     enabled = true,
@@ -76,6 +97,10 @@ ns.charDefaults = {
   lureEnabled = true,
   lureID = nil,         -- nil = pick from Data.lures
   extras = {},          -- item/toy IDs kept up while fishing
+  spots = {},           -- [mapID] = list of places fished
+  records = {},         -- personal bests
+  attempts = {},        -- rare-drop attempt counters
+  skill = {},           -- fishing skill-up history
   log = {},
   sessions = {},
   daily = {},
@@ -231,6 +256,7 @@ end
 function Core:Unfocus()
   if not self.focused then return end
   self.focused = false
+  ForEachModule("Unfocus", true)
   CVars:RestoreAll()
 end
 
@@ -266,6 +292,7 @@ function Core:Suspend()
   if not self.mode or self.suspended then return end
   self.suspended = true
   ForEachModule("Suspend", true)
+  if self.focused then ForEachModule("Unfocus", true) end
   self.focused = false
   CVars:RestoreAll()
 end

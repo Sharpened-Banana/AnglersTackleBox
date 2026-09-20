@@ -22,6 +22,12 @@ Alerts.lua
 LogWindow.lua
 Events.lua
 Goals.lua
+Spots.lua
+Journal.lua
+Gold.lua
+QoL.lua
+Broker.lua
+Records.lua
 Planner.lua
 Engine.lua
 Menu.lua

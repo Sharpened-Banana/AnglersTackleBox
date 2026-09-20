@@ -44,6 +44,10 @@ read_globals = {
   "UnitGUID", "strsplit", "GetLocale", "TooltipDataProcessor", "GameTooltip", "C_MountJournal",
   -- Menu
   "GetCursorInfo", "ClearCursor", "GetItemIcon", "GetSpellTexture",
+  -- Spots, gold, comforts, broker, records, goals
+  "WorldMapFrame", "hooksecurefunc", "GetCameraZoom", "CameraZoomIn", "CameraZoomOut", "UnitIsAFK",
+  "LibStub", "Minimap", "GetCursorPosition", "IsInGroup", "IsInGuild", "SendChatMessage", "C_ChatInfo",
+  "GetProfessions", "GetProfessionInfo", "GetNumSkillLines", "GetSkillLineInfo", "C_QuestLog",
   -- Misc
   "C_Timer", "C_Map", "C_CVar", "GetCVar", "SetCVar", "C_CurrencyInfo", "GetCoinTextureString",
   "issecretvalue", "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CLASSIC",

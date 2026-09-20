@@ -10,7 +10,7 @@ ns.Menu = Menu
 
 local SOLID = "Interface\\Buttons\\WHITE8x8"
 local WIDTH, HEIGHT, LID, TRAY = 660, 520, 48, 156
-local SLOT_HEIGHT = 50
+local SLOT_HEIGHT = 40
 
 -- Moulded-plastic greens, a cream tray, brass fittings.
 local COLOR = {
@@ -93,9 +93,10 @@ local function DropSlot(parent, text, onItem)
 end
 
 -- A scrolling block of report lines, as produced by the X:Lines() functions.
-local function Report(panel, getLines)
+-- "top" leaves room above it for a compartment's own controls.
+local function Report(panel, getLines, top)
   local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
-  scroll:SetPoint("TOPLEFT", 0, 0)
+  scroll:SetPoint("TOPLEFT", 0, -(top or 0))
   scroll:SetPoint("BOTTOMRIGHT", -24, 0)
   local content = CreateFrame("Frame", nil, scroll)
   content:SetSize(410, 10)
@@ -105,7 +106,7 @@ local function Report(panel, getLines)
   text:SetWidth(410)
   text:SetJustifyH("LEFT")
   text:SetSpacing(4)
-  panel.Refresh = function()
+  local function Refresh()
     local out = {}
     for _, line in ipairs(getLines()) do
       out[#out + 1] = line.header and ("|cffffd100" .. line.text .. "|r") or ("   " .. line.text)
@@ -113,6 +114,8 @@ local function Report(panel, getLines)
     text:SetText(table.concat(out, "\n"))
     content:SetHeight(math.max(10, text:GetStringHeight() or 10))
   end
+  panel.Refresh = panel.Refresh or Refresh
+  return Refresh
 end
 
 ---------------------------------------------------------------------------
@@ -155,6 +158,8 @@ local function BuildTopTray(panel)
 
   local reset = Button(panel, L["Reset session"], 120, function() ns.Log:ResetSession() Menu:Refresh() end)
   reset:SetPoint("TOPLEFT", 0, -284)
+  local share = Button(panel, L["Share to chat"], 120, function() ns.Records:Share() end)
+  share:SetPoint("LEFT", reset, "RIGHT", 8, 0)
   local window = Check(panel, L["Show the small session window while fishing"], ns.db.hud, "shown",
     function() ns.HUD:UpdateVisibility() end)
   window:SetPoint("TOPLEFT", 0, -316)
@@ -176,6 +181,7 @@ local function BuildTopTray(panel)
       for index = 1, #rows do rows[index]:SetText("-") end
     end
     reset:SetEnabled(stats ~= nil)
+    share:SetEnabled(stats ~= nil and stats.casts > 0)
   end
 end
 
@@ -363,6 +369,162 @@ local function BuildBobbers(panel)
   end
 end
 
+-- Journal: every fish you have logged on the left of the search box's list;
+-- click one for its page.
+local function BuildJournal(panel)
+  local search = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+  search:SetSize(200, 20)
+  search:SetPoint("TOPLEFT", 6, 0)
+  search:SetAutoFocus(false)
+  local hint = Label(panel, "GameFontDisableSmall", L["Type to find a fish"])
+  hint:SetPoint("LEFT", search, "RIGHT", 10, 0)
+
+  local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+  scroll:SetPoint("TOPLEFT", 0, -28)
+  scroll:SetPoint("TOPRIGHT", -24, -28)
+  scroll:SetHeight(130)
+  local content = CreateFrame("Frame", nil, scroll)
+  content:SetSize(410, 10)
+  scroll:SetScrollChild(content)
+
+  local rows, selected = {}, nil
+  local page = CreateFrame("Frame", nil, panel)
+  page:SetPoint("TOPLEFT", 0, -170)
+  page:SetPoint("BOTTOMRIGHT", 0, 0)
+  local refreshPage = Report(page, function()
+    if selected then return ns.Journal:Page(selected) end
+    return { { text = L["Pick a fish above to see where you catch it."] } }
+  end)
+
+  local function Refresh()
+    local needle = (search:GetText() or ""):lower()
+    local shown = 0
+    for _, fish in ipairs(ns.Journal:Fish()) do
+      if needle == "" or fish.name:lower():find(needle, 1, true) then
+        shown = shown + 1
+        local row = rows[shown]
+        if not row then
+          row = CreateFrame("Button", nil, content)
+          row:SetSize(400, 18)
+          row:SetPoint("TOPLEFT", 0, -(shown - 1) * 18)
+          row.glow = Fill(row, "BACKGROUND", COLOR.brass, 0.25)
+          row.glow:SetAllPoints()
+          row.name = Label(row, "GameFontHighlightSmall")
+          row.name:SetPoint("LEFT", 4, 0)
+          row.count = Label(row, "GameFontHighlightSmall")
+          row.count:SetPoint("RIGHT", -4, 0)
+          row:SetHighlightTexture(SOLID)
+          row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.08)
+          row:SetScript("OnClick", function(self)
+            selected = self.fish
+            Menu:Refresh()
+          end)
+          rows[shown] = row
+        end
+        row.fish = fish
+        row.name:SetText(fish.name)
+        row.count:SetText(fish.total)
+        row.glow:SetShown(selected ~= nil and selected.id == fish.id)
+        row:Show()
+        if selected and selected.id == fish.id then selected = fish end -- fresh numbers
+      end
+    end
+    for index = shown + 1, #rows do rows[index]:Hide() end
+    content:SetHeight(math.max(10, shown * 18))
+    refreshPage()
+  end
+  search:SetScript("OnTextChanged", Refresh)
+  search:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  search:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+  panel.Refresh = Refresh
+end
+
+-- Gold: the value alert, a bar chart of recent sessions, and the rankings.
+local CHART_BARS, CHART_HEIGHT = 30, 70
+
+local function BuildGold(panel)
+  local label = Label(panel, "GameFontHighlight", L["Alert when one catch is worth at least"])
+  label:SetPoint("TOPLEFT", 2, -4)
+  local box = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+  box:SetSize(60, 20)
+  box:SetPoint("LEFT", label, "RIGHT", 12, 0)
+  box:SetAutoFocus(false)
+  box:SetNumeric(true)
+  local unit = Label(panel, "GameFontHighlight", L["gold  (0 = off)"])
+  unit:SetPoint("LEFT", box, "RIGHT", 6, 0)
+  local function Commit(self)
+    ns.db.valueAlert = tonumber(self:GetText()) or 0
+    self:ClearFocus()
+  end
+  box:SetScript("OnEnterPressed", Commit)
+  box:SetScript("OnEditFocusLost", Commit)
+  box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
+  local chartTitle = Label(panel, "GameFontNormal")
+  chartTitle:SetPoint("TOPLEFT", 2, -34)
+  local chart = CreateFrame("Frame", nil, panel)
+  chart:SetPoint("TOPLEFT", 0, -52)
+  chart:SetSize(410, CHART_HEIGHT)
+  Fill(chart, "BACKGROUND", COLOR.tray, 0.08):SetAllPoints()
+  local bars = {}
+  for index = 1, CHART_BARS do
+    local bar = CreateFrame("Frame", nil, chart)
+    bar:SetWidth(410 / CHART_BARS - 3)
+    bar:SetPoint("BOTTOMLEFT", (index - 1) * (410 / CHART_BARS) + 1, 0)
+    Fill(bar, "ARTWORK", COLOR.brass):SetAllPoints()
+    bar:EnableMouse(true)
+    bar:SetScript("OnEnter", function(self)
+      if not self.session then return end
+      GameTooltip:SetOwner(self, "ANCHOR_TOP")
+      GameTooltip:SetText(date("%Y-%m-%d %H:%M", self.session.start))
+      GameTooltip:AddLine(string.format(L["%s per hour, %s in total"], Compat.CoinString(self.session.perHour),
+        Compat.CoinString(self.session.value)), 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    bar:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    bars[index] = bar
+  end
+
+  local report = CreateFrame("Frame", nil, panel)
+  report:SetPoint("TOPLEFT", 0, -134)
+  report:SetPoint("BOTTOMRIGHT", 0, 0)
+  local refreshReport = Report(report, function() return ns.Gold:Lines() end)
+
+  panel.Refresh = function()
+    if not box:HasFocus() then box:SetText(tostring(ns.db.valueAlert or 0)) end
+    local history = ns.Gold:History(CHART_BARS)
+    local best = 0
+    for _, session in ipairs(history) do best = math.max(best, session.perHour) end
+    chartTitle:SetText(best > 0
+      and string.format(L["Gold per hour, last %d sessions (best %s)"], #history, Compat.CoinString(best))
+      or L["Gold per hour by session - nothing saved yet"])
+    for index, bar in ipairs(bars) do
+      local session = history[index]
+      bar.session = session
+      bar:SetShown(session ~= nil and best > 0)
+      if session and best > 0 then
+        bar:SetHeight(math.max(2, session.perHour / best * CHART_HEIGHT))
+      end
+    end
+    refreshReport()
+  end
+end
+
+local function BuildRecords(panel)
+  local share = Button(panel, L["Share this session to chat"], 200, function() ns.Records:Share() end)
+  share:SetPoint("TOPLEFT", 0, 0)
+  local note = Label(panel, "GameFontDisableSmall", L["Party if you are in one, else guild, else say."])
+  note:SetPoint("LEFT", share, "RIGHT", 10, 0)
+  local report = CreateFrame("Frame", nil, panel)
+  report:SetPoint("TOPLEFT", 0, -36)
+  report:SetPoint("BOTTOMRIGHT", 0, 0)
+  local refreshReport = Report(report, function() return ns.Records:Lines() end)
+  panel.Refresh = function()
+    share:SetEnabled(ns.Records:Summary() ~= nil)
+    refreshReport()
+  end
+end
+
 local function BuildLog(panel)
   ns.LogWindow:Attach(panel)
   panel.Refresh = function() ns.LogWindow:Refresh() end
@@ -380,12 +542,28 @@ local function BuildSettings(panel)
     Check(panel, L["Alerts on screen and with sound"], ns.db, "alerts"),
     Check(panel, L["Flash the screen on alerts"], ns.db, "alertFlash"),
     Check(panel, L["Fishing event reminders"], ns.db, "eventAlerts"),
+    Check(panel, L["Warn before the game marks me away"], ns.db, "afkWarning"),
+    Check(panel, L["Show my fishing spots on the world map"], ns.db, "mapPins",
+      function() ns.Spots:RefreshPins() end),
   }
+  local minimap = Check(panel, L["Minimap button"], ns.db.minimap, "hide",
+    function() ns.Broker:UpdateButton() end)
+  -- Stored as "hide", shown as "show".
+  minimap:SetScript("OnClick", function(self)
+    ns.db.minimap.hide = not self:GetChecked()
+    ns.Broker:UpdateButton()
+  end)
+  minimap.Sync = function() minimap:SetChecked(not ns.db.minimap.hide) end
+  checks[#checks + 1] = minimap
+  local camera = Check(panel, L["Use my saved fishing camera zoom"], ns.db.camera, "enabled")
+  checks[#checks + 1] = camera
   for index, check in ipairs(checks) do
-    check:SetPoint("TOPLEFT", 0, -(index - 1) * 30)
+    check:SetPoint("TOPLEFT", 0, -(index - 1) * 25)
   end
+  local saveCamera = Button(panel, L["Save current zoom"], 140, function() ns.Camera:Save() Menu:Refresh() end)
+  saveCamera:SetPoint("TOPLEFT", 270, -(#checks - 1) * 25)
   local all = Button(panel, L["All settings..."], 140, function() ns.Options:Open() end)
-  all:SetPoint("TOPLEFT", 0, -#checks * 30 - 12)
+  all:SetPoint("TOPLEFT", 0, -#checks * 25 - 8)
   panel.Refresh = function()
     for _, check in ipairs(checks) do check.Sync() end
   end
@@ -404,6 +582,8 @@ local function Compartments()
     { key = "bobbers", name = L["Bobbers"], icon = Data.oversizedBobber and ItemIcon(Data.oversizedBobber.item),
       build = BuildBobbers },
     { key = "log", name = L["Catch Log"], icon = "Interface\\Icons\\INV_Misc_Book_09", build = BuildLog },
+    { key = "journal", name = L["Journal"], icon = "Interface\\Icons\\INV_Misc_Note_01", build = BuildJournal },
+    { key = "gold", name = L["Gold"], icon = "Interface\\Icons\\INV_Misc_Coin_01", build = BuildGold },
     { key = "goals", name = L["Goals"], icon = SpellIcon(64731),
       build = function(panel) Report(panel, function() return ns.Goals:Lines() end) end },
     { key = "events", name = L["Events"], icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
@@ -415,6 +595,13 @@ local function Compartments()
       and C_CurrencyInfo.GetCurrencyInfo(Data.midnight.currencyID)
     list[#list + 1] = { key = "midnight", name = L["Coiled Isle"], icon = info and info.iconFileID,
       build = function(panel) Report(panel, function() return ns.Midnight:Lines() end) end }
+  end
+  list[#list + 1] = { key = "records", name = L["Records"], icon = "Interface\\Icons\\INV_Crown_01",
+    build = BuildRecords }
+  if not ns.Gold then -- the gold module can be left out of a build
+    for index = #list, 1, -1 do
+      if list[index].key == "gold" then table.remove(list, index) end
+    end
   end
   list[#list + 1] = { key = "settings", name = L["Settings"], icon = "Interface\\Icons\\INV_Misc_Gear_01",
     build = BuildSettings }
@@ -540,7 +727,7 @@ local function BuildBox()
     ridge:SetPoint("BOTTOMRIGHT")
     ridge:SetHeight(2)
     local slotIcon = slot:CreateTexture(nil, "OVERLAY")
-    slotIcon:SetSize(32, 32)
+    slotIcon:SetSize(28, 28)
     slotIcon:SetPoint("LEFT", 14, 0)
     slotIcon:SetTexture(compartment.icon or "Interface\\Icons\\Trade_Fishing")
     local name = Label(slot, "GameFontNormal", compartment.name)
