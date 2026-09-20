@@ -61,7 +61,7 @@ ns.defaults = {
     muteAmbience = true,
     backgroundSound = true,
   },
-  hud = { shown = true, scale = 1.0 },
+  hud = { shown = true, scale = 1.0, tab = "session" },
   ids = {},             -- game IDs discovered at runtime (faction, currency)
   cvarBackup = {},
 }

@@ -170,6 +170,17 @@ fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 check(ns.Engine.state == "READY" and bindings.F == "CLICK TackleboxActionButton", "miss -> re-armed to cast at once")
 
+-- session window tabs
+check(TackleboxHUD and TackleboxHUD.shown, "session window showing")
+for _, tab in ipairs({ "lures", "log", "session" }) do ns.db.hud.tab = tab; ns.HUD:Refresh() end
+check(ns.Events:Headline(true) == "STV Extravaganza in 10m", "session window footer uses short event names")
+counts[241145] = 2; ns.db.hud.tab = "lures"; ns.HUD:Refresh()
+local lureRow = TackleboxHUD.rows[2]
+check(lureRow.onClick ~= nil, "lures tab: a lure in the bags is clickable")
+lureRow.scripts.OnClick(lureRow)
+check(ns.chardb.lureID == 241145, "lures tab: clicking a lure selects it")
+ns.chardb.lureID = nil; counts[241145] = nil; ns.db.hud.tab = "session"
+
 -- pools
 hover("Mailbox"); hover("Sunwell Swarm")
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)

@@ -12,10 +12,12 @@ local DASHER_WARNING = 300 -- seconds
 
 -- weekday: 1 = Sunday ... 7 = Saturday, nil = every day. Minutes from midnight.
 local SCHEDULE = {
-  { name = L["Stranglethorn Fishing Extravaganza"], weekday = 1, start = 14 * 60, stop = 16 * 60 },
+  { name = L["Stranglethorn Fishing Extravaganza"], short = L["STV Extravaganza"],
+    weekday = 1, start = 14 * 60, stop = 16 * 60 },
 }
 if Compat.isRetail then
-  table.insert(SCHEDULE, { name = L["Hallowfall Fishing Derby"], weekday = 7, start = 0, stop = DAY })
+  table.insert(SCHEDULE, { name = L["Hallowfall Fishing Derby"], short = L["Hallowfall Derby"],
+    weekday = 7, start = 0, stop = DAY })
 end
 if Compat.isClassicEra then
   -- Best hours. Nightfin never drops 12:00-18:00, Sunscale never 00:00-06:00.
@@ -65,8 +67,8 @@ local function DasherRemaining()
 end
 
 -- The event worth showing: a running derby timer first, then whatever is
--- on, else whatever starts next.
-function Events:Headline()
+-- on, else whatever starts next. The session window asks for short names.
+function Events:Headline(short)
   local dasher = DasherRemaining()
   if dasher then
     return string.format(L["Derby Dasher: %s left"], ns.FormatTime(dasher))
@@ -81,10 +83,11 @@ function Events:Headline()
     if better then best, bestActive, bestMinutes = event, active, minutes end
   end
   if not best then return nil end
+  local name = short and best.short or best.name
   if bestActive then
-    return string.format(L["%s: %s left"], best.name, Duration(bestMinutes))
+    return string.format(L["%s: %s left"], name, Duration(bestMinutes))
   end
-  return string.format(L["%s in %s"], best.name, Duration(bestMinutes))
+  return string.format(L["%s in %s"], name, Duration(bestMinutes))
 end
 
 function Events:Lines()
