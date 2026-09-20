@@ -388,7 +388,7 @@ advance(5)
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers (shop-window events for the sell helper aside)")
 check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session summary saved")
 check(zoom == 15, "camera: restored when fishing ends")
-check(ns.chardb.records.sessionValue and ns.chardb.records.catch, "records: set when the session ends")
+check(ns.chardb.records.sessionValue and ns.chardb.records.sessionCatches, "records: set when the session ends")
 check(#ns.Gold:Lines() >= 4 and #ns.Records:Lines() >= 3, "gold and records reports build")
 counts[220134] = 3
 check(ns.Gold:SellLines()[1] ~= nil, "gold: sell helper prices the session's fish still in the bags")
