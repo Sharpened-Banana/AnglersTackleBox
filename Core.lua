@@ -61,6 +61,7 @@ ns.defaults = {
   welcomed = false,     -- the first-run welcome has been seen
   alwaysOn = false,     -- fishing mode turns itself on at login and after instances
   softInteract = true,  -- raise the soft-interact CVars while fishing
+  classicSoftInteract = false, -- WoW Forever: reel with soft interact instead of mouseover
   autoLoot = true,
   useRaft = false,
   doubleClick = false,  -- double right-click performs the armed action

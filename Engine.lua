@@ -68,7 +68,7 @@ function Engine:Rearm()
   if self.state == "CHANNELING" then
     if self.armed ~= "reel" then
       Release()
-      if key then SetOverrideBinding(btn, true, key, Compat.INTERACT) end -- next press reels in
+      if key then SetOverrideBinding(btn, true, key, Compat.Interact()) end -- next press reels in
       self.armed, self.action = "reel", nil
       self.nextLabel = L["Reel in"]
       ns.HUD:Refresh()
@@ -126,7 +126,7 @@ end
 
 -- Runs at the first cast: soft interact is what lets the key grab the bobber.
 function Engine:Focus()
-  if ns.db.softInteract and Compat.INTERACT == "INTERACTTARGET" then
+  if ns.db.softInteract and Compat.Interact() == "INTERACTTARGET" then
     local CVars = ns.CVars
     CVars:Set("SoftTargetInteract", 3)
     CVars:Set("SoftTargetInteractArc", 2)

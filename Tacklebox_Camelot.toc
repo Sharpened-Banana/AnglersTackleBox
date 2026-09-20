@@ -1,4 +1,4 @@
-## Interface: 50504
+## Interface: 16001
 ## Title: Tacklebox
 ## Notes: One-key fishing that remembers what you caught.
 ## Version: @project-version@

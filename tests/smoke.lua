@@ -194,6 +194,9 @@ if CLASSIC then
   check(btn.attrs.spell == "Fishing" and btn.attrs["target-slot"] == nil, "classic: pole enchant seen -> back to casting")
   fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06)
   check(bindings.F == "INTERACTMOUSEOVER", "classic: reel in through mouseover interact")
+  ns.db.classicSoftInteract = true; ns.Engine.armed = nil; ns.Engine:Rearm()
+  check(bindings.F == "INTERACTTARGET" , "classic: soft-interact reel is available as an option")
+  ns.db.classicSoftInteract = false
   loot = { { id = 6358, name = "Oily Blackmouth", qty = 1, quality = 1 } }
   fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
   check(ns.Log:Stats().catches == 1, "classic: catch logged")

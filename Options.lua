@@ -173,6 +173,8 @@ local function BuildPanel()
     L["Size of the session window."], 0.6, 2, 0.05, Percent, UpdateHUD)
 
   if Compat.needsPole then
+    Checkbox(db, defaults, "classicSoftInteract", L["Reel in without aiming (soft interact)"],
+      L["Off: point at the bobber and press your key. On: the key grabs the bobber by itself, as on Retail."])
     Checkbox(db, defaults, "autoPole", L["Fishing mode follows the pole"],
       L["Turns fishing mode on when you equip a fishing pole and off when you remove it."],
       function() ns.Core:UpdateAutoPole() end)

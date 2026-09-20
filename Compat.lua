@@ -1,4 +1,5 @@
--- Every Retail/Classic difference lives here. The rest of the addon calls
+-- Every difference between Retail and WoW Forever (the Classic-style client,
+-- TOC suffix _Camelot) lives here. The rest of the addon calls
 -- Compat.* and never checks the game version itself.
 local _, ns = ...
 
@@ -12,8 +13,12 @@ Compat.isClassicEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 -- Everywhere else the pole has to be in the main hand.
 Compat.needsPole = not Compat.isRetail
 
--- Soft interact is reliable on Retail; Classic reels through mouseover.
-Compat.INTERACT = Compat.isRetail and "INTERACTTARGET" or "INTERACTMOUSEOVER"
+-- Soft interact is reliable on Retail. WoW Forever reels through mouseover
+-- unless the player opts into soft interact there too.
+function Compat.Interact()
+  if Compat.isRetail or (ns.db and ns.db.classicSoftInteract) then return "INTERACTTARGET" end
+  return "INTERACTMOUSEOVER"
+end
 
 local MAINHAND = INVSLOT_MAINHAND or 16
 Compat.MAINHAND = MAINHAND
