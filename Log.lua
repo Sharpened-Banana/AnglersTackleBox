@@ -32,21 +32,83 @@ function Log.IsJunk(itemID)
   return quality == 0
 end
 
+---------------------------------------------------------------------------
+-- Prices, guarded against troll listings. Junk is vendor-only. For the rest:
+-- the lower of Auctionator and TSM when both are loaded; a per-item memory
+-- that ignores a price jumping SPIKE-fold unless it is still there on a
+-- later day; and an absolute ceiling per single fish.
+---------------------------------------------------------------------------
+
+local SPIKE = 10
+local CACHE_SECONDS = 5
+local COPPER_PER_GOLD = 10000
+local priceCache = {}
+Log.suspect = {} -- [itemID] = { listed = copper, used = copper }
+
+local function RawAuctionPrice(itemID)
+  local lowest
+  local api = Auctionator and Auctionator.API and Auctionator.API.v1
+  if api and api.GetAuctionPriceByItemID then
+    local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
+    if ok and price and price > 0 then lowest = price end
+  end
+  if TSM_API and TSM_API.GetCustomPriceValue then
+    local ok, price = pcall(TSM_API.GetCustomPriceValue, "dbmarket", "i:" .. itemID)
+    if ok and price and price > 0 then lowest = math.min(lowest or price, price) end
+  end
+  return lowest
+end
+
+-- The price to trust for an item, given what the pricing addons say now.
+local function Guarded(itemID, raw)
+  local memory = ns.db.prices
+  local known = memory[itemID]
+  local today = date("%Y-%m-%d")
+  local ceiling = (ns.db.priceCap or 0) * COPPER_PER_GOLD
+
+  if ceiling > 0 and raw > ceiling then
+    Log.suspect[itemID] = { listed = raw, used = known and known.price or 0 }
+    return known and known.price or nil
+  end
+
+  if known and raw > known.price * SPIKE then
+    -- A spike. Believe it only once it has lasted into another day.
+    local pending = known.pending
+    if pending and pending.day ~= today and raw >= pending.price / 2 then
+      memory[itemID] = { price = raw, day = today }
+      Log.suspect[itemID] = nil
+      return raw
+    end
+    if not pending then known.pending = { price = raw, day = today } end
+    Log.suspect[itemID] = { listed = raw, used = known.price }
+    return known.price
+  end
+
+  memory[itemID] = { price = raw, day = today }
+  Log.suspect[itemID] = nil
+  return raw
+end
+
 -- Auction price (nil without a pricing addon, and for junk) and vendor
 -- price, in copper.
 function Log.Prices(itemID)
+  local now = GetTime()
+  local cached = priceCache[itemID]
+  if cached and now - cached.at < CACHE_SECONDS then return cached.auction, cached.vendor end
+
   local auction
-  local api = not Log.IsJunk(itemID) and Auctionator and Auctionator.API and Auctionator.API.v1
-  if api and api.GetAuctionPriceByItemID then
-    local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
-    if ok and price then auction = price end
-  end
-  if not auction and not Log.IsJunk(itemID) and TSM_API and TSM_API.GetCustomPriceValue then
-    local ok, price = pcall(TSM_API.GetCustomPriceValue, "dbmarket", "i:" .. itemID)
-    if ok and price then auction = price end
+  if not Log.IsJunk(itemID) then
+    local raw = RawAuctionPrice(itemID)
+    if raw then auction = Guarded(itemID, raw) end
   end
   local _, _, _, _, _, _, _, _, _, _, vendor = Compat.GetItemInfo(itemID)
-  return auction, vendor or 0
+  vendor = vendor or 0
+  priceCache[itemID] = { at = now, auction = auction, vendor = vendor }
+  return auction, vendor
+end
+
+function Log.ForgetPrices()
+  wipe(priceCache)
 end
 
 function UnitValue(itemID)
@@ -245,6 +307,62 @@ end
 ns:OnModeEvent("LOOT_READY", OnLoot)
 ns:OnModeEvent("LOOT_OPENED", OnLoot)
 ns:OnModeEvent("LOOT_CLOSED", function() Log.lootSeen = nil end)
+
+---------------------------------------------------------------------------
+-- Upkeep: the log is the player's to prune.
+---------------------------------------------------------------------------
+
+-- Forgets a zone's catches and its fishing spots.
+function Log:ForgetZone(mapID)
+  ns.chardb.log[mapID] = nil
+  ns.chardb.spots[mapID] = nil
+  ns.Spots:RefreshPins()
+end
+
+-- Saved sessions, newest first, for /tb sessions and the gold chart.
+function Log:SessionLines(count)
+  local sessions = ns.chardb.sessions
+  local lines = { { text = string.format(L["Saved sessions (%d, newest first):"], #sessions), header = true } }
+  for index = #sessions, math.max(1, #sessions - count + 1), -1 do
+    local session = sessions[index]
+    lines[#lines + 1] = { text = string.format("#%d  %s  %d casts, %d catches, %s", index,
+      date("%Y-%m-%d %H:%M", session.start), session.casts, session.catches, Compat.CoinString(session.value)) }
+  end
+  if #sessions == 0 then lines[#lines + 1] = { text = L["None yet."] } end
+  return lines
+end
+
+function Log:DropSession(index)
+  return table.remove(ns.chardb.sessions, index) ~= nil
+end
+
+function Log:ClearSessions()
+  wipe(ns.chardb.sessions)
+  wipe(ns.chardb.daily)
+end
+
+-- The whole catch log as CSV text.
+function Log:ExportCSV()
+  local rows = { "zone,map_id,item,item_id,count,first_catch,last_catch,subzones,pools" }
+  local function Quote(text) return '"' .. tostring(text):gsub('"', '""') .. '"' end
+  local function Flat(tbl)
+    local parts = {}
+    for name, count in pairs(tbl or {}) do parts[#parts + 1] = name .. " " .. count end
+    table.sort(parts)
+    return table.concat(parts, "; ")
+  end
+  for mapID, zone in pairs(ns.chardb.log) do
+    local info = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
+    for itemID, entry in pairs(zone) do
+      rows[#rows + 1] = table.concat({
+        Quote(info and info.name or mapID), mapID, Quote(entry.name or ""), itemID, entry.count,
+        entry.first and date("%Y-%m-%d", entry.first) or "", entry.last and date("%Y-%m-%d", entry.last) or "",
+        Quote(Flat(entry.subs)), Quote(Flat(entry.pools)),
+      }, ",")
+    end
+  end
+  return table.concat(rows, "\n"), #rows - 1
+end
 
 function Log:ResetSession()
   if self.session then self.session = NewSession() end

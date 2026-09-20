@@ -58,6 +58,7 @@ end
 
 ns.defaults = {
   key = nil,            -- the one fishing key, e.g. "F" or "SHIFT-BUTTON4"
+  welcomed = false,     -- the first-run welcome has been seen
   alwaysOn = false,     -- fishing mode turns itself on at login and after instances
   softInteract = true,  -- raise the soft-interact CVars while fishing
   autoLoot = true,
@@ -72,6 +73,8 @@ ns.defaults = {
   alertQuality = 3,     -- alert on catches of this quality and up
   alertFlash = false,   -- flash the screen edges with each alert
   valueAlert = 0,       -- gold; alert on a single catch worth at least this (0 = off)
+  priceCap = 2000,      -- gold; a single fish listed above this is ignored (0 = no ceiling)
+  prices = {},          -- [itemID] = last trusted auction price, for spike detection
   ahScan = true,        -- refresh stale fish prices when the auction house opens
   ahScanDays = 1,       -- prices at least this old count as stale
   mapPins = true,       -- show fished spots on the world map
@@ -384,6 +387,7 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     if not Core.loggedIn then
       Core.loggedIn = true
       if not ns.db.alwaysOn then frame:UnregisterEvent("PLAYER_ENTERING_WORLD") end
+      ns.Welcome:Maybe()
       -- Gear can't be swapped back during logout, so finish that job now.
       if ns.chardb.gearBackup then
         C_Timer.After(2, function()

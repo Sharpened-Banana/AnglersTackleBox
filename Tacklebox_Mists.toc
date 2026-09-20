@@ -31,4 +31,5 @@ Records.lua
 Planner.lua
 Engine.lua
 Menu.lua
+Welcome.lua
 Options.lua

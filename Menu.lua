@@ -467,10 +467,29 @@ local function BuildGold(panel)
   end)
   scan:SetPoint("TOPLEFT", 330, -28)
 
+  local capLabel = Label(panel, "GameFontHighlight", L["Ignore any single fish listed above"])
+  capLabel:SetPoint("TOPLEFT", 2, -60)
+  local cap = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+  cap:SetSize(60, 20)
+  cap:SetPoint("LEFT", capLabel, "RIGHT", 12, 0)
+  cap:SetAutoFocus(false)
+  cap:SetNumeric(true)
+  local capUnit = Label(panel, "GameFontHighlight", L["gold  (0 = no ceiling)"])
+  capUnit:SetPoint("LEFT", cap, "RIGHT", 6, 0)
+  local function CommitCap(self)
+    ns.db.priceCap = tonumber(self:GetText()) or 0
+    ns.Log.ForgetPrices()
+    self:ClearFocus()
+    Menu:Refresh()
+  end
+  cap:SetScript("OnEnterPressed", CommitCap)
+  cap:SetScript("OnEditFocusLost", CommitCap)
+  cap:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
   local chartTitle = Label(panel, "GameFontNormal")
-  chartTitle:SetPoint("TOPLEFT", 2, -64)
+  chartTitle:SetPoint("TOPLEFT", 2, -88)
   local chart = CreateFrame("Frame", nil, panel)
-  chart:SetPoint("TOPLEFT", 0, -82)
+  chart:SetPoint("TOPLEFT", 0, -106)
   chart:SetSize(410, CHART_HEIGHT)
   Fill(chart, "BACKGROUND", COLOR.tray, 0.08):SetAllPoints()
   local bars = {}
@@ -486,20 +505,29 @@ local function BuildGold(panel)
       GameTooltip:SetText(date("%Y-%m-%d %H:%M", self.session.start))
       GameTooltip:AddLine(string.format(L["%s per hour, %s in total"], Compat.CoinString(self.session.perHour),
         Compat.CoinString(self.session.value)), 1, 1, 1)
+      GameTooltip:AddLine(L["Shift-right-click to drop this session"], 0.5, 0.5, 0.5)
       GameTooltip:Show()
+    end)
+    bar:SetScript("OnMouseUp", function(self, button)
+      if button == "RightButton" and IsShiftKeyDown() and self.session then
+        ns.Log:DropSession(self.session.index)
+        GameTooltip:Hide()
+        Menu:Refresh()
+      end
     end)
     bar:SetScript("OnLeave", function() GameTooltip:Hide() end)
     bars[index] = bar
   end
 
   local report = CreateFrame("Frame", nil, panel)
-  report:SetPoint("TOPLEFT", 0, -164)
+  report:SetPoint("TOPLEFT", 0, -188)
   report:SetPoint("BOTTOMRIGHT", 0, 0)
   local refreshReport = Report(report, function() return ns.Gold:Lines() end)
 
   panel.Refresh = function()
     autoScan.Sync()
     if not box:HasFocus() then box:SetText(tostring(ns.db.valueAlert or 0)) end
+    if not cap:HasFocus() then cap:SetText(tostring(ns.db.priceCap or 0)) end
     local history = ns.Gold:History(CHART_BARS)
     local best = 0
     for _, session in ipairs(history) do best = math.max(best, session.perHour) end

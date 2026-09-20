@@ -87,6 +87,17 @@ function Gold:Lines()
       lines[#lines + 1] = { text = L["Visit the auction house to refresh them (/tb scan while it is open)."] }
     end
   end
+  local shownSuspect = false
+  for itemID, suspect in pairs(ns.Log.suspect) do
+    if not shownSuspect then
+      lines[#lines + 1] = { text = L["Suspicious prices being ignored:"], header = true }
+      shownSuspect = true
+    end
+    lines[#lines + 1] = { text = string.format(L["%s - listed at %s, counted as %s"],
+      Compat.GetItemInfo(itemID) or ("item:" .. itemID), Compat.CoinString(suspect.listed),
+      Compat.CoinString(suspect.used)) }
+  end
+
   lines[#lines + 1] = { text = L["Best zones by gold per hour (your sessions):"], header = true }
   local zones = self:Zones()
   for index = 1, math.min(8, #zones) do
@@ -119,6 +130,7 @@ function Gold:History(count)
     local session = sessions[index]
     local seconds = math.max(0, session.stop - session.start)
     out[#out + 1] = {
+      index = index,
       perHour = seconds >= 60 and (session.value / seconds * 3600) or 0,
       value = session.value, start = session.start, mapID = session.mapID,
     }

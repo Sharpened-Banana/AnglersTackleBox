@@ -104,6 +104,29 @@ function Window:Attach(frame)
   frame.rows = {}
 
   frame.total = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  local export = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+  export:SetSize(90, 20)
+  export:SetPoint("BOTTOMRIGHT", -2, 14)
+  export:SetText(L["Export CSV"])
+  export:SetScript("OnClick", function() Window:ShowExport() end)
+
+  -- Forgetting asks for a second click instead of a popup.
+  local forget = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+  forget:SetSize(110, 20)
+  forget:SetPoint("RIGHT", export, "LEFT", -4, 0)
+  forget:SetScript("OnClick", function(button)
+    local zone = Zones()[Window.index or 1]
+    if not zone then return end
+    if button.armedFor == zone.mapID and GetTime() < (button.armedUntil or 0) then
+      ns.Log:ForgetZone(zone.mapID)
+      button.armedFor = nil
+    else
+      button.armedFor, button.armedUntil = zone.mapID, GetTime() + 5
+    end
+    Window:Refresh()
+  end)
+  frame.forget = forget
+
   frame.total:SetPoint("BOTTOMLEFT", 4, 16)
   frame.allTime = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   frame.allTime:SetPoint("BOTTOMLEFT", 4, 0)
@@ -148,6 +171,12 @@ function Window:Refresh()
       zoneCount, #items, Compat.CoinString(zoneValue)))
   end
 
+  local forget = frame.forget
+  local current = zones[self.index or 1]
+  local armed = current and forget.armedFor == current.mapID and GetTime() < (forget.armedUntil or 0)
+  forget:SetText(armed and L["Really forget?"] or L["Forget zone"])
+  forget:SetEnabled(current ~= nil)
+
   for index = used + 1, #frame.rows do SetRow(frame.rows[index]) end
   frame.content:SetHeight(math.max(ROW_HEIGHT, used * ROW_HEIGHT))
   frame.prev:SetEnabled(#zones > 1)
@@ -156,6 +185,47 @@ function Window:Refresh()
   local casts, catches, value, seconds = AllTime()
   frame.allTime:SetText(string.format(L["All saved sessions: %d casts, %d catches, %s in %s."],
     casts, catches, Compat.CoinString(value), ns.FormatTime(seconds)))
+end
+
+-- The CSV goes into a selectable text box: addons can't write files, so
+-- copying it out is the export.
+function Window:ShowExport()
+  local box = self.export
+  if not box then
+    box = CreateFrame("Frame", "TackleboxExport", UIParent, "BackdropTemplate")
+    box:SetSize(520, 320)
+    box:SetPoint("CENTER")
+    box:SetFrameStrata("DIALOG")
+    box:SetBackdrop({
+      bgFile = "Interface\\Buttons\\WHITE8x8",
+      edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+      edgeSize = 14,
+      insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    box:SetBackdropColor(0.04, 0.08, 0.06, 0.97)
+    table.insert(UISpecialFrames, "TackleboxExport")
+    box.title = box:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    box.title:SetPoint("TOPLEFT", 12, -10)
+    local close = CreateFrame("Button", nil, box, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -2, -2)
+    local scroll = CreateFrame("ScrollFrame", nil, box, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 12, -32)
+    scroll:SetPoint("BOTTOMRIGHT", -32, 12)
+    box.edit = CreateFrame("EditBox", nil, scroll)
+    box.edit:SetMultiLine(true)
+    box.edit:SetAutoFocus(false)
+    box.edit:SetFontObject("ChatFontSmall")
+    box.edit:SetWidth(470)
+    box.edit:SetScript("OnEscapePressed", function() box:Hide() end)
+    scroll:SetScrollChild(box.edit)
+    self.export = box
+  end
+  local text, count = ns.Log:ExportCSV()
+  box.title:SetText(string.format(L["%d rows - press Ctrl+C (Cmd+C on a Mac) to copy"], count))
+  box.edit:SetText(text)
+  box:Show()
+  box.edit:SetFocus()
+  box.edit:HighlightText()
 end
 
 -- Start on the zone the player is standing in, when it has catches.

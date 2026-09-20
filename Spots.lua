@@ -99,6 +99,7 @@ local function PinTooltip(pin)
     local name = Compat.GetItemInfo(rows[index].id) or ("item:" .. rows[index].id)
     GameTooltip:AddLine(string.format("%s x%d", name, rows[index].n), 0.7, 0.7, 0.7)
   end
+  GameTooltip:AddLine(L["Shift-right-click to forget this spot"], 0.5, 0.5, 0.5)
   GameTooltip:Show()
 end
 
@@ -125,11 +126,15 @@ function Spots:RefreshPins()
       pin.icon = pin:CreateTexture(nil, "ARTWORK")
       pin.icon:SetAllPoints()
       pin.icon:SetTexture("Interface\\Icons\\Trade_Fishing")
+      pin:RegisterForClicks("RightButtonUp")
+      pin:SetScript("OnClick", function(clicked)
+        if IsShiftKeyDown() then Spots:Forget(clicked.mapID, clicked.spot) end
+      end)
       pin:SetScript("OnEnter", PinTooltip)
       pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
       pins[index] = pin
     end
-    pin.spot = spot
+    pin.spot, pin.mapID = spot, WorldMapFrame:GetMapID()
     pin:SetSize(size, size)
     pin:ClearAllPoints()
     pin:SetPoint("CENTER", overlay, "TOPLEFT", spot.x * width, -spot.y * height)
@@ -147,7 +152,27 @@ function Spots:Init()
   end
 end
 
-function Spots:ClearMap(mapID)
-  ns.chardb.spots[mapID] = nil
-  self:RefreshPins()
+function Spots:Forget(mapID, spot)
+  local list = ns.chardb.spots[mapID]
+  if not list then return false end
+  for index, existing in ipairs(list) do
+    if existing == spot then
+      table.remove(list, index)
+      if self.lastSpot == spot then self.lastSpot = nil end
+      self:RefreshPins()
+      return true
+    end
+  end
+  return false
+end
+
+-- Forgets the spot the player is standing on.
+function Spots:ForgetHere()
+  local mapID, x, y = PlayerPosition()
+  if not mapID then return false end
+  for _, spot in ipairs(ns.chardb.spots[mapID] or {}) do
+    local dx, dy = spot.x - x, spot.y - y
+    if dx * dx + dy * dy <= MERGE * MERGE then return self:Forget(mapID, spot) end
+  end
+  return false
 end

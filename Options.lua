@@ -238,7 +238,9 @@ commands.help = function()
     L["/tb doubleclick [on|off] - double right-click does the same as the key"],
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
     L["/tb hud - show or hide the session window;  /tb tabs - choose its tabs"],
-    L["/tb log - open the catch log window"],
+    L["/tb log - open the catch log window;  /tb export - the catch log as CSV"],
+    L["/tb sessions [drop <number>|clear] - list or remove saved sessions"],
+    L["/tb forget spot - forget the fishing spot you are standing on"],
     L["/tb find <fish> - where you catch it, from your own log"],
     L["/tb gold - best zones and spots by gold per hour"],
     L["/tb scan - refresh fish prices (at the auction house, needs Auctionator)"],
@@ -408,6 +410,33 @@ commands.gold = function()
     ns:PrintLines(ns.Gold:Lines())
   else
     ns:Print(L["The gold module isn't part of this build."])
+  end
+end
+
+commands.welcome = function() ns.Welcome:Show() end
+commands.export = function() ns.LogWindow:ShowExport() end
+
+commands.sessions = function(rest)
+  local action, number = rest:lower():match("^(%S*)%s*(%d*)$")
+  if action == "drop" and tonumber(number) then
+    if ns.Log:DropSession(tonumber(number)) then
+      ns:Print(string.format(L["Session #%s dropped."], number))
+    else
+      ns:Print(L["There is no session with that number."])
+    end
+  elseif action == "clear" then
+    ns.Log:ClearSessions()
+    ns:Print(L["All saved sessions dropped. The catch log itself is untouched."])
+  else
+    ns:PrintLines(ns.Log:SessionLines(10))
+  end
+end
+
+commands.forget = function(rest)
+  if rest:lower() == "spot" then
+    ns:Print(ns.Spots:ForgetHere() and L["Spot forgotten."] or L["No saved spot where you are standing."])
+  else
+    ns:Print(L["Use /tb forget spot, or the Forget zone button in the Catch Log."])
   end
 end
 

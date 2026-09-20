@@ -162,7 +162,7 @@ print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 local ns = {}
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua",
-  "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Options.lua" }) do
+  "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("Tacklebox", ns)
 end
 local btn = TackleboxActionButton
@@ -310,7 +310,23 @@ check(searched == nil, "scan: automatic refresh can be turned off")
 check(ns.Gold:Lines()[1].text:find("oldest 3 days ago", 1, true), "gold report shows how old the prices are")
 Auctionator.API.v1.GetAuctionPriceByItemID = function() return 9999999 end
 check(ns.Log.UnitValue(777) == 250, "junk: a grey item is worth its vendor price despite a troll listing")
-check(ns.Log.UnitValue(220134) == 9999999, "junk: real fish still use the auction price")
+-- price guard
+local function price(id) ns.Log.ForgetPrices() return ns.Log.UnitValue(id) end
+check(price(220134) == 250 and ns.Log.suspect[220134].listed == 9999999, "guard: a tenfold spike is ignored and flagged")
+local foundSuspect = false
+for _, line in ipairs(ns.Gold:Lines()) do if line.text:find("counted as", 1, true) then foundSuspect = true end end
+check(foundSuspect, "guard: the gold report lists the ignored price")
+local realDate = date
+date = function(f, t) if f == "%Y-%m-%d" and not t then return "2099-01-01" end return realDate(f, t) end
+check(price(220134) == 9999999 and ns.Log.suspect[220134] == nil, "guard: a spike still there on a later day is believed")
+date = realDate
+Auctionator.API.v1.GetAuctionPriceByItemID = function() return 30000000 end
+check(price(238366) == 250, "guard: a listing above the ceiling is ignored")
+ns.db.priceCap = 0
+Auctionator.API.v1.GetAuctionPriceByItemID = function() return 600 end
+TSM_API = { GetCustomPriceValue = function() return 400 end }
+check(price(555) == 400, "guard: the lower of Auctionator and TSM wins")
+TSM_API = nil; ns.db.priceCap = 2000; ns.db.prices = {}; ns.Log.suspect = {}
 ns.chardb.records.sessionValue = { value = 1, at = 1 }; ns.chardb.records.sessionCatches = { value = 1, at = 1 }
 ns.Records:Reset(true)
 check(ns.chardb.records.sessionValue == nil and ns.chardb.records.sessionCatches ~= nil, "records: gold records can be cleared alone")
@@ -408,14 +424,36 @@ check(TackleboxMenu.shown and ns.Menu.selected == "log", "/tb log switches to th
 SlashCmdList.TACKLEBOX("log")
 check(not TackleboxMenu.shown and ns.Menu.ticker == nil, "menu closes and its ticker stops")
 
+-- upkeep
+local csv, rowCount = ns.Log:ExportCSV()
+check(rowCount >= 2 and csv:find("zone,map_id,item", 1, true) and csv:find('"Eversong Woods",2395,"Test Fish",220134', 1, true), "export: the catch log comes out as CSV")
+SlashCmdList.TACKLEBOX("export")
+check(TackleboxExport and TackleboxExport.shown, "export window opens")
+local before = #ns.chardb.sessions
+SlashCmdList.TACKLEBOX("sessions"); SlashCmdList.TACKLEBOX("sessions drop 1")
+check(#ns.chardb.sessions == before - 1, "sessions: one can be dropped by number")
+position = { x = 0.41, y = 0.62 }
+check(ns.Spots:ForgetHere() and #ns.chardb.spots[2395] == 0, "spots: the spot underfoot can be forgotten")
+ns.Log:ForgetZone(2395)
+check(ns.chardb.log[2395] == nil and ns.chardb.spots[2395] == nil, "log: a zone can be forgotten")
+
+-- welcome
+ns.Welcome:Maybe()
+check(ns.db.welcomed == true, "welcome: skipped for someone who already had a key")
+ns.db.welcomed = false; SlashCmdList.TACKLEBOX("welcome")
+check(TackleboxWelcome.shown, "welcome: can be reopened with /tb welcome")
+TackleboxWelcome:Hide()
+check(ns.db.welcomed == true and ns.Welcome.ticker == nil, "welcome: closing it marks it seen")
+
 -- always on
+local savedBefore = #ns.chardb.sessions
 SlashCmdList.TACKLEBOX("always on")
 check(ns.Core.mode and bindings.F ~= nil, "always on: mode starts by itself")
 check(ns.Log.session == nil and not (TackleboxHUD and TackleboxHUD.shown), "always on: no session or window until the first cast")
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
 check(ns.Log.session ~= nil and TackleboxHUD.shown, "always on: first cast opens the session and window")
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); advance(601)
-check(ns.Log.session == nil and not TackleboxHUD.shown and #ns.chardb.sessions == 2, "always on: session closes after 10 idle minutes")
+check(ns.Log.session == nil and not TackleboxHUD.shown and #ns.chardb.sessions == savedBefore + 1, "always on: session closes after 10 idle minutes")
 check(ns.Core.mode and bindings.F ~= nil, "always on: key stays armed")
 inInstance = true; fire("PLAYER_ENTERING_WORLD")
 check(not ns.Core.mode and next(bindings) == nil, "always on: off inside a dungeon")
