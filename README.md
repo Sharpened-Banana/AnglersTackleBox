@@ -32,6 +32,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb doubleclick [on\|off]` | A quick double right-click does the same as the key |
 | `/tb set <name>`, `/tb set none` | Equipment set to wear while fishing |
 | `/tb hud` | Show or hide the session window |
+| `/tb tabs` | Choose and order the session window's tabs (Session always stays first) |
 | `/tb log` | Catch log window: per-zone catches, share, value and pools |
 | `/tb stats`, `/tb reset` | Print or restart session stats |
 | `/tb find <fish>` | Where you catch it, from your own log (no argument opens the Journal) |

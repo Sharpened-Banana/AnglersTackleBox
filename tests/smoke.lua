@@ -225,6 +225,22 @@ lureRow.scripts.OnClick(lureRow)
 check(ns.chardb.lureID == 241145, "lures tab: clicking a lure selects it")
 ns.chardb.lureID = nil; counts[241145] = nil; ns.db.hud.tab = "session"
 
+-- customisable tabs
+local function tabKeys() local out = {} for _, t in ipairs(ns.HUD:Tabs()) do out[#out + 1] = t.key end return table.concat(out, ",") end
+check(tabKeys() == "session,lures,log", "tabs: default is Session, Lures, Log")
+ns.HUD:SetTab("gold", true); ns.HUD:SetTab("goals", true)
+check(tabKeys() == "session,lures,log,gold,goals", "tabs: others can be added")
+check(ns.HUD:SetTab("events", true) == false and tabKeys() == "session,lures,log,gold,goals", "tabs: full at five")
+ns.HUD:SetTab("lures", false); ns.HUD:SetTab("session", false); ns.HUD:MoveTab("goals", -1)
+check(tabKeys() == "session,log,goals,gold", "tabs: removable and reorderable, Session stays first")
+ns.db.hud.tabs = { "bogus", "log", "log" }
+check(tabKeys() == "session,log", "tabs: unknown and duplicate entries ignored")
+for _, key in ipairs({ "bobbers", "gold", "goals", "events", "records", "midnight" }) do
+  ns.db.hud.tabs = { key }; ns.db.hud.tab = key; ns.HUD:Refresh()
+end
+ns.HUD:ResetTabs()
+check(tabKeys() == "session,lures,log" and ns.db.hud.tab == "session", "tabs: every catalogue tab renders; reset restores the default")
+
 -- pools
 advance(40) -- focus has lapsed, so this cast re-applies the camera
 hover("Mailbox"); hover("Sunwell Swarm")
@@ -358,7 +374,7 @@ GetCursorInfo = function() if cursor then return "item", cursor end end
 ClearCursor = function() cursor = nil end
 SlashCmdList.TACKLEBOX("menu")
 check(TackleboxMenu and TackleboxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
-for _, key in ipairs({ "lures", "bobbers", "log", "journal", "gold", "records", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
+for _, key in ipairs({ "lures", "bobbers", "log", "journal", "gold", "records", "window", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
 check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")

@@ -237,7 +237,7 @@ commands.help = function()
     L["/tb bobber [random|off|item link or ID] - bobber toy to keep up (no argument opens the list)"],
     L["/tb doubleclick [on|off] - double right-click does the same as the key"],
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
-    L["/tb hud - show or hide the session window"],
+    L["/tb hud - show or hide the session window;  /tb tabs - choose its tabs"],
     L["/tb log - open the catch log window"],
     L["/tb find <fish> - where you catch it, from your own log"],
     L["/tb gold - best zones and spots by gold per hour"],
@@ -390,6 +390,7 @@ commands.midnight = function()
   end
 end
 commands.tokka = commands.midnight
+commands.tabs = function() ns.Menu:Open("window") end
 commands.hud = function() ns.HUD:Toggle() end
 commands.find = function(rest)
   if rest == "" then

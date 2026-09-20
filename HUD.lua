@@ -1,5 +1,7 @@
--- Session window, with Session / Lures / Log tabs. The frame is built the
--- first time it is needed, so a character that never fishes never pays for it.
+-- Session window. Session is always the first tab; the rest come from a
+-- catalogue and are the player's choice (default: Lures and Log). The frame
+-- is built the first time it is needed, so a character that never fishes
+-- never pays for it.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -7,11 +9,8 @@ local HUD = ns:NewModule("HUD")
 
 local WIDTH, ROW_COUNT, ROW_HEIGHT = 250, 6, 16
 local TAB_HEIGHT, FOOTER_HEIGHT = 18, 16
-local TABS = {
-  { key = "session", name = L["Session"] },
-  { key = "lures", name = L["Lures"] },
-  { key = "log", name = L["Log"] },
-}
+local MAX_TABS = 5 -- Session plus four
+HUD.MAX_TABS = MAX_TABS
 
 local STATE_TEXT = {
   READY = L["Ready"],
@@ -60,27 +59,24 @@ local function Build()
   frame.state = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   frame.state:SetPoint("TOPRIGHT", -10, -10)
 
-  -- Tabs: plain text buttons with a brass underline on the open one.
+  -- Tabs: plain text buttons with a brass underline on the open one. The
+  -- buttons are a pool; Refresh lays out however many tabs are chosen.
   frame.tabs = {}
-  local tabWidth = (WIDTH - 20) / #TABS
-  for index, tab in ipairs(TABS) do
+  for index = 1, MAX_TABS do
     local button = CreateFrame("Button", nil, frame)
-    button:SetSize(tabWidth, TAB_HEIGHT)
-    button:SetPoint("TOPLEFT", 10 + (index - 1) * tabWidth, -26)
     button.text = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     button.text:SetPoint("CENTER")
-    button.text:SetText(tab.name)
     button.line = button:CreateTexture(nil, "ARTWORK")
     button.line:SetTexture("Interface\\Buttons\\WHITE8x8")
     button.line:SetVertexColor(0.85, 0.66, 0.22)
     button.line:SetPoint("BOTTOMLEFT", 4, 0)
     button.line:SetPoint("BOTTOMRIGHT", -4, 0)
     button.line:SetHeight(2)
-    button:SetScript("OnClick", function()
-      ns.db.hud.tab = tab.key
+    button:SetScript("OnClick", function(self)
+      ns.db.hud.tab = self.key
       HUD:Refresh()
     end)
-    frame.tabs[tab.key] = button
+    frame.tabs[index] = button
   end
 
   -- Rows are buttons so a tab can make them clickable (picking a lure).
@@ -123,16 +119,18 @@ local function Build()
   return frame
 end
 
-local function SetRow(row, left, right, onClick, highlight)
+local ROW_COLORS = { gold = { 1, 0.82, 0 }, green = { 0.25, 1, 0.25 }, white = { 1, 1, 1 } }
+
+-- "style" is true/"green", "white", or nil for the default gold.
+local function SetRow(row, left, right, onClick, style)
   row.left:SetText(left or "")
   row.right:SetText(right or "")
+  -- A row with nothing on the right may use the full width.
+  row.left:SetWidth((right == nil or right == "") and (WIDTH - 20) or (WIDTH - 90))
   row.onClick = onClick
   row:EnableMouse(onClick ~= nil)
-  if highlight then
-    row.left:SetTextColor(0.25, 1, 0.25)
-  else
-    row.left:SetTextColor(1, 0.82, 0)
-  end
+  local color = ROW_COLORS[style == true and "green" or style or "gold"] or ROW_COLORS.gold
+  row.left:SetTextColor(color[1], color[2], color[3])
 end
 
 local function ItemName(itemID)
@@ -236,25 +234,176 @@ function fill.log(frame)
   return L["Full catch log..."], "log"
 end
 
+-- Tabs built from a report: the first rows of its lines.
+local function FromLines(getLines, skipFirstHeader)
+  return function(frame)
+    local shown = 0
+    for index, line in ipairs(getLines()) do
+      if shown < ROW_COUNT and not (skipFirstHeader and index == 1 and line.header) then
+        shown = shown + 1
+        SetRow(frame.rows[shown], line.text, nil, nil, line.header and "gold" or "white")
+      end
+    end
+    for index = shown + 1, ROW_COUNT do SetRow(frame.rows[index]) end
+  end
+end
+
+function fill.bobbers(frame)
+  local rows = frame.rows
+  local active, remaining = ns.Bobbers:Active()
+  if active then
+    SetRow(rows[1], ItemName(active), remaining == math.huge and L["Active"] or ns.FormatTime(remaining), nil, true)
+  else
+    SetRow(rows[1], L["Plain bobber"], ns.db.bobber and L["Next press"] or "")
+  end
+  local choices = { { choice = "random", name = L["Random"] } }
+  for _, itemID in ipairs(ns.Bobbers:Owned()) do
+    choices[#choices + 1] = { choice = itemID, name = ItemName(itemID) }
+  end
+  for index = 2, ROW_COUNT do
+    local entry = choices[index - 1]
+    if entry and #choices > 1 then
+      local chosen = ns.db.bobber == entry.choice
+      SetRow(rows[index], entry.name, chosen and L["chosen"] or "", function()
+        ns.db.bobber = (not chosen) and entry.choice or nil -- click again to turn it off
+        ns.Bobbers.randomPick = nil
+      end, chosen and "green" or "white")
+    elseif index == 2 then
+      SetRow(rows[index], "|cff808080" .. L["No bobber toys in your toy box"] .. "|r")
+    else
+      SetRow(rows[index])
+    end
+  end
+end
+
+function fill.gold(frame)
+  local rows = frame.rows
+  local stats = ns.Log:Stats()
+  SetRow(rows[1], L["Session gold"], stats and Compat.CoinString(stats.value) or "-")
+  SetRow(rows[2], L["Gold per hour"], stats and stats.perHour > 0 and Compat.CoinString(stats.perHour) or "-")
+
+  local spot = ns.Spots.lastSpot
+  local _, spotRate = nil, nil
+  if spot then _, spotRate = ns.Spots.Value(spot) end
+  SetRow(rows[3], L["This spot"], spotRate and (Compat.CoinString(spotRate) .. L["/hr"]) or "-")
+
+  local best = ns.Gold:Zones()[1]
+  if best then
+    local info = C_Map.GetMapInfo(best.mapID)
+    SetRow(rows[4], L["Best zone"], info and info.name or "?")
+    SetRow(rows[5], "", Compat.CoinString(best.perHour) .. L["/hr"])
+  else
+    SetRow(rows[4], L["Best zone"], "-")
+    SetRow(rows[5])
+  end
+  local record = ns.chardb.records.perHour
+  SetRow(rows[6], L["Your record"], record and (Compat.CoinString(record.value) .. L["/hr"]) or "-")
+end
+
+-- Every tab the window can show. Session is fixed in first place.
+HUD.catalog = {
+  { key = "session", name = L["Session"], fill = fill.session, fixed = true },
+  { key = "lures", name = L["Lures"], fill = fill.lures },
+  { key = "log", name = L["Log"], fill = fill.log },
+  { key = "bobbers", name = L["Bobbers"], fill = fill.bobbers, footer = L["All bobber options..."],
+    compartment = "bobbers", available = function() return Data.oversizedBobber ~= nil end },
+  { key = "gold", name = L["Gold"], fill = fill.gold, footer = L["Rankings and history..."],
+    compartment = "gold", available = function() return ns.Gold ~= nil end },
+  { key = "goals", name = L["Goals"], fill = FromLines(function() return ns.Goals:ShortLines() end),
+    footer = L["All goals..."], compartment = "goals" },
+  { key = "events", name = L["Events"], fill = FromLines(function() return ns.Events:Lines() end, true),
+    footer = L["All events..."], compartment = "events" },
+  { key = "records", name = L["Records"], fill = FromLines(function() return ns.Records:Lines() end, true),
+    footer = L["Records and sharing..."], compartment = "records" },
+  { key = "midnight", name = L["Coiled Isle"], fill = FromLines(function() return ns.Midnight:Lines() end),
+    footer = L["Coiled Isle..."], compartment = "midnight", available = function() return ns.Midnight ~= nil end },
+}
+
+function HUD:CatalogEntry(key)
+  for _, entry in ipairs(self.catalog) do
+    if entry.key == key and (not entry.available or entry.available()) then return entry end
+  end
+end
+
+-- The tabs to show: Session, then the player's picks that still exist.
+function HUD:Tabs()
+  local tabs, seen = { self:CatalogEntry("session") }, { session = true }
+  for _, key in ipairs(ns.db.hud.tabs) do
+    local entry = not seen[key] and self:CatalogEntry(key)
+    if entry and #tabs < MAX_TABS then
+      seen[key] = true
+      tabs[#tabs + 1] = entry
+    end
+  end
+  return tabs
+end
+
+-- Adds or removes one of the optional tabs. Returns false when full.
+function HUD:SetTab(key, enabled)
+  local tabs = ns.db.hud.tabs
+  for index = #tabs, 1, -1 do
+    if tabs[index] == key then table.remove(tabs, index) end
+  end
+  if enabled then
+    if #self:Tabs() >= MAX_TABS then return false end
+    table.insert(tabs, key)
+  end
+  self:Refresh()
+  return true
+end
+
+-- Moves an optional tab one place left (-1) or right (+1).
+function HUD:MoveTab(key, direction)
+  local tabs = ns.db.hud.tabs
+  for index, existing in ipairs(tabs) do
+    local target = index + direction
+    if existing == key and tabs[target] then
+      tabs[index], tabs[target] = tabs[target], tabs[index]
+      break
+    end
+  end
+  self:Refresh()
+end
+
+function HUD:ResetTabs()
+  ns.db.hud.tabs = { "lures", "log" }
+  ns.db.hud.tab = "session"
+  self:Refresh()
+end
+
 function HUD:Refresh()
   local frame = self.frame
   if not frame or not frame:IsShown() then return end
 
   frame.state:SetText(STATE_TEXT[ns.Engine.state] or "")
 
-  local selected = ns.db.hud.tab
-  if not fill[selected] then selected = "session" end
-  for key, button in pairs(frame.tabs) do
-    local open = key == selected
-    button.line:SetShown(open)
-    if open then
-      button.text:SetTextColor(1, 1, 1)
-    else
-      button.text:SetTextColor(0.6, 0.6, 0.6)
+  local tabs = self:Tabs()
+  local current = tabs[1]
+  for _, entry in ipairs(tabs) do
+    if entry.key == ns.db.hud.tab then current = entry end
+  end
+  local tabWidth = (WIDTH - 20) / #tabs
+  for index, button in ipairs(frame.tabs) do
+    local entry = tabs[index]
+    button:SetShown(entry ~= nil)
+    if entry then
+      button.key = entry.key
+      button:SetSize(tabWidth, TAB_HEIGHT)
+      button:ClearAllPoints()
+      button:SetPoint("TOPLEFT", 10 + (index - 1) * tabWidth, -26)
+      button.text:SetText(entry.name)
+      local open = entry == current
+      button.line:SetShown(open)
+      if open then
+        button.text:SetTextColor(1, 1, 1)
+      else
+        button.text:SetTextColor(0.6, 0.6, 0.6)
+      end
     end
   end
 
-  local footer, compartment = fill[selected](frame)
+  local footer, compartment = current.fill(frame)
+  footer, compartment = footer or current.footer or "", compartment or current.compartment
   frame.footer.text:SetText(footer)
   frame.footer.compartment = compartment
   frame.footer:EnableMouse(compartment ~= nil)

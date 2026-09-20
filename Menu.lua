@@ -9,7 +9,7 @@ local Menu = {}
 ns.Menu = Menu
 
 local SOLID = "Interface\\Buttons\\WHITE8x8"
-local WIDTH, HEIGHT, LID, TRAY = 660, 520, 48, 156
+local WIDTH, HEIGHT, LID, TRAY = 660, 560, 48, 156
 local SLOT_HEIGHT = 40
 
 -- Moulded-plastic greens, a cream tray, brass fittings.
@@ -160,16 +160,15 @@ local function BuildTopTray(panel)
   reset:SetPoint("TOPLEFT", 0, -284)
   local share = Button(panel, L["Share to chat"], 120, function() ns.Records:Share() end)
   share:SetPoint("LEFT", reset, "RIGHT", 8, 0)
-  local window = Check(panel, L["Show the small session window while fishing"], ns.db.hud, "shown",
-    function() ns.HUD:UpdateVisibility() end)
-  window:SetPoint("TOPLEFT", 0, -316)
+  local window = Button(panel, L["Customise the fishing window..."], 220, function() Menu:Select("window") end)
+  window:SetPoint("TOPLEFT", 0, -320)
 
   panel.Refresh = function()
     local on = ns.Core.mode
     mode:SetText(on and L["Stop fishing mode"] or L["Start fishing mode"])
     modeNote:SetText(on and L["Your key is armed."] or L["Your key does its normal job."])
     keyLabel:SetText(string.format(L["Fishing key: %s"], ns.db.key or ("|cffff5555" .. L["not set"] .. "|r")))
-    always.Sync() double.Sync() window.Sync()
+    always.Sync() double.Sync()
     local stats = ns.Log:Stats()
     if stats then
       rows[1]:SetText(stats.casts)
@@ -510,6 +509,95 @@ local function BuildGold(panel)
   end
 end
 
+-- Window: which tabs the small fishing window shows, and in what order.
+local function BuildWindow(panel)
+  local show = Check(panel, L["Show the window while fishing"], ns.db.hud, "shown",
+    function() ns.HUD:UpdateVisibility() end)
+  show:SetPoint("TOPLEFT", 0, 0)
+
+  local scaleLabel = Label(panel, "GameFontHighlight")
+  scaleLabel:SetPoint("TOPLEFT", 2, -36)
+  local function Scale(step)
+    ns.db.hud.scale = math.max(0.6, math.min(2, (ns.db.hud.scale or 1) + step))
+    ns.HUD:UpdateVisibility()
+    Menu:Refresh()
+  end
+  local smaller = Button(panel, "-", 26, function() Scale(-0.05) end)
+  smaller:SetPoint("TOPLEFT", 130, -31)
+  local bigger = Button(panel, "+", 26, function() Scale(0.05) end)
+  bigger:SetPoint("LEFT", smaller, "RIGHT", 4, 0)
+
+  local header = Label(panel, "GameFontNormal")
+  header:SetPoint("TOPLEFT", 2, -70)
+  local note = Label(panel, "GameFontDisableSmall",
+    L["Session always comes first. Tick the tabs you want; the arrows set their order."])
+  note:SetPoint("TOPLEFT", 2, -88)
+
+  local rows = {}
+  for index = 1, #ns.HUD.catalog do
+    local row = CreateFrame("Frame", nil, panel)
+    row:SetSize(400, 26)
+    row:SetPoint("TOPLEFT", 0, -84 - index * 27)
+    row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+    row.check:SetSize(24, 24)
+    row.check:SetPoint("LEFT")
+    row.name = Label(row, "GameFontHighlight")
+    row.name:SetPoint("LEFT", 30, 0)
+    row.place = Label(row, "GameFontDisableSmall")
+    row.place:SetPoint("LEFT", 160, 0)
+    row.left = Button(row, "<", 26, function() ns.HUD:MoveTab(row.key, -1) Menu:Refresh() end)
+    row.left:SetPoint("LEFT", 270, 0)
+    row.right = Button(row, ">", 26, function() ns.HUD:MoveTab(row.key, 1) Menu:Refresh() end)
+    row.right:SetPoint("LEFT", row.left, "RIGHT", 4, 0)
+    row.check:SetScript("OnClick", function(self)
+      if not ns.HUD:SetTab(row.key, self:GetChecked() and true or false) then
+        ns:Print(string.format(L["The window holds %d tabs. Untick one first."], ns.HUD.MAX_TABS))
+      end
+      Menu:Refresh()
+    end)
+    rows[index] = row
+  end
+  local reset = Button(panel, L["Back to the default tabs"], 190, function()
+    ns.HUD:ResetTabs()
+    Menu:Refresh()
+  end)
+  reset:SetPoint("TOPLEFT", 0, -90 - (#ns.HUD.catalog + 1) * 27)
+
+  panel.Refresh = function()
+    show.Sync()
+    scaleLabel:SetText(string.format(L["Size: %d%%"], math.floor((ns.db.hud.scale or 1) * 100 + 0.5)))
+    local tabs = ns.HUD:Tabs()
+    local place = {}
+    for index, entry in ipairs(tabs) do place[entry.key] = index end
+    header:SetText(string.format(L["Tabs (%d of %d used)"], #tabs, ns.HUD.MAX_TABS))
+
+    -- Chosen tabs first, in their order; then the rest of the catalogue.
+    local ordered = {}
+    for _, entry in ipairs(tabs) do ordered[#ordered + 1] = entry end
+    for _, entry in ipairs(ns.HUD.catalog) do
+      if not place[entry.key] and ns.HUD:CatalogEntry(entry.key) then ordered[#ordered + 1] = entry end
+    end
+    for index, row in ipairs(rows) do
+      local entry = ordered[index]
+      row:SetShown(entry ~= nil)
+      if entry then
+        local position = place[entry.key]
+        row.key = entry.key
+        row.name:SetText(entry.name)
+        row.check:SetChecked(position ~= nil)
+        row.check:SetEnabled(not entry.fixed)
+        row.place:SetText(entry.fixed and L["always first"]
+          or position and string.format(L["tab %d"], position) or "")
+        local movable = position ~= nil and not entry.fixed
+        row.left:SetShown(movable)
+        row.right:SetShown(movable)
+        row.left:SetEnabled(movable and position > 2)
+        row.right:SetEnabled(movable and position < #tabs)
+      end
+    end
+  end
+end
+
 local function BuildRecords(panel)
   local share = Button(panel, L["Share this session to chat"], 200, function() ns.Records:Share() end)
   share:SetPoint("TOPLEFT", 0, 0)
@@ -603,6 +691,8 @@ local function Compartments()
       if list[index].key == "gold" then table.remove(list, index) end
     end
   end
+  list[#list + 1] = { key = "window", name = L["Window"], icon = "Interface\\Icons\\INV_Misc_Spyglass_03",
+    build = BuildWindow }
   list[#list + 1] = { key = "settings", name = L["Settings"], icon = "Interface\\Icons\\INV_Misc_Gear_01",
     build = BuildSettings }
   return list
