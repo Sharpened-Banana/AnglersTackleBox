@@ -12,7 +12,7 @@ local function Step(done, text)
 end
 
 local function Build()
-  local frame = CreateFrame("Frame", "TackleboxWelcome", UIParent, "BackdropTemplate")
+  local frame = CreateFrame("Frame", "AnglersTackleBoxWelcome", UIParent, "BackdropTemplate")
   frame:SetSize(420, 230)
   frame:SetPoint("CENTER", 0, 80)
   frame:SetFrameStrata("DIALOG")
@@ -31,7 +31,7 @@ local function Build()
 
   local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   title:SetPoint("TOPLEFT", 16, -14)
-  title:SetText(L["Welcome to Tacklebox"])
+  title:SetText(L["Welcome to Angler's TackleBox"])
   local intro = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   intro:SetPoint("TOPLEFT", 16, -40)
   intro:SetWidth(388)

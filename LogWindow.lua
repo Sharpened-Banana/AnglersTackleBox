@@ -192,7 +192,7 @@ end
 function Window:ShowExport()
   local box = self.export
   if not box then
-    box = CreateFrame("Frame", "TackleboxExport", UIParent, "BackdropTemplate")
+    box = CreateFrame("Frame", "AnglersTackleBoxExport", UIParent, "BackdropTemplate")
     box:SetSize(520, 320)
     box:SetPoint("CENTER")
     box:SetFrameStrata("DIALOG")
@@ -203,7 +203,7 @@ function Window:ShowExport()
       insets = { left = 3, right = 3, top = 3, bottom = 3 },
     })
     box:SetBackdropColor(0.04, 0.08, 0.06, 0.97)
-    table.insert(UISpecialFrames, "TackleboxExport")
+    table.insert(UISpecialFrames, "AnglersTackleBoxExport")
     box.title = box:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     box.title:SetPoint("TOPLEFT", 12, -10)
     local close = CreateFrame("Button", nil, box, "UIPanelCloseButton")

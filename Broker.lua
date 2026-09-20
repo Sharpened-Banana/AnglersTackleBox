@@ -17,7 +17,7 @@ local function OnClick(_, button)
 end
 
 local function FillTooltip(tooltip)
-  tooltip:AddLine("Tacklebox")
+  tooltip:AddLine("Angler's TackleBox")
   tooltip:AddLine(ns.Core.mode and L["Fishing mode on"] or L["Fishing mode off"], 1, 1, 1)
   local stats = ns.Log:Stats()
   if stats then
@@ -42,7 +42,7 @@ local function Place(button)
 end
 
 local function BuildButton()
-  local button = CreateFrame("Button", "TackleboxMinimapButton", Minimap)
+  local button = CreateFrame("Button", "AnglersTackleBoxMinimapButton", Minimap)
   button:SetSize(31, 31)
   button:SetFrameStrata("MEDIUM")
   button:SetFrameLevel(8)
@@ -83,10 +83,10 @@ function Broker:UpdateButton()
   local icons = LibStub and LibStub("LibDBIcon-1.0", true)
   if icons and self.object then
     if not self.registered then
-      icons:Register("Tacklebox", self.object, ns.db.minimap)
+      icons:Register("AnglersTackleBox", self.object, ns.db.minimap)
       self.registered = true
     end
-    if ns.db.minimap.hide then icons:Hide("Tacklebox") else icons:Show("Tacklebox") end
+    if ns.db.minimap.hide then icons:Hide("AnglersTackleBox") else icons:Show("AnglersTackleBox") end
     return
   end
   if ns.db.minimap.hide then
@@ -100,8 +100,8 @@ end
 function Broker:Init()
   local broker = LibStub and LibStub("LibDataBroker-1.1", true)
   if broker then
-    self.object = broker:NewDataObject("Tacklebox", {
-      type = "data source", label = "Tacklebox", icon = ICON, text = L["Off"],
+    self.object = broker:NewDataObject("AnglersTackleBox", {
+      type = "data source", label = "Angler's TackleBox", icon = ICON, text = L["Off"],
       OnClick = OnClick, OnTooltipShow = FillTooltip,
     })
   end

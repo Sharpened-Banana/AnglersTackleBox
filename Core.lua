@@ -1,5 +1,5 @@
 -- Addon table, saved variables, the fishing-mode toggle and event plumbing.
--- Design rule: with fishing mode off, Tacklebox is inert. Nothing below
+-- Design rule: with fishing mode off, Angler's TackleBox is inert. Nothing below
 -- registers a gameplay event, runs a timer or touches a CVar until the
 -- player turns the mode on. Even with the mode on, CVars only change while
 -- the player is actually fishing ("focus"), so the mode can stay on all day.
@@ -20,7 +20,7 @@ function ns:NewModule(name)
 end
 
 function ns:Print(msg)
-  print("|cff4fc3f7Tacklebox|r: " .. tostring(msg))
+  print("|cff4fc3f7TackleBox|r: " .. tostring(msg))
 end
 
 -- Internal messages, so optional modules can react to catches and sessions
@@ -378,11 +378,11 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     if arg1 ~= ADDON then return end
     frame:UnregisterEvent("ADDON_LOADED")
 
-    TackleboxDB = TackleboxDB or {}
-    TackleboxCharDB = TackleboxCharDB or {}
-    ApplyDefaults(TackleboxDB, ns.defaults)
-    ApplyDefaults(TackleboxCharDB, ns.charDefaults)
-    ns.db, ns.chardb = TackleboxDB, TackleboxCharDB
+    AnglersTackleBoxDB = AnglersTackleBoxDB or {}
+    AnglersTackleBoxCharDB = AnglersTackleBoxCharDB or {}
+    ApplyDefaults(AnglersTackleBoxDB, ns.defaults)
+    ApplyDefaults(AnglersTackleBoxCharDB, ns.charDefaults)
+    ns.db, ns.chardb = AnglersTackleBoxDB, AnglersTackleBoxCharDB
 
     -- Leftovers from a session that never got to clean up.
     CVars:RestoreAll()
@@ -428,16 +428,16 @@ end)
 -- Global entry points: key binding and addon compartment
 ---------------------------------------------------------------------------
 
-function Tacklebox_ToggleFishingMode()
+function AnglersTackleBox_ToggleFishingMode()
   Core:ToggleMode()
 end
 
-function Tacklebox_ToggleMenu()
+function AnglersTackleBox_ToggleMenu()
   ns.Menu:Toggle()
 end
 
 -- Left-click opens the box; right-click is the quick fishing-mode switch.
-function Tacklebox_OnAddonCompartmentClick(_, button)
+function AnglersTackleBox_OnAddonCompartmentClick(_, button)
   if button == "RightButton" then
     Core:ToggleMode()
   else

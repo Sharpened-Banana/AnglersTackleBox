@@ -1,4 +1,4 @@
-package-as: Tacklebox
+package-as: AnglersTackleBox
 
 ignore:
   - "Tacklebox — WoW Fishing Addon Design.md"
@@ -6,3 +6,4 @@ ignore:
   - .luacheckrc
   - .github
   - tests
+  - tools

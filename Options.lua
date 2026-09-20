@@ -4,9 +4,9 @@ local L, Compat = ns.L, ns.Compat
 
 local Options = ns:NewModule("Options")
 
-BINDING_HEADER_TACKLEBOX = "Tacklebox"
-BINDING_NAME_TACKLEBOX_TOGGLE = L["Toggle fishing mode"]
-BINDING_NAME_TACKLEBOX_MENU = L["Open the Tacklebox window"]
+BINDING_HEADER_ANGLERSTACKLEBOX = "Angler's TackleBox"
+BINDING_NAME_ANGLERSTACKLEBOX_TOGGLE = L["Toggle fishing mode"]
+BINDING_NAME_ANGLERSTACKLEBOX_MENU = L["Open the Angler's TackleBox window"]
 
 ---------------------------------------------------------------------------
 -- The fishing key
@@ -87,17 +87,17 @@ end
 ---------------------------------------------------------------------------
 
 local function BuildPanel()
-  local category, layout = Settings.RegisterVerticalLayoutCategory("Tacklebox")
+  local category, layout = Settings.RegisterVerticalLayoutCategory("Angler's TackleBox")
 
   local function Checkbox(tbl, defaults, key, name, tooltip, onChange)
-    local setting = Settings.RegisterAddOnSetting(category, "Tacklebox_" .. key, key, tbl,
+    local setting = Settings.RegisterAddOnSetting(category, "AnglersTackleBox_" .. key, key, tbl,
       "boolean", name, defaults[key] and true or false)
     Settings.CreateCheckbox(category, setting, tooltip)
     if onChange then setting:SetValueChangedCallback(onChange) end
   end
 
   local function Slider(tbl, defaults, key, name, tooltip, min, max, step, format, onChange)
-    local setting = Settings.RegisterAddOnSetting(category, "Tacklebox_" .. key, key, tbl,
+    local setting = Settings.RegisterAddOnSetting(category, "AnglersTackleBox_" .. key, key, tbl,
       "number", name, defaults[key])
     local options = Settings.CreateSliderOptions(min, max, step)
     options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, format)
@@ -226,10 +226,10 @@ end
 local commands = {}
 
 commands.help = function()
-  ns:Print(L["Commands:"])
+  ns:Print(L["Commands (/atb works wherever /tb does, in case another addon takes /tb):"])
   for _, line in ipairs({
     L["/tb - toggle fishing mode"],
-    L["/tb menu - open the Tacklebox window"],
+    L["/tb menu - open the Angler's TackleBox window"],
     L["/tb always [on|off] - keep fishing mode on all the time"],
     L["/tb bind - pick the fishing key (/tb key F sets it directly, /tb key none clears it)"],
     L["/tb lure <item link or ID> - choose the lure (/tb lure auto, /tb lure off)"],
@@ -497,9 +497,9 @@ commands.reset = function() ns.Log:ResetSession() end
 commands.options = function() Options:Open() end
 commands.config = commands.options
 
-SLASH_TACKLEBOX1 = "/tacklebox"
-SLASH_TACKLEBOX2 = "/tb"
-SlashCmdList.TACKLEBOX = function(msg)
+SLASH_ANGLERSTACKLEBOX1 = "/atb"
+SLASH_ANGLERSTACKLEBOX2 = "/tb"
+SlashCmdList.ANGLERSTACKLEBOX = function(msg)
   local command, rest = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
   if command == "" then
     ns.Core:ToggleMode()

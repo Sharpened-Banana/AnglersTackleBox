@@ -1,8 +1,8 @@
 <Bindings>
-  <Binding name="TACKLEBOX_TOGGLE" header="TACKLEBOX" category="ADDONS">
-    Tacklebox_ToggleFishingMode()
+  <Binding name="ANGLERSTACKLEBOX_TOGGLE" header="ANGLERSTACKLEBOX" category="ADDONS">
+    AnglersTackleBox_ToggleFishingMode()
   </Binding>
-  <Binding name="TACKLEBOX_MENU" category="ADDONS">
-    Tacklebox_ToggleMenu()
+  <Binding name="ANGLERSTACKLEBOX_MENU" category="ADDONS">
+    AnglersTackleBox_ToggleMenu()
   </Binding>
 </Bindings>

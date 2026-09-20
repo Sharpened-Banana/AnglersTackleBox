@@ -1,4 +1,4 @@
--- The Tacklebox: the addon's main window, laid out like a tackle box. A lid
+-- The Angler's TackleBox: the addon's main window, laid out like a tackle box. A lid
 -- with a handle and a brass latch, a tray of compartments down the left,
 -- and the open compartment's contents on the right. Built the first time
 -- it is opened (/tb menu); nothing here runs while it is closed.
@@ -745,7 +745,7 @@ end
 ---------------------------------------------------------------------------
 
 local function BuildBox()
-  local frame = CreateFrame("Frame", "TackleboxMenu", UIParent, "BackdropTemplate")
+  local frame = CreateFrame("Frame", "AnglersTackleBoxMenu", UIParent, "BackdropTemplate")
   frame:SetSize(WIDTH, HEIGHT)
   frame:SetPoint("CENTER")
   frame:SetFrameStrata("HIGH")
@@ -763,7 +763,7 @@ local function BuildBox()
   })
   frame:SetBackdropColor(COLOR.shell[1], COLOR.shell[2], COLOR.shell[3], 0.97)
   frame:SetBackdropBorderColor(COLOR.seam[1], COLOR.seam[2], COLOR.seam[3], 1)
-  table.insert(UISpecialFrames, "TackleboxMenu") -- Escape closes it
+  table.insert(UISpecialFrames, "AnglersTackleBoxMenu") -- Escape closes it
 
   -- Carry handle: two posts and a grip, standing proud of the lid.
   for _, x in ipairs({ -70, 70 }) do
@@ -793,7 +793,7 @@ local function BuildBox()
   icon:SetTexture("Interface\\Icons\\Trade_Fishing")
   icon:SetSize(30, 30)
   icon:SetPoint("TOPLEFT", 14, -13)
-  local title = Label(frame, "GameFontNormalHuge", "TACKLEBOX")
+  local title = Label(frame, "GameFontNormalHuge", "ANGLER'S TACKLEBOX")
   title:SetPoint("LEFT", icon, "RIGHT", 10, 0)
   title:SetTextColor(COLOR.trayLifted[1], COLOR.trayLifted[2], COLOR.trayLifted[3])
   frame.status = Label(frame, "GameFontNormal")

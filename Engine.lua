@@ -11,7 +11,7 @@ local Engine = ns:NewModule("Engine")
 Engine.state = "OFF"
 
 -- One hidden secure button does every protected action.
-local btn = CreateFrame("Button", "TackleboxActionButton", UIParent, "SecureActionButtonTemplate")
+local btn = CreateFrame("Button", "AnglersTackleBoxActionButton", UIParent, "SecureActionButtonTemplate")
 btn:RegisterForClicks("AnyUp", "AnyDown") -- works whichever key-down setting the player uses
 
 local MOUSE_BUTTONS = { [1] = "LeftButton", [2] = "RightButton", [3] = "MiddleButton" }
@@ -90,7 +90,7 @@ function Engine:Rearm()
     btn:SetAttribute(action.type, action.value)
     btn:SetAttribute("target-slot", action.targetSlot)
     if key then
-      SetOverrideBindingClick(btn, true, key, "TackleboxActionButton") -- next press does 'action'
+      SetOverrideBindingClick(btn, true, key, "AnglersTackleBoxActionButton") -- next press does 'action'
     end
     self.armed, self.action = action.id, action
     self.nextLabel = action.label
@@ -215,7 +215,7 @@ local function OnWorldMouseUp(_, button)
   if state ~= "READY" and state ~= "PREP" and state ~= "LOOTING" then return end
   if InCombatLockdown() or not Engine.action then return end
 
-  SetOverrideBindingClick(clickOwner, true, "BUTTON2", "TackleboxActionButton")
+  SetOverrideBindingClick(clickOwner, true, "BUTTON2", "AnglersTackleBoxActionButton")
   C_Timer.After(DOUBLE_CLICK_WINDOW, function()
     if not InCombatLockdown() then ClearOverrideBindings(clickOwner) end
   end)

@@ -26,7 +26,7 @@ local function SavePosition(frame)
 end
 
 local function Build()
-  local frame = CreateFrame("Frame", "TackleboxHUD", UIParent, "BackdropTemplate")
+  local frame = CreateFrame("Frame", "AnglersTackleBoxHUD", UIParent, "BackdropTemplate")
   frame:SetSize(WIDTH, 30 + TAB_HEIGHT + ROW_COUNT * ROW_HEIGHT + FOOTER_HEIGHT + 6)
   frame:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -54,7 +54,7 @@ local function Build()
 
   frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   frame.title:SetPoint("TOPLEFT", 10, -8)
-  frame.title:SetText("Tacklebox")
+  frame.title:SetText("Angler's TackleBox")
 
   frame.state = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   frame.state:SetPoint("TOPRIGHT", -10, -10)

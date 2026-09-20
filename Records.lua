@@ -109,7 +109,7 @@ end
 function Records:Summary()
   local stats = ns.Log:Stats()
   if not stats or stats.casts == 0 then return nil end
-  local text = string.format(L["Tacklebox: %d casts, %d catches, %s"], stats.casts, stats.catches,
+  local text = string.format(L["Angler's TackleBox: %d casts, %d catches, %s"], stats.casts, stats.catches,
     GoldText(stats.value))
   if stats.perHour > 0 then
     text = text .. string.format(L[" (%s/hr)"], GoldText(stats.perHour))

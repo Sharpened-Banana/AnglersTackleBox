@@ -49,7 +49,7 @@ local function RawAuctionPrice(itemID)
   local lowest
   local api = Auctionator and Auctionator.API and Auctionator.API.v1
   if api and api.GetAuctionPriceByItemID then
-    local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
+    local ok, price = pcall(api.GetAuctionPriceByItemID, "Angler's TackleBox", itemID)
     if ok and price and price > 0 then lowest = price end
   end
   if TSM_API and TSM_API.GetCustomPriceValue then

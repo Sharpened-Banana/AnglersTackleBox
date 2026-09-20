@@ -4,11 +4,11 @@ exclude_files = { ".release", "tests" }
 ignore = { "212" } -- unused arguments (event handler signatures)
 
 globals = {
-  "TackleboxDB", "TackleboxCharDB",
-  "Tacklebox_ToggleFishingMode", "Tacklebox_OnAddonCompartmentClick",
-  "BINDING_HEADER_TACKLEBOX", "BINDING_NAME_TACKLEBOX_TOGGLE", "BINDING_NAME_TACKLEBOX_MENU",
-  "Tacklebox_ToggleMenu",
-  "SLASH_TACKLEBOX1", "SLASH_TACKLEBOX2", "SlashCmdList", "UISpecialFrames",
+  "AnglersTackleBoxDB", "AnglersTackleBoxCharDB",
+  "AnglersTackleBox_ToggleFishingMode", "AnglersTackleBox_OnAddonCompartmentClick",
+  "BINDING_HEADER_ANGLERSTACKLEBOX", "BINDING_NAME_ANGLERSTACKLEBOX_TOGGLE", "BINDING_NAME_ANGLERSTACKLEBOX_MENU",
+  "AnglersTackleBox_ToggleMenu",
+  "SLASH_ANGLERSTACKLEBOX1", "SLASH_ANGLERSTACKLEBOX2", "SlashCmdList", "UISpecialFrames",
 }
 
 read_globals = {

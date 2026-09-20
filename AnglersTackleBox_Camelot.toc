@@ -1,16 +1,16 @@
-## Interface: 120100, 120105
-## Title: Tacklebox
+## Interface: 16001
+## Title: Angler's TackleBox
 ## Notes: One-key fishing that remembers what you caught.
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Trade_Fishing
 ## Category: Professions
-## SavedVariables: TackleboxDB
-## SavedVariablesPerCharacter: TackleboxCharDB
-## AddonCompartmentFunc: Tacklebox_OnAddonCompartmentClick
+## SavedVariables: AnglersTackleBoxDB
+## SavedVariablesPerCharacter: AnglersTackleBoxCharDB
+## AddonCompartmentFunc: AnglersTackleBox_OnAddonCompartmentClick
 
 Locales/enUS.lua
 Compat.lua
-Data/Retail.lua
+Data/Classic.lua
 Core.lua
 Audio.lua
 Gear.lua
@@ -28,7 +28,6 @@ Gold.lua
 QoL.lua
 Broker.lua
 Records.lua
-Midnight.lua
 Planner.lua
 Engine.lua
 Menu.lua

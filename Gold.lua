@@ -188,7 +188,7 @@ end
 ---------------------------------------------------------------------------
 -- Price refresh: the game only answers auction queries while the auction
 -- house is open, so that is when fish prices get refreshed. Auctionator does
--- the searching and keeps the prices; Tacklebox just hands it the fish list.
+-- the searching and keeps the prices; Angler's TackleBox just hands it the fish list.
 ---------------------------------------------------------------------------
 
 local SCAN_LIMIT = 80 -- fish names per search, most caught first
@@ -211,7 +211,7 @@ function Gold:PriceAge()
   for _, fish in ipairs(ns.Journal:Fish()) do
     if not ns.Log.IsJunk(fish.id) then -- junk is never priced at auction
       total = total + 1
-      local ok, age = pcall(api.GetAuctionAgeByItemID, "Tacklebox", fish.id)
+      local ok, age = pcall(api.GetAuctionAgeByItemID, "Angler's TackleBox", fish.id)
       if ok and age then
         newest = math.min(newest or age, age)
         oldest = math.max(oldest or age, age)
@@ -248,7 +248,7 @@ function Gold:Scan()
     end
   end
   if #names == 0 then return false, L["No fish in your log to price yet."] end
-  local ok, problem = pcall(api.MultiSearchExact, "Tacklebox", names)
+  local ok, problem = pcall(api.MultiSearchExact, "Angler's TackleBox", names)
   if not ok then return false, tostring(problem) end
   self.lastScan = GetTime()
   return true, string.format(L["Pricing %d kinds of fish. Auctionator shows the results in its Shopping tab."], #names)

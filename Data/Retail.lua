@@ -31,7 +31,7 @@ Data.bobberDuration = 3600
 -- lures each target one fish, so the player picks one with /tb lure.
 Data.lures = {}
 
--- Lures Tacklebox can name and list.
+-- Lures Angler's TackleBox can name and list.
 Data.knownLures = {
   241145, -- Lucky Loa Lure
   241147, -- Blood Hunter Lure

@@ -177,14 +177,14 @@ if CLASSIC then
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
     "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Planner.lua", "Engine.lua",
     "Menu.lua", "Welcome.lua", "Options.lua" }) do
-    assert(loadfile(ROOT .. file))("Tacklebox", ns)
+    assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
   end
-  local btn = TackleboxActionButton
+  local btn = AnglersTackleBoxActionButton
   local function check(cond, msg) if not cond then print_real("FAIL: " .. msg); os.exit(1) end print_real("ok   " .. msg) end
-  fire("ADDON_LOADED", "Tacklebox")
-  SlashCmdList.TACKLEBOX("key f")
+  fire("ADDON_LOADED", "AnglersTackleBox")
+  SlashCmdList.ANGLERSTACKLEBOX("key f")
   ns.chardb.gearSwap = false -- first prove the one-key fallback
-  SlashCmdList.TACKLEBOX("")
+  SlashCmdList.ANGLERSTACKLEBOX("")
   check(ns.Core.mode and btn.attrs.type == "item" and btn.attrs.item == "item:6256", "classic: no pole in hand -> key equips the pole from the bags")
   equipped, bagPole = 6256, nil; fire("PLAYER_EQUIPMENT_CHANGED", 16)
   check(btn.attrs.type == "spell" and btn.attrs.spell == "Fishing", "classic: pole equipped -> key casts")
@@ -200,57 +200,57 @@ if CLASSIC then
   loot = { { id = 6358, name = "Oily Blackmouth", qty = 1, quality = 1 } }
   fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
   check(ns.Log:Stats().catches == 1, "classic: catch logged")
-  SlashCmdList.TACKLEBOX(""); ns.chardb.gearSwap = true
+  SlashCmdList.ANGLERSTACKLEBOX(""); ns.chardb.gearSwap = true
   equipped, bagPole = nil, 6256
-  SlashCmdList.TACKLEBOX("")
+  SlashCmdList.ANGLERSTACKLEBOX("")
   check(equipped == 6256 and ns.chardb.gearBackup ~= nil, "classic: gear swap equips the pole and snapshots the gear")
-  SlashCmdList.TACKLEBOX("")
+  SlashCmdList.ANGLERSTACKLEBOX("")
   check(ns.chardb.gearBackup == nil, "classic: gear restored when the mode ends")
   local seen = {}
   for _, line in ipairs(ns.Events:Lines()) do seen[#seen + 1] = line.text end
   local events = table.concat(seen, "|")
   check(events:find("Nightfin Snapper peak", 1, true) and events:find("In season", 1, true), "classic: time-of-day and seasonal fish listed")
-  SlashCmdList.TACKLEBOX("menu")
-  for key in pairs(TackleboxMenu.panels) do ns.Menu:Select(key) end
-  check(TackleboxMenu.panels.bobbers == nil and TackleboxMenu.panels.midnight == nil, "classic: no Bobbers or Coiled Isle compartments")
+  SlashCmdList.ANGLERSTACKLEBOX("menu")
+  for key in pairs(AnglersTackleBoxMenu.panels) do ns.Menu:Select(key) end
+  check(AnglersTackleBoxMenu.panels.bobbers == nil and AnglersTackleBoxMenu.panels.midnight == nil, "classic: no Bobbers or Coiled Isle compartments")
   for _, key in ipairs({ "lures", "log", "gold", "goals", "events", "records", "bobbers", "midnight" }) do
-    ns.db.hud.tabs = { key }; ns.db.hud.tab = key; SlashCmdList.TACKLEBOX(""); ns.HUD:Refresh(); SlashCmdList.TACKLEBOX("")
+    ns.db.hud.tabs = { key }; ns.db.hud.tab = key; SlashCmdList.ANGLERSTACKLEBOX(""); ns.HUD:Refresh(); SlashCmdList.ANGLERSTACKLEBOX("")
   end
   check(true, "classic: every window tab survives, including ones Classic lacks")
-  SlashCmdList.TACKLEBOX("goals"); SlashCmdList.TACKLEBOX("midnight"); SlashCmdList.TACKLEBOX("bobber")
+  SlashCmdList.ANGLERSTACKLEBOX("goals"); SlashCmdList.ANGLERSTACKLEBOX("midnight"); SlashCmdList.ANGLERSTACKLEBOX("bobber")
   print_real("classic run complete")
   os.exit(0)
 end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua",
   "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
-  assert(loadfile(ROOT .. file))("Tacklebox", ns)
+  assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
 end
-local btn = TackleboxActionButton
+local btn = AnglersTackleBoxActionButton
 local function check(cond, msg) if not cond then print_real("FAIL: " .. msg); os.exit(1) end print_real("ok   " .. msg) end
-local function press() if btn.scripts.PostClick and bindings.F == "CLICK TackleboxActionButton" then btn.scripts.PostClick(btn) end end
+local function press() if btn.scripts.PostClick and bindings.F == "CLICK AnglersTackleBoxActionButton" then btn.scripts.PostClick(btn) end end
 
-fire("ADDON_LOADED", "Tacklebox")
+fire("ADDON_LOADED", "AnglersTackleBox")
 check(ns.db and ns.chardb, "saved variables initialised")
 check(next(bindings) == nil and #timers == 0, "inert after load: no bindings, no timers")
 
-SlashCmdList.TACKLEBOX("key f")
+SlashCmdList.ANGLERSTACKLEBOX("key f")
 check(ns.db.key == "F", "/tb key sets the key")
-SlashCmdList.TACKLEBOX("")
+SlashCmdList.ANGLERSTACKLEBOX("")
 check(ns.Core.mode and ns.Engine.state == "READY", "mode on -> READY")
-check(bindings.F == "CLICK TackleboxActionButton" and btn.attrs.type == "spell" and btn.attrs.spell == "Fishing", "key armed to cast Fishing")
+check(bindings.F == "CLICK AnglersTackleBoxActionButton" and btn.attrs.type == "spell" and btn.attrs.spell == "Fishing", "key armed to cast Fishing")
 check(cvars.Sound_MusicVolume == "0.6" and cvars.SoftTargetInteract == "1", "mode on alone leaves CVars untouched")
 
 keydown = true
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476)
 check(cvars.Sound_MusicVolume == "0" and cvars.SoftTargetInteract == "3" and cvars.autoLootDefault == "1", "first cast: CVars raised")
-check(ns.Engine.state == "CHANNELING" and bindings.F == "CLICK TackleboxActionButton", "channel start while key held: no rebind mid-press")
+check(ns.Engine.state == "CHANNELING" and bindings.F == "CLICK AnglersTackleBoxActionButton", "channel start while key held: no rebind mid-press")
 keydown = false; advance(0.06)
 check(bindings.F == "INTERACTTARGET", "key released -> armed to reel in")
 
 loot = { { id = 220134, name = "Test Fish", qty = 2, quality = 1 }, { id = 268730, name = "Nether-Warped Egg", qty = 1, quality = 1 } }
 fire("LOOT_READY"); fire("LOOT_OPENED")
-check(ns.Engine.state == "LOOTING" and bindings.F == "CLICK TackleboxActionButton", "loot opened -> LOOTING, key already casts")
+check(ns.Engine.state == "LOOTING" and bindings.F == "CLICK AnglersTackleBoxActionButton", "loot opened -> LOOTING, key already casts")
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
 check(ns.Engine.state == "READY", "loot closed -> READY")
 local st = ns.Log:Stats()
@@ -261,7 +261,7 @@ check(st.sinceRare == 0, "rare catch resets the streak")
 
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
-check(ns.Engine.state == "READY" and bindings.F == "CLICK TackleboxActionButton", "miss -> re-armed to cast at once")
+check(ns.Engine.state == "READY" and bindings.F == "CLICK AnglersTackleBoxActionButton", "miss -> re-armed to cast at once")
 
 -- spots, journal, gold, records, goals
 local spots = ns.chardb.spots[2395]
@@ -276,11 +276,11 @@ check(ns.chardb.attempts.netherEgg.n == 0, "goals: an out-of-scope cast is not a
 ns.db.valueAlert = 0.02; ns.db.camera = { enabled = true, zoom = 6 }
 
 -- session window tabs
-check(TackleboxHUD and TackleboxHUD.shown, "session window showing")
+check(AnglersTackleBoxHUD and AnglersTackleBoxHUD.shown, "session window showing")
 for _, tab in ipairs({ "lures", "log", "session" }) do ns.db.hud.tab = tab; ns.HUD:Refresh() end
 check(ns.Events:Headline(true) == "STV Extravaganza in 10m", "session window footer uses short event names")
 counts[241145] = 2; ns.db.hud.tab = "lures"; ns.HUD:Refresh()
-local lureRow = TackleboxHUD.rows[2]
+local lureRow = AnglersTackleBoxHUD.rows[2]
 check(lureRow.onClick ~= nil, "lures tab: a lure in the bags is clickable")
 lureRow.scripts.OnClick(lureRow)
 check(ns.chardb.lureID == 241145, "lures tab: clicking a lure selects it")
@@ -327,7 +327,7 @@ fire("NAME_PLATE_UNIT_ADDED", "nameplate1"); fire("NAME_PLATE_UNIT_ADDED", "name
 check(#printed == before + 1, "alerts: Birdie announced once, other nameplates ignored")
 
 -- lure flow
-counts[555] = 3; SlashCmdList.TACKLEBOX("lure 555"); advance(1)
+counts[555] = 3; SlashCmdList.ANGLERSTACKLEBOX("lure 555"); advance(1)
 check(ns.Engine.state == "PREP" and btn.attrs.type == "item" and btn.attrs.item == "item:555" and btn.attrs.spell == nil, "lure missing -> key applies lure")
 auras[999] = { expirationTime = now + 1800 }
 press(); fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 999); advance(0.5)
@@ -345,13 +345,13 @@ check(btn.attrs.type == "toy" and btn.attrs.toy == 202207 and btn.attrs.spell ==
 auras[397827] = { expirationTime = now + 3600 }
 press(); fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 397827); advance(0.5)
 check(btn.attrs.spell == "Fishing", "oversized bobber up -> back to cast")
-SlashCmdList.TACKLEBOX("bobber 142529"); advance(1)
+SlashCmdList.ANGLERSTACKLEBOX("bobber 142529"); advance(1)
 check(btn.attrs.toy == 142529, "chosen bobber toy queued when no bobber buff is up")
 press(); fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 5005); advance(0.5)
 check(btn.attrs.spell == "Fishing" and ns.Bobbers:Active() == 142529, "bobber toy with unreadable buff: trusted for an hour after its cast")
-SlashCmdList.TACKLEBOX("bobber random"); advance(1)
+SlashCmdList.ANGLERSTACKLEBOX("bobber random"); advance(1)
 check(btn.attrs.spell == "Fishing", "random: nothing queued while a bobber is already up")
-SlashCmdList.TACKLEBOX("bobber off"); auras[397827] = nil; ns.db.oversizedBobber = false; advance(1)
+SlashCmdList.ANGLERSTACKLEBOX("bobber off"); auras[397827] = nil; ns.db.oversizedBobber = false; advance(1)
 
 -- auction price refresh
 local ok, why = ns.Gold:Scan()
@@ -395,7 +395,7 @@ ns.chardb.records.sessionCatches = nil
 AuctionHouseFrame.shown = false; Auctionator = nil
 
 -- share and away warning
-SlashCmdList.TACKLEBOX("share")
+SlashCmdList.ANGLERSTACKLEBOX("share")
 check(#sent == 1 and sent[1].channel == "GUILD" and sent[1].text:find("catches", 1, true), "share: session posted to guild when not in a party")
 local beforeAway = #printed
 advance(250)
@@ -427,12 +427,12 @@ mounted = false; fire("PLAYER_MOUNT_DISPLAY_CHANGED")
 check(bindings.F ~= nil, "dismounted: re-armed")
 
 -- double right-click
-SlashCmdList.TACKLEBOX("doubleclick on")
+SlashCmdList.ANGLERSTACKLEBOX("doubleclick on")
 check(WorldFrame.hooks.OnMouseUp ~= nil, "double-click hooks installed only once enabled")
 WorldFrame.hooks.OnMouseDown(WorldFrame, "RightButton"); advance(1); WorldFrame.hooks.OnMouseUp(WorldFrame, "RightButton")
 check(bindings.BUTTON2 == nil, "camera drag (long press) does not arm the right button")
 WorldFrame.hooks.OnMouseDown(WorldFrame, "RightButton"); advance(0.1); WorldFrame.hooks.OnMouseUp(WorldFrame, "RightButton")
-check(bindings.BUTTON2 == "CLICK TackleboxActionButton", "short right-click arms the right button")
+check(bindings.BUTTON2 == "CLICK AnglersTackleBoxActionButton", "short right-click arms the right button")
 advance(0.5)
 check(bindings.BUTTON2 == nil and bindings.F ~= nil, "right button handed back after the window; key untouched")
 
@@ -447,7 +447,7 @@ check(ns.Events:Headline() == "Hallowfall Fishing Derby in 4d 9h", "events: next
 auras[456024] = { expirationTime = now + 1500 }
 check(ns.Events:Headline() == "Derby Dasher: 25:00 left", "events: Derby Dasher timer takes over the headline")
 auras[456024] = nil
-SlashCmdList.TACKLEBOX("events"); SlashCmdList.TACKLEBOX("goals")
+SlashCmdList.ANGLERSTACKLEBOX("events"); SlashCmdList.ANGLERSTACKLEBOX("goals")
 C_Reputation = { GetNumFactions = function() return 2 end,
   GetFactionDataByIndex = function(i) return i == 1 and { isHeader = true, name = "Midnight" } or { factionID = 2777, name = "Captain Tokka's Crew" } end,
   GetFactionDataByID = function() return { reaction = 5, currentStanding = 4200, currentReactionThreshold = 3000, nextReactionThreshold = 9000 } end }
@@ -456,12 +456,12 @@ C_CurrencyInfo.GetCurrencyListSize = function() return 1 end
 C_CurrencyInfo.GetCurrencyListInfo = function() return { name = "Coiled Filament" } end
 C_CurrencyInfo.GetCurrencyListLink = function() return "|Hcurrency:3344|h[Coiled Filament]|h" end
 C_CurrencyInfo.GetCurrencyInfo = function() return { quantity = 625 } end
-SlashCmdList.TACKLEBOX("midnight")
+SlashCmdList.ANGLERSTACKLEBOX("midnight")
 check(ns.db.ids.tokkaFaction == 2777, "midnight: faction found by name and remembered")
 check(ns.Midnight:FilamentCount() == 625, "midnight: filament count read")
 
-SlashCmdList.TACKLEBOX("stats")
-SlashCmdList.TACKLEBOX("")
+SlashCmdList.ANGLERSTACKLEBOX("stats")
+SlashCmdList.ANGLERSTACKLEBOX("")
 check(not ns.Core.mode and next(bindings) == nil and ns.Engine.state == "OFF", "mode off: bindings cleared")
 check(cvars.Sound_SFXVolume == "0.4" and cvars.Sound_MusicVolume == "0.6" and cvars.autoLootDefault == "0" and cvars.SoftTargetInteractArc == "0" and next(ns.db.cvarBackup) == nil, "mode off: every CVar restored")
 local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do if e ~= "PLAYER_LOGOUT" and e ~= "PLAYER_ENTERING_WORLD" and e ~= "MERCHANT_SHOW" and e ~= "AUCTION_HOUSE_SHOW" then live = live + 1 end end end
@@ -474,28 +474,28 @@ check(#ns.Gold:Lines() >= 4 and #ns.Records:Lines() >= 3, "gold and records repo
 counts[220134] = 3
 check(ns.Gold:SellLines()[1] ~= nil, "gold: sell helper prices the session's fish still in the bags")
 counts[220134] = nil
--- the Tacklebox window
+-- the Angler's TackleBox window
 local cursor
 GetCursorInfo = function() if cursor then return "item", cursor end end
 ClearCursor = function() cursor = nil end
-SlashCmdList.TACKLEBOX("menu")
-check(TackleboxMenu and TackleboxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
+SlashCmdList.ANGLERSTACKLEBOX("menu")
+check(AnglersTackleBoxMenu and AnglersTackleBoxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
 for _, key in ipairs({ "lures", "bobbers", "log", "journal", "gold", "records", "window", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
 check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")
-SlashCmdList.TACKLEBOX("log")
-check(TackleboxMenu.shown and ns.Menu.selected == "log", "/tb log switches to the catch log compartment")
-SlashCmdList.TACKLEBOX("log")
-check(not TackleboxMenu.shown and ns.Menu.ticker == nil, "menu closes and its ticker stops")
+SlashCmdList.ANGLERSTACKLEBOX("log")
+check(AnglersTackleBoxMenu.shown and ns.Menu.selected == "log", "/tb log switches to the catch log compartment")
+SlashCmdList.ANGLERSTACKLEBOX("log")
+check(not AnglersTackleBoxMenu.shown and ns.Menu.ticker == nil, "menu closes and its ticker stops")
 
 -- upkeep
 local csv, rowCount = ns.Log:ExportCSV()
 check(rowCount >= 2 and csv:find("zone,map_id,item", 1, true) and csv:find('"Eversong Woods",2395,"Test Fish",220134', 1, true), "export: the catch log comes out as CSV")
-SlashCmdList.TACKLEBOX("export")
-check(TackleboxExport and TackleboxExport.shown, "export window opens")
+SlashCmdList.ANGLERSTACKLEBOX("export")
+check(AnglersTackleBoxExport and AnglersTackleBoxExport.shown, "export window opens")
 local before = #ns.chardb.sessions
-SlashCmdList.TACKLEBOX("sessions"); SlashCmdList.TACKLEBOX("sessions drop 1")
+SlashCmdList.ANGLERSTACKLEBOX("sessions"); SlashCmdList.ANGLERSTACKLEBOX("sessions drop 1")
 check(#ns.chardb.sessions == before - 1, "sessions: one can be dropped by number")
 position = { x = 0.41, y = 0.62 }
 check(ns.Spots:ForgetHere() and #ns.chardb.spots[2395] == 0, "spots: the spot underfoot can be forgotten")
@@ -505,26 +505,26 @@ check(ns.chardb.log[2395] == nil and ns.chardb.spots[2395] == nil, "log: a zone 
 -- welcome
 ns.Welcome:Maybe()
 check(ns.db.welcomed == true, "welcome: skipped for someone who already had a key")
-ns.db.welcomed = false; SlashCmdList.TACKLEBOX("welcome")
-check(TackleboxWelcome.shown, "welcome: can be reopened with /tb welcome")
-TackleboxWelcome:Hide()
+ns.db.welcomed = false; SlashCmdList.ANGLERSTACKLEBOX("welcome")
+check(AnglersTackleBoxWelcome.shown, "welcome: can be reopened with /tb welcome")
+AnglersTackleBoxWelcome:Hide()
 check(ns.db.welcomed == true and ns.Welcome.ticker == nil, "welcome: closing it marks it seen")
 
 -- always on
 local savedBefore = #ns.chardb.sessions
-SlashCmdList.TACKLEBOX("always on")
+SlashCmdList.ANGLERSTACKLEBOX("always on")
 check(ns.Core.mode and bindings.F ~= nil, "always on: mode starts by itself")
-check(ns.Log.session == nil and not (TackleboxHUD and TackleboxHUD.shown), "always on: no session or window until the first cast")
+check(ns.Log.session == nil and not (AnglersTackleBoxHUD and AnglersTackleBoxHUD.shown), "always on: no session or window until the first cast")
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
-check(ns.Log.session ~= nil and TackleboxHUD.shown, "always on: first cast opens the session and window")
+check(ns.Log.session ~= nil and AnglersTackleBoxHUD.shown, "always on: first cast opens the session and window")
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); advance(601)
-check(ns.Log.session == nil and not TackleboxHUD.shown and #ns.chardb.sessions == savedBefore + 1, "always on: session closes after 10 idle minutes")
+check(ns.Log.session == nil and not AnglersTackleBoxHUD.shown and #ns.chardb.sessions == savedBefore + 1, "always on: session closes after 10 idle minutes")
 check(ns.Core.mode and bindings.F ~= nil, "always on: key stays armed")
 inInstance = true; fire("PLAYER_ENTERING_WORLD")
 check(not ns.Core.mode and next(bindings) == nil, "always on: off inside a dungeon")
 inInstance = false; fire("PLAYER_ENTERING_WORLD")
 check(ns.Core.mode, "always on: back on after the dungeon")
-SlashCmdList.TACKLEBOX(""); fire("PLAYER_ENTERING_WORLD")
+SlashCmdList.ANGLERSTACKLEBOX(""); fire("PLAYER_ENTERING_WORLD")
 check(not ns.Core.mode, "always on: a manual /tb off survives loading screens")
-SlashCmdList.TACKLEBOX("always off")
+SlashCmdList.ANGLERSTACKLEBOX("always off")
 print_real("--- chat output ---"); for _, l in ipairs(printed) do print_real(l) end

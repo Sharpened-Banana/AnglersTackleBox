@@ -1,4 +1,4 @@
-# Tacklebox
+# Angler's TackleBox
 
 One-key fishing for World of Warcraft that remembers what you caught. For Retail (Midnight 12.1) and WoW Forever (the `_Camelot` client, interface 16001). The full design is in `Tacklebox — WoW Fishing Addon Design.md`.
 
@@ -10,7 +10,7 @@ You pick one key. While fishing mode is on, each press of that key does the next
 
 Symlink the repo into the game's AddOns folder, then `/reload`:
 
-    ln -s "$PWD" "/Applications/World of Warcraft/_retail_/Interface/AddOns/Tacklebox"
+    ln -s "$PWD" "/Applications/World of Warcraft/_retail_/Interface/AddOns/Angler's TackleBox"
 
 ## Use
 
@@ -21,7 +21,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | Command | What it does |
 | --- | --- |
 | `/tb` | Toggle fishing mode |
-| `/tb menu` | Open the Tacklebox window (also: left-click the addon compartment icon) |
+| `/tb menu` | Open the Angler's TackleBox window (also: left-click the addon compartment icon) |
 | `/tb always [on\|off]` | Keep fishing mode on all the time; `/tb` still pauses it |
 | `/tb bind`, `/tb key F`, `/tb key none` | Pick, set or clear the fishing key |
 | `/tb lure <link or ID>`, `/tb lure auto`, `/tb lure off` | Choose the lure to keep up |
