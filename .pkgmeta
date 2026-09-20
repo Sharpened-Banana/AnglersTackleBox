@@ -1,5 +1,9 @@
 package-as: AnglersTackleBox
 
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
 ignore:
   - "Tacklebox — WoW Fishing Addon Design.md"
   - README.md
@@ -7,3 +11,4 @@ ignore:
   - .github
   - tests
   - tools
+  - docs
