@@ -27,7 +27,7 @@ local function Remaining(itemID, knownSpell)
 end
 
 ns:OnModeEvent("UNIT_SPELLCAST_SUCCEEDED", function(_, _, spellID)
-  if spellID and not Compat.IsSecret(spellID) then castAt[spellID] = GetTime() end
+  if not Compat.IsSecret(spellID) and spellID then castAt[spellID] = GetTime() end
 end)
 
 -- Bobber toys the player owns, in list order.

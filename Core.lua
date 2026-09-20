@@ -160,7 +160,15 @@ function ns:OnModeEvent(event, handler)
   table.insert(modeHandlers[event], handler)
 end
 
+-- While combat has the mode suspended, handlers see nothing but the events
+-- that end the suspension. Midnight makes some event payloads "secret" in
+-- combat, where even testing them is an error; not running is the safe side.
+local ALWAYS_DELIVERED = {
+  PLAYER_REGEN_ENABLED = true, PLAYER_REGEN_DISABLED = true, PLAYER_ENTERING_WORLD = true,
+}
+
 modeFrame:SetScript("OnEvent", function(_, event, ...)
+  if Core.suspended and not ALWAYS_DELIVERED[event] then return end
   local handlers = modeHandlers[event]
   if not handlers then return end
   for i = 1, #handlers do handlers[i](...) end

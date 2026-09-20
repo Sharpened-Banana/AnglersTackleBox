@@ -882,7 +882,9 @@ local function BuildBox()
 
   -- Live numbers (session, lure timer, events) tick while the box is open.
   frame:SetScript("OnShow", function()
-    Menu.ticker = Menu.ticker or C_Timer.NewTicker(1, function() Menu:Refresh() end)
+    Menu.ticker = Menu.ticker or C_Timer.NewTicker(1, function()
+      if not InCombatLockdown() then Menu:Refresh() end -- live numbers can wait out a fight
+    end)
   end)
   frame:SetScript("OnHide", function()
     if Menu.ticker then Menu.ticker:Cancel() Menu.ticker = nil end

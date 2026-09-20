@@ -57,7 +57,7 @@ function Compat.FishingName()
 end
 
 function Compat.IsFishingSpell(spellID)
-  if not spellID or Compat.IsSecret(spellID) then return false end
+  if Compat.IsSecret(spellID) or not spellID then return false end
   if FISHING_IDS[spellID] then return true end
   local name = Compat.GetSpellName(spellID)
   return name ~= nil and name == Compat.FishingName()
@@ -119,6 +119,9 @@ end
 -- Seconds left on a player buff, math.huge for a buff with no timer,
 -- nil when the buff is missing (or unreadable).
 function Compat.AuraRemaining(spellID, spellName)
+  -- Aura fields can be secret in combat, where even testing them errors.
+  -- Nothing here needs buffs in combat, so don't look.
+  if InCombatLockdown() then return nil end
   local expiration
   if spellID and C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
     local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)

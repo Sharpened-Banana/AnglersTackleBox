@@ -63,7 +63,9 @@ C_Timer = { After = function(d, fn) table.insert(timers, { at = now + d, fn = fn
 GetTime = function() return now end
 time, date = os.time, os.date
 wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
-WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC = 1, 1, 2
+-- TB_FLAVOR=classic runs the Classic Era configuration instead.
+local CLASSIC = os.getenv("TB_FLAVOR") == "classic"
+WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC = CLASSIC and 2 or 1, 1, 2
 issecretvalue = function() return false end
 C_Spell = { GetSpellName = function(id) if id == 131474 or id == 131476 then return "Fishing" end if id == 999 then return "Test Lure" end end }
 C_Item = { GetItemInfo = function(id) return "Item" .. id, "[Item" .. id .. "]", id == 777 and 0 or 1, 1, 1, "", "", 1, "", 1, 250 end,
@@ -160,6 +162,62 @@ print_real = print
 print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 
 local ns = {}
+if CLASSIC then
+  local equipped, bagPole, enchantMS = nil, 6256, nil
+  C_Item.GetItemInfoInstant = function(id) if id == 6256 then return id, "", "", "", 1, 2, 20 end return id, "", "", "", 1, 0, 0 end
+  C_Item.EquipItemByName = function(item) if item == 6256 then equipped, bagPole = 6256, nil end end
+  GetInventoryItemID = function(_, slot) if slot == 16 then return equipped end end
+  C_Container.GetContainerNumSlots = function(bag) return bag == 0 and 4 or 0 end
+  C_Container.GetContainerItemID = function(bag, slot) if bag == 0 and slot == 2 then return bagPole end end
+  GetWeaponEnchantInfo = function() if enchantMS then return true, enchantMS end return false end
+  C_Spell.GetSpellName = function(id) if id == 7620 or id == 7731 then return "Fishing" end end
+  TooltipDataProcessor = nil
+
+  for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Audio.lua", "Gear.lua",
+    "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
+    "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Planner.lua", "Engine.lua",
+    "Menu.lua", "Welcome.lua", "Options.lua" }) do
+    assert(loadfile(ROOT .. file))("Tacklebox", ns)
+  end
+  local btn = TackleboxActionButton
+  local function check(cond, msg) if not cond then print_real("FAIL: " .. msg); os.exit(1) end print_real("ok   " .. msg) end
+  fire("ADDON_LOADED", "Tacklebox")
+  SlashCmdList.TACKLEBOX("key f")
+  ns.chardb.gearSwap = false -- first prove the one-key fallback
+  SlashCmdList.TACKLEBOX("")
+  check(ns.Core.mode and btn.attrs.type == "item" and btn.attrs.item == "item:6256", "classic: no pole in hand -> key equips the pole from the bags")
+  equipped, bagPole = 6256, nil; fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  check(btn.attrs.type == "spell" and btn.attrs.spell == "Fishing", "classic: pole equipped -> key casts")
+  counts[6530] = 5; advance(1)
+  check(btn.attrs.item == "item:6530" and btn.attrs["target-slot"] == 16, "classic: best lure in the bags is applied to the pole slot")
+  enchantMS = 590000; fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 1); advance(0.5)
+  check(btn.attrs.spell == "Fishing" and btn.attrs["target-slot"] == nil, "classic: pole enchant seen -> back to casting")
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06)
+  check(bindings.F == "INTERACTMOUSEOVER", "classic: reel in through mouseover interact")
+  loot = { { id = 6358, name = "Oily Blackmouth", qty = 1, quality = 1 } }
+  fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
+  check(ns.Log:Stats().catches == 1, "classic: catch logged")
+  SlashCmdList.TACKLEBOX(""); ns.chardb.gearSwap = true
+  equipped, bagPole = nil, 6256
+  SlashCmdList.TACKLEBOX("")
+  check(equipped == 6256 and ns.chardb.gearBackup ~= nil, "classic: gear swap equips the pole and snapshots the gear")
+  SlashCmdList.TACKLEBOX("")
+  check(ns.chardb.gearBackup == nil, "classic: gear restored when the mode ends")
+  local seen = {}
+  for _, line in ipairs(ns.Events:Lines()) do seen[#seen + 1] = line.text end
+  local events = table.concat(seen, "|")
+  check(events:find("Nightfin Snapper peak", 1, true) and events:find("In season", 1, true), "classic: time-of-day and seasonal fish listed")
+  SlashCmdList.TACKLEBOX("menu")
+  for key in pairs(TackleboxMenu.panels) do ns.Menu:Select(key) end
+  check(TackleboxMenu.panels.bobbers == nil and TackleboxMenu.panels.midnight == nil, "classic: no Bobbers or Coiled Isle compartments")
+  for _, key in ipairs({ "lures", "log", "gold", "goals", "events", "records", "bobbers", "midnight" }) do
+    ns.db.hud.tabs = { key }; ns.db.hud.tab = key; SlashCmdList.TACKLEBOX(""); ns.HUD:Refresh(); SlashCmdList.TACKLEBOX("")
+  end
+  check(true, "classic: every window tab survives, including ones Classic lacks")
+  SlashCmdList.TACKLEBOX("goals"); SlashCmdList.TACKLEBOX("midnight"); SlashCmdList.TACKLEBOX("bobber")
+  print_real("classic run complete")
+  os.exit(0)
+end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua",
   "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
@@ -346,6 +404,10 @@ fire("PLAYER_REGEN_DISABLED"); combat = true
 check(next(bindings) == nil and ns.Engine.state == "PAUSED", "combat: key released")
 check(cvars.Sound_MusicVolume == "0.6" and cvars.SoftTargetInteract == "1", "combat: CVars restored")
 advance(2); check(next(bindings) == nil, "combat: ticker leaves bindings alone")
+local castsBefore = ns.Log:Stats().casts
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); fire("LOOT_READY"); fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
+check(ns.Log:Stats().casts == castsBefore and ns.Engine.state == "PAUSED", "combat: no handler runs while suspended")
+check(ns.Compat.AuraRemaining(397827) == nil, "combat: buffs are not read")
 combat = false; fire("PLAYER_REGEN_ENABLED")
 check(bindings.F ~= nil and cvars.Sound_MusicVolume == "0.6", "combat over: re-armed, CVars wait for the next cast")
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)

@@ -34,6 +34,10 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb hud` | Show or hide the session window |
 | `/tb tabs` | Choose and order the session window's tabs (Session always stays first) |
 | `/tb log` | Catch log window: per-zone catches, share, value and pools |
+| `/tb export` | The catch log as CSV in a copyable box |
+| `/tb sessions [drop N\|clear]` | List or remove saved sessions |
+| `/tb forget spot` | Forget the fishing spot you are standing on |
+| `/tb welcome` | Reopen the first-run welcome |
 | `/tb stats`, `/tb reset` | Print or restart session stats |
 | `/tb find <fish>` | Where you catch it, from your own log (no argument opens the Journal) |
 | `/tb gold` | Best zones and spots by gold per hour |
@@ -54,5 +58,6 @@ Everything gold-related (rankings, value alert, sell helper, history chart) live
 
     luacheck .
     lua tests/smoke.lua
+    TB_FLAVOR=classic lua tests/smoke.lua
 
-`tests/smoke.lua` stubs the WoW API and drives one fishing session through the state machine. It checks the wiring, not the game: in-game testing is still needed for anything the stubs assume.
+`tests/smoke.lua` stubs the WoW API and drives a fishing session through every module; `TB_FLAVOR=classic` runs the Classic Era configuration (pole, enchant lures, mouseover reel) instead. It checks the wiring, not the game: in-game testing is still needed for anything the stubs assume.
