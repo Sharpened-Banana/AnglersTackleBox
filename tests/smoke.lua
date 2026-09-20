@@ -115,7 +115,7 @@ print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 
 local ns = {}
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Log.lua", "HUD.lua", "Events.lua", "Goals.lua", "Planner.lua", "Engine.lua", "Options.lua" }) do
+  "Lures.lua", "Log.lua", "HUD.lua", "Events.lua", "Goals.lua", "Midnight.lua", "Planner.lua", "Engine.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("Tacklebox", ns)
 end
 local btn = TackleboxActionButton
@@ -205,6 +205,17 @@ check(ns.Events:Headline():find("Hallowfall Fishing Derby: 9h 0m left", 1, true)
 realm.weekday = 2
 check(ns.Events:Headline() == "Hallowfall Fishing Derby in 4d 9h", "events: next week's event picked (" .. ns.Events:Headline() .. ")")
 SlashCmdList.TACKLEBOX("events"); SlashCmdList.TACKLEBOX("goals")
+C_Reputation = { GetNumFactions = function() return 2 end,
+  GetFactionDataByIndex = function(i) return i == 1 and { isHeader = true, name = "Midnight" } or { factionID = 2777, name = "Captain Tokka's Crew" } end,
+  GetFactionDataByID = function() return { reaction = 5, currentStanding = 4200, currentReactionThreshold = 3000, nextReactionThreshold = 9000 } end }
+FACTION_STANDING_LABEL5 = "Friendly"
+C_CurrencyInfo.GetCurrencyListSize = function() return 1 end
+C_CurrencyInfo.GetCurrencyListInfo = function() return { name = "Coiled Filament" } end
+C_CurrencyInfo.GetCurrencyListLink = function() return "|Hcurrency:3344|h[Coiled Filament]|h" end
+C_CurrencyInfo.GetCurrencyInfo = function() return { quantity = 625 } end
+SlashCmdList.TACKLEBOX("midnight")
+check(ns.db.ids.tokkaFaction == 2777 and ns.db.ids.filamentCurrency == 3344, "midnight: faction and currency found by name and remembered")
+check(ns.Midnight:FilamentCount() == 625, "midnight: filament count read")
 
 SlashCmdList.TACKLEBOX("stats")
 SlashCmdList.TACKLEBOX("")

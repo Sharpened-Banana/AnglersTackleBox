@@ -4,7 +4,7 @@ One-key fishing for World of Warcraft that remembers what you caught. Retail (Mi
 
 ## How it works
 
-You pick one key. While fishing mode is on, each press of that key does the next right thing: equip the pole (Classic), start the raft, apply a lure, cast, or reel in. The addon only decides what the key does next; your keypress does the action. With fishing mode off the addon is inert: no events, no timers, no bindings, no CVar changes.
+You pick one key. While fishing mode is on, each press of that key does the next right thing: equip the pole (Classic), start the raft, apply a lure, cast, or reel in. The addon only decides what the key does next; your keypress does the action. With fishing mode off the addon is inert: no events, no timers, no bindings, no CVar changes. Even with it on, sound and interact settings only change from your first cast until 30 seconds after you stop, so the mode is safe to leave on all day.
 
 ## Install for testing
 
@@ -21,6 +21,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | Command | What it does |
 | --- | --- |
 | `/tb` | Toggle fishing mode |
+| `/tb always [on\|off]` | Keep fishing mode on all the time; `/tb` still pauses it |
 | `/tb bind`, `/tb key F`, `/tb key none` | Pick, set or clear the fishing key |
 | `/tb lure <link or ID>`, `/tb lure auto`, `/tb lure off` | Choose the lure to keep up |
 | `/tb extra <link or ID>` | Add or remove a toy or item to keep up (bobber toys, tea) |
@@ -31,6 +32,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb stats`, `/tb reset` | Print or restart session stats |
 | `/tb events` | Countdowns to the fishing contests (realm time) |
 | `/tb goals` | Progress on unfinished fishing achievements |
+| `/tb midnight` | Captain Tokka's Crew reputation and Coiled Filament toward the mount |
 | `/tb options` | Open the settings panel |
 
 ## Development

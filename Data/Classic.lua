@@ -21,4 +21,6 @@ Data.lures = {
 Data.lureIsEnchant = true
 Data.lureDuration = 600
 
+Data.knownLures = Data.lures
+
 Data.special = {}

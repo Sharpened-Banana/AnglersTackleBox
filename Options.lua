@@ -227,6 +227,7 @@ commands.help = function()
     L["/tb reset - restart the session counters"],
     L["/tb events - fishing contest countdowns"],
     L["/tb goals - progress on unfinished fishing achievements"],
+    L["/tb midnight - Captain Tokka's Crew reputation and Coiled Filament"],
     L["/tb options - open the settings panel"],
   }) do
     print("   " .. line)
@@ -267,6 +268,12 @@ commands.lure = function(rest)
     local current = ns.Lures:Current()
     ns:Print(string.format(L["Lure: %s (%s)"], current and ItemLabel(current) or L["none"],
       ns.chardb.lureEnabled and L["on"] or L["off"]))
+    for _, itemID in ipairs(ns.Data.knownLures) do
+      local count = Compat.GetItemCount(itemID)
+      if count > 0 then
+        print(string.format("   %s x%d  -  /tb lure %d", ItemLabel(itemID), count, itemID))
+      end
+    end
   end
 end
 
@@ -328,6 +335,14 @@ end
 
 commands.events = function() ns.Events:Print() end
 commands.goals = function() ns.Goals:Print() end
+commands.midnight = function()
+  if ns.Midnight then
+    ns.Midnight:Print()
+  else
+    ns:Print(L["The Midnight helpers are only on Retail."])
+  end
+end
+commands.tokka = commands.midnight
 commands.hud = function() ns.HUD:Toggle() end
 commands.stats = function() ns.Log:PrintStats() end
 commands.reset = function() ns.Log:ResetSession() end

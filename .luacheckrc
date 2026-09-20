@@ -37,6 +37,8 @@ read_globals = {
   "GetGameTime", "C_DateAndTime", "WorldFrame", "GetCategoryInfo", "GetCategoryList",
   "GetCategoryNumAchievements", "GetAchievementInfo", "GetAchievementNumCriteria",
   "GetAchievementCriteriaInfo", "GetAchievementLink", "PROFESSIONS_FISHING",
+  -- Midnight helpers
+  "C_Reputation", "C_GossipInfo", "_G",
   -- Misc
   "C_Timer", "C_Map", "C_CVar", "GetCVar", "SetCVar", "C_CurrencyInfo", "GetCoinTextureString",
   "issecretvalue", "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CLASSIC",

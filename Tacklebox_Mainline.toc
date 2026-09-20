@@ -19,6 +19,7 @@ Log.lua
 HUD.lua
 Events.lua
 Goals.lua
+Midnight.lua
 Planner.lua
 Engine.lua
 Options.lua

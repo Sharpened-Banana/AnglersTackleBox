@@ -52,6 +52,7 @@ ns.defaults = {
     backgroundSound = true,
   },
   hud = { shown = true, scale = 1.0 },
+  ids = {},             -- game IDs discovered at runtime (faction, currency)
   cvarBackup = {},
 }
 
