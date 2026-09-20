@@ -44,6 +44,8 @@ local function FishingSetID()
 end
 
 function Gear:Enable()
+  -- Always-on would mean wearing fishing gear all day, so it skips the swap.
+  if ns.db.alwaysOn then return end
   if self.applied or not ns.chardb.gearSwap or InCombatLockdown() then return end
   local setID = FishingSetID()
   local pole = self:FindPole()

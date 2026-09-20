@@ -118,6 +118,10 @@ local function BuildPanel()
       true))
   end
 
+  Checkbox(db, defaults, "alwaysOn", L["Fishing mode always on"],
+    L["Turns fishing mode on by itself at login and after instances, so the key is always ready."]
+      .. " " .. L["Sound and interact settings still only change while you are actually fishing."],
+    function(_, value) ns.Core:SetAlwaysOn(value) end)
   Checkbox(db, defaults, "doubleClick", L["Double right-click to fish"],
     L["A quick double right-click does the same as the fishing key. Camera drags are ignored."],
     function() ns.Engine:UpdateDoubleClick() end)
@@ -211,6 +215,7 @@ commands.help = function()
   ns:Print(L["Commands:"])
   for _, line in ipairs({
     L["/tb - toggle fishing mode"],
+    L["/tb always [on|off] - keep fishing mode on all the time"],
     L["/tb bind - pick the fishing key (/tb key F sets it directly, /tb key none clears it)"],
     L["/tb lure <item link or ID> - choose the lure (/tb lure auto, /tb lure off)"],
     L["/tb extra <item link or ID> - add or remove a toy or item to keep up"],
@@ -307,6 +312,12 @@ commands.set = function(rest)
     ns.chardb.fishingSet = rest
     ns:Print(string.format(L["Fishing gear set: %s"], rest))
   end
+end
+
+commands.always = function(rest)
+  ns.Core:SetAlwaysOn(OnOff(rest:lower(), ns.db.alwaysOn))
+  ns:Print(ns.db.alwaysOn and L["Fishing mode is now always on. /tb still pauses it."]
+    or L["Always-on is off. Toggle fishing mode with /tb."])
 end
 
 commands.doubleclick = function(rest)

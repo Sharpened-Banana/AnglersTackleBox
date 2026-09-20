@@ -5,11 +5,12 @@ local L, Compat = ns.L, ns.Compat
 
 local HUD = ns:NewModule("HUD")
 
-local ROWS = { "catches", "value", "sinceRare", "lure", "next" }
+local ROWS = { "catches", "value", "perHour", "sinceRare", "lure", "next" }
 local FOOTER_HEIGHT = 16
 local LABELS = {
   catches = L["Catches"],
-  value = L["Value"],
+  value = L["Session gold"],
+  perHour = L["Gold per hour"],
   sinceRare = L["Since rare"],
   lure = L["Lure"],
   next = L["Next press"],
@@ -93,11 +94,9 @@ function HUD:Refresh()
   if stats then
     frame.values.catches:SetText(string.format("%d / %d  (%d%%)",
       stats.catches, stats.casts, math.floor(stats.rate * 100 + 0.5)))
-    if stats.perHour > 0 then
-      frame.values.value:SetText(string.format(L["%s/hr"], Compat.CoinString(stats.perHour)))
-    else
-      frame.values.value:SetText(Compat.CoinString(stats.value))
-    end
+    frame.values.value:SetText(Compat.CoinString(stats.value))
+    -- The hourly rate is noise until a minute of fishing is behind it.
+    frame.values.perHour:SetText(stats.perHour > 0 and Compat.CoinString(stats.perHour) or "-")
     frame.values.sinceRare:SetText(string.format(L["%d casts"], stats.sinceRare))
   end
 
@@ -123,15 +122,18 @@ function HUD:Refresh()
   end
 end
 
+-- Shown while there is a session to show: the whole time in normal mode,
+-- from the first cast until the idle timeout with always-on.
 function HUD:UpdateVisibility()
+  local show = ns.Core.mode and ns.db.hud.shown and ns.Log.session ~= nil
+  if show and not self.frame then self.frame = Build() end
   if not self.frame then return end
   self.frame:SetScale(ns.db.hud.scale)
-  self.frame:SetShown(ns.Core.mode and ns.db.hud.shown)
+  self.frame:SetShown(show)
   self:Refresh()
 end
 
 function HUD:Enable()
-  if not self.frame and ns.db.hud.shown then self.frame = Build() end
   self:UpdateVisibility()
 end
 

@@ -66,7 +66,8 @@ C_Map = { GetBestMapForUnit = function() return 2395 end }
 C_EquipmentSet = { GetEquipmentSetID = function() end, UseEquipmentSet = function() end }
 PlayerHasToy = function() return false end
 InCombatLockdown = function() return combat end
-IsInInstance = function() return false, "none" end
+inInstance = false
+IsInInstance = function() return inInstance, inInstance and "party" or "none" end
 IsMounted = function() return mounted end
 IsSwimming = function() return swimming end
 UnitIsDeadOrGhost = function() return false end
@@ -130,10 +131,11 @@ check(ns.db.key == "F", "/tb key sets the key")
 SlashCmdList.TACKLEBOX("")
 check(ns.Core.mode and ns.Engine.state == "READY", "mode on -> READY")
 check(bindings.F == "CLICK TackleboxActionButton" and btn.attrs.type == "spell" and btn.attrs.spell == "Fishing", "key armed to cast Fishing")
-check(cvars.Sound_MusicVolume == "0" and cvars.SoftTargetInteract == "3" and cvars.autoLootDefault == "1", "CVars raised")
+check(cvars.Sound_MusicVolume == "0.6" and cvars.SoftTargetInteract == "1", "mode on alone leaves CVars untouched")
 
 keydown = true
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476)
+check(cvars.Sound_MusicVolume == "0" and cvars.SoftTargetInteract == "3" and cvars.autoLootDefault == "1", "first cast: CVars raised")
 check(ns.Engine.state == "CHANNELING" and bindings.F == "CLICK TackleboxActionButton", "channel start while key held: no rebind mid-press")
 keydown = false; advance(0.06)
 check(bindings.F == "INTERACTTARGET", "key released -> armed to reel in")
@@ -170,7 +172,13 @@ check(next(bindings) == nil and ns.Engine.state == "PAUSED", "combat: key releas
 check(cvars.Sound_MusicVolume == "0.6" and cvars.SoftTargetInteract == "1", "combat: CVars restored")
 advance(2); check(next(bindings) == nil, "combat: ticker leaves bindings alone")
 combat = false; fire("PLAYER_REGEN_ENABLED")
-check(bindings.F ~= nil and cvars.Sound_MusicVolume == "0", "combat over: re-armed, CVars raised again")
+check(bindings.F ~= nil and cvars.Sound_MusicVolume == "0.6", "combat over: re-armed, CVars wait for the next cast")
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
+check(cvars.Sound_MusicVolume == "0", "next cast: CVars raised again")
+fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); advance(20)
+check(cvars.Sound_MusicVolume == "0", "20s idle: still focused")
+advance(15)
+check(cvars.Sound_MusicVolume == "0.6" and cvars.SoftTargetInteract == "1" and bindings.F ~= nil, "30s idle: CVars restored, key still armed")
 
 -- mount
 mounted = true; fire("PLAYER_MOUNT_DISPLAY_CHANGED")
@@ -205,5 +213,22 @@ check(cvars.Sound_SFXVolume == "0.4" and cvars.Sound_MusicVolume == "0.6" and cv
 local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do if e ~= "PLAYER_LOGOUT" and e ~= "PLAYER_ENTERING_WORLD" then live = live + 1 end end end
 advance(5)
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers")
-check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 2, "session summary saved")
+check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 3, "session summary saved")
+
+-- always on
+SlashCmdList.TACKLEBOX("always on")
+check(ns.Core.mode and bindings.F ~= nil, "always on: mode starts by itself")
+check(ns.Log.session == nil and not (TackleboxHUD and TackleboxHUD.shown), "always on: no session or window until the first cast")
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
+check(ns.Log.session ~= nil and TackleboxHUD.shown, "always on: first cast opens the session and window")
+fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); advance(601)
+check(ns.Log.session == nil and not TackleboxHUD.shown and #ns.chardb.sessions == 2, "always on: session closes after 10 idle minutes")
+check(ns.Core.mode and bindings.F ~= nil, "always on: key stays armed")
+inInstance = true; fire("PLAYER_ENTERING_WORLD")
+check(not ns.Core.mode and next(bindings) == nil, "always on: off inside a dungeon")
+inInstance = false; fire("PLAYER_ENTERING_WORLD")
+check(ns.Core.mode, "always on: back on after the dungeon")
+SlashCmdList.TACKLEBOX(""); fire("PLAYER_ENTERING_WORLD")
+check(not ns.Core.mode, "always on: a manual /tb off survives loading screens")
+SlashCmdList.TACKLEBOX("always off")
 print_real("--- chat output ---"); for _, l in ipairs(printed) do print_real(l) end

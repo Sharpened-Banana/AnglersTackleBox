@@ -124,7 +124,8 @@ function Engine:KeyChanged()
   self:Evaluate()
 end
 
-function Engine:Enable()
+-- Runs at the first cast: soft interact is what lets the key grab the bobber.
+function Engine:Focus()
   if ns.db.softInteract and Compat.INTERACT == "INTERACTTARGET" then
     local CVars = ns.CVars
     CVars:Set("SoftTargetInteract", 3)
@@ -133,6 +134,9 @@ function Engine:Enable()
     CVars:Set("SoftTargetIconGameObject", 1)
   end
   if ns.db.autoLoot then ns.CVars:Set("autoLootDefault", 1) end
+end
+
+function Engine:Enable()
   self:UpdateDoubleClick()
 
   if self.state == "OFF" then
@@ -141,6 +145,7 @@ function Engine:Enable()
   else -- resuming after combat
     self.state = "READY"
   end
+  if self.state == "CHANNELING" then ns.Core:Focus() end
   self:Evaluate()
 end
 
@@ -229,6 +234,7 @@ end
 
 ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_START", function(_, _, spellID)
   if Engine.state == "PAUSED" or not Compat.IsFishingSpell(spellID) then return end
+  ns.Core:Focus()
   SetState("CHANNELING")
   ns.Log:OnCast()
   Engine:Rearm()
@@ -238,6 +244,7 @@ end)
 ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_STOP", function()
   if Engine.state ~= "CHANNELING" then return end
   Engine.lastFishEnd = GetTime()
+  ns.Core.lastActivity = Engine.lastFishEnd
   Engine.state = "READY"
   Engine:Rearm()
 end)

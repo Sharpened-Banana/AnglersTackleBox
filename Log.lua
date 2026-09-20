@@ -7,6 +7,7 @@ local L, Compat, Data = ns.L, ns.Compat, ns.Data
 local Log = ns:NewModule("Log")
 
 local MAX_SESSIONS = 30
+local SESSION_IDLE = 600 -- always-on: a session closes after this long without fishing
 local LOOT_SLOT_ITEM = Enum and Enum.LootSlotType and Enum.LootSlotType.Item or 1
 
 local function NewSession()
@@ -33,14 +34,27 @@ local function UnitValue(itemID)
   return sellPrice or 0
 end
 
+-- With always-on the session starts at the first cast instead.
 function Log:Enable()
-  self.session = NewSession()
+  self.session = not ns.db.alwaysOn and NewSession() or nil
   self.lootSeen = nil
 end
 
 function Log:Disable()
+  self:EndSession()
+end
+
+function Log:Tick()
+  if ns.db.alwaysOn and self.session and ns.Engine.state ~= "CHANNELING"
+    and GetTime() - (ns.Core.lastActivity or 0) > SESSION_IDLE then
+    self:EndSession()
+  end
+end
+
+function Log:EndSession()
   local s = self.session
   self.session = nil
+  ns.HUD:UpdateVisibility()
   if not s or s.casts == 0 then return end
 
   local sessions = ns.chardb.sessions
@@ -64,8 +78,11 @@ function Log:Disable()
 end
 
 function Log:OnCast()
+  if not self.session then
+    self.session = NewSession()
+    ns.HUD:UpdateVisibility()
+  end
   local s = self.session
-  if not s then return end
   if s.casts == 0 then s.t0 = GetTime() end -- the clock starts at the first cast
   s.casts = s.casts + 1
   s.sinceRare = s.sinceRare + 1
