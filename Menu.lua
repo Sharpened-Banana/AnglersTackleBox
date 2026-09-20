@@ -291,6 +291,78 @@ local function BuildLures(panel)
   end
 end
 
+local BOBBER_ROWS = 14
+
+local function BuildBobbers(panel)
+  local oversized = Check(panel, L["Keep the Reusable Oversized Bobber up"], ns.db, "oversizedBobber")
+  oversized:SetPoint("TOPLEFT", 0, 0)
+  local status = Label(panel, "GameFontNormal")
+  status:SetPoint("TOPLEFT", 2, -34)
+  local hint = Label(panel, "GameFontDisableSmall",
+    L["When the buff is missing, your next key press uses the toy, then you cast."])
+  hint:SetPoint("TOPLEFT", 2, -52)
+
+  local rows = {}
+  for index = 1, BOBBER_ROWS do
+    local row = CreateFrame("Button", nil, panel)
+    row:SetSize(300, 21)
+    row:SetPoint("TOPLEFT", 0, -50 - index * 22)
+    row.glow = Fill(row, "BACKGROUND", COLOR.brass, 0.25)
+    row.glow:SetAllPoints()
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon:SetSize(19, 19)
+    row.icon:SetPoint("LEFT", 2, 0)
+    row.text = Label(row, "GameFontHighlight")
+    row.text:SetPoint("LEFT", 28, 0)
+    row:SetHighlightTexture(SOLID)
+    row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.08)
+    row:SetScript("OnClick", function(self)
+      ns.db.bobber = self.choice
+      ns.Bobbers.randomPick = nil
+      Menu:Refresh()
+    end)
+    rows[index] = row
+  end
+
+  panel.Refresh = function()
+    oversized.Sync()
+    oversized:SetEnabled(ns.Bobbers:HasOversized())
+    oversized.label:SetText(ns.Bobbers:HasOversized() and L["Keep the Reusable Oversized Bobber up"]
+      or L["Reusable Oversized Bobber (not in your toy box)"])
+
+    local active, remaining = ns.Bobbers:Active()
+    if active then
+      status:SetText(string.format(L["Bobber now: %s  (%s)"], ItemName(active),
+        remaining == math.huge and L["Active"] or ns.FormatTime(remaining)))
+    else
+      status:SetText(L["Bobber now: the plain one"])
+    end
+
+    local choices = { { choice = nil, text = L["None - leave my bobber alone"] } }
+    local owned = ns.Bobbers:Owned()
+    if #owned > 1 then
+      choices[#choices + 1] = { choice = "random", text = L["Random - surprise me each time"],
+        icon = "Interface\\Icons\\INV_Misc_Dice_01" }
+    end
+    for _, itemID in ipairs(owned) do
+      choices[#choices + 1] = { choice = itemID, text = ItemName(itemID), icon = ItemIcon(itemID) }
+    end
+    for index, row in ipairs(rows) do
+      local entry = choices[index]
+      row:SetShown(entry ~= nil)
+      if entry then
+        row.choice = entry.choice
+        row.icon:SetTexture(entry.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+        row.text:SetText(entry.text)
+        row.glow:SetShown(ns.db.bobber == entry.choice)
+      end
+    end
+    if #owned == 0 then
+      hint:SetText(L["No bobber toys in your toy box yet (Crate of Bobbers, from Conjurer Margoss)."])
+    end
+  end
+end
+
 local function BuildLog(panel)
   ns.LogWindow:Attach(panel)
   panel.Refresh = function() ns.LogWindow:Refresh() end
@@ -329,12 +401,15 @@ local function Compartments()
     { key = "top", name = L["Top Tray"], icon = "Interface\\Icons\\Trade_Fishing", build = BuildTopTray },
     { key = "lures", name = L["Lures"], icon = Data.knownLures[1] and ItemIcon(Data.knownLures[1]),
       build = BuildLures },
+    { key = "bobbers", name = L["Bobbers"], icon = Data.oversizedBobber and ItemIcon(Data.oversizedBobber.item),
+      build = BuildBobbers },
     { key = "log", name = L["Catch Log"], icon = "Interface\\Icons\\INV_Misc_Book_09", build = BuildLog },
     { key = "goals", name = L["Goals"], icon = SpellIcon(64731),
       build = function(panel) Report(panel, function() return ns.Goals:Lines() end) end },
     { key = "events", name = L["Events"], icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
       build = function(panel) Report(panel, function() return ns.Events:Lines() end) end },
   }
+  if not Data.oversizedBobber then table.remove(list, 3) end -- no bobber toys on Classic
   if ns.Midnight then
     local info = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo
       and C_CurrencyInfo.GetCurrencyInfo(Data.midnight.currencyID)

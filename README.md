@@ -27,6 +27,8 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb lure <link or ID>`, `/tb lure auto`, `/tb lure off` | Choose the lure to keep up |
 | `/tb extra <link or ID>` | Add or remove a toy or item to keep up (bobber toys, tea) |
 | `/tb raft [on\|off]` | Use the fishing raft |
+| `/tb oversized [on\|off]` | Keep the Reusable Oversized Bobber up |
+| `/tb bobber [random\|off\|link or ID]` | Bobber toy to keep up; no argument opens the list |
 | `/tb doubleclick [on\|off]` | A quick double right-click does the same as the key |
 | `/tb set <name>`, `/tb set none` | Equipment set to wear while fishing |
 | `/tb hud` | Show or hide the session window |

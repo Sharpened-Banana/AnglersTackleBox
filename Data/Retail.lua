@@ -7,6 +7,26 @@ ns.Data = Data
 -- Angler's Fishing Raft: toy and the buff it gives.
 Data.raft = { item = 85500, spell = 124036 }
 
+-- Reusable Oversized Bobber: toy and the "Oversized Bobbers" buff.
+Data.oversizedBobber = { item = 202207, spell = 397827 }
+
+-- Crate of Bobbers toys. Only the ones the player owns are ever offered.
+Data.bobberToys = {
+  142528, -- Can of Worms
+  142529, -- Cat Head
+  142530, -- Tugboat
+  142531, -- Squeaky Duck
+  142532, -- Murloc Head
+  143662, -- Wooden Pepe
+  147307, -- Carved Wooden Helm
+  147308, -- Enchanted Bobber
+  147309, -- Face of the Forest
+  147310, -- Floating Totem
+  147311, -- Replica Gondola
+  147312, -- Demon Noggin
+}
+Data.bobberDuration = 3600
+
 -- Lures to pick from automatically, best first. Empty on Retail: Midnight
 -- lures each target one fish, so the player picks one with /tb lure.
 Data.lures = {}

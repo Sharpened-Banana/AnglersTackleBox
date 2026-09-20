@@ -91,6 +91,12 @@ function Planner:Next()
   action = ns.Lures:Action()
   if action and not Snoozed(action.id) then return action end
 
+  action = ns.Bobbers:OversizedAction()
+  if action and not Snoozed(action.id) then return action end
+
+  action = ns.Bobbers:ToyAction()
+  if action and not Snoozed(action.id) then return action end
+
   action = ExtraAction()
   if action then return action end
 

@@ -130,6 +130,8 @@ local function BuildPanel()
     L["Raises the soft-interact settings while fishing so the key grabs the bobber. Restored afterwards."])
   Checkbox(db, defaults, "autoLoot", L["Auto loot while fishing"],
     L["Turns auto loot on while fishing mode is on."])
+  Checkbox(db, defaults, "oversizedBobber", L["Keep the oversized bobber up"],
+    L["When the buff is missing, the next press of the fishing key uses your Reusable Oversized Bobber."])
   Checkbox(db, defaults, "useRaft", L["Use the fishing raft"],
     L["Starts the raft when you swim and refreshes it under 60 seconds."])
 
@@ -231,6 +233,8 @@ commands.help = function()
     L["/tb lure <item link or ID> - choose the lure (/tb lure auto, /tb lure off)"],
     L["/tb extra <item link or ID> - add or remove a toy or item to keep up"],
     L["/tb raft [on|off] - use the fishing raft"],
+    L["/tb oversized [on|off] - keep the oversized bobber up"],
+    L["/tb bobber [random|off|item link or ID] - bobber toy to keep up (no argument opens the list)"],
     L["/tb doubleclick [on|off] - double right-click does the same as the key"],
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
     L["/tb hud - show or hide the session window"],
@@ -313,6 +317,33 @@ commands.extra = function(rest)
   table.insert(extras, itemID)
   ns:Print(string.format(L["Added %s."], ItemLabel(itemID)))
 end
+
+commands.oversized = function(rest)
+  ns.db.oversizedBobber = OnOff(rest:lower(), ns.db.oversizedBobber)
+  ns:Print(ns.db.oversizedBobber and L["Oversized bobber on."] or L["Oversized bobber off."])
+end
+
+commands.bobber = function(rest)
+  local lower = rest:lower()
+  if rest == "" then
+    ns.Menu:Open("bobbers")
+  elseif lower == "off" or lower == "none" then
+    ns.db.bobber = nil
+    ns:Print(L["Bobber toy off."])
+  elseif lower == "random" then
+    ns.db.bobber = "random"
+    ns:Print(L["Bobber toy: a random one you own."])
+  else
+    local itemID = ItemIDFrom(rest)
+    if not itemID or not Compat.HasToy(itemID) then
+      ns:Print(L["That isn't a toy you own."])
+      return
+    end
+    ns.db.bobber = itemID
+    ns:Print(string.format(L["Bobber toy: %s"], ItemLabel(itemID)))
+  end
+end
+commands.bobbers = commands.bobber
 
 commands.raft = function(rest)
   ns.db.useRaft = OnOff(rest:lower(), ns.db.useRaft)

@@ -59,7 +59,7 @@ C_Spell = { GetSpellName = function(id) if id == 131474 or id == 131476 then ret
 C_Item = { GetItemInfo = function(id) return "Item" .. id, "[Item" .. id .. "]", 1, 1, 1, "", "", 1, "", 1, 250 end,
   GetItemInfoInstant = function(id) return id, "", "", "", 1, 0, 0 end,
   GetItemCount = function(id) return counts[id] or 0 end,
-  GetItemSpell = function(id) if id == 555 then return "Test Lure", 999 end end,
+  GetItemSpell = function(id) if id == 555 then return "Test Lure", 999 end if id == 142529 then return "Cat Head", 5005 end end,
   EquipItemByName = function() end }
 C_Container = { GetItemCooldown = function() return 0, 0 end, GetContainerNumSlots = function() return 0 end, GetContainerItemID = function() end }
 C_UnitAuras = { GetPlayerAuraBySpellID = function(id) return auras[id] end }
@@ -68,7 +68,8 @@ C_CVar = { GetCVar = function(n) return cvars[n] end, SetCVar = function(n, v) c
 C_CurrencyInfo = { GetCoinTextureString = function(c) return c .. "c" end }
 C_Map = { GetBestMapForUnit = function() return 2395 end }
 C_EquipmentSet = { GetEquipmentSetID = function() end, UseEquipmentSet = function() end }
-PlayerHasToy = function() return false end
+toys = {}
+PlayerHasToy = function(id) return toys[id] or false end
 InCombatLockdown = function() return combat end
 inInstance = false
 IsInInstance = function() return inInstance, inInstance and "party" or "none" end
@@ -130,7 +131,7 @@ print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 
 local ns = {}
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Options.lua" }) do
+  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("Tacklebox", ns)
 end
 local btn = TackleboxActionButton
@@ -208,6 +209,21 @@ ns.Lures.auraSeen[555] = nil
 for _ = 1, 3 do press(); advance(0.5) end
 check(ns.Engine.state == "READY" and btn.attrs.spell == "Fishing", "lure that never lands is set aside after 3 presses")
 
+-- bobbers
+toys[202207] = true; toys[142529] = true; toys[142530] = true
+advance(1)
+check(btn.attrs.type == "toy" and btn.attrs.toy == 202207 and btn.attrs.spell == nil, "oversized bobber missing -> key uses the toy")
+auras[397827] = { expirationTime = now + 3600 }
+press(); fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 397827); advance(0.5)
+check(btn.attrs.spell == "Fishing", "oversized bobber up -> back to cast")
+SlashCmdList.TACKLEBOX("bobber 142529"); advance(1)
+check(btn.attrs.toy == 142529, "chosen bobber toy queued when no bobber buff is up")
+press(); fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 5005); advance(0.5)
+check(btn.attrs.spell == "Fishing" and ns.Bobbers:Active() == 142529, "bobber toy with unreadable buff: trusted for an hour after its cast")
+SlashCmdList.TACKLEBOX("bobber random"); advance(1)
+check(btn.attrs.spell == "Fishing", "random: nothing queued while a bobber is already up")
+SlashCmdList.TACKLEBOX("bobber off"); auras[397827] = nil; ns.db.oversizedBobber = false; advance(1)
+
 -- combat
 fire("PLAYER_REGEN_DISABLED"); combat = true
 check(next(bindings) == nil and ns.Engine.state == "PAUSED", "combat: key released")
@@ -276,7 +292,7 @@ GetCursorInfo = function() if cursor then return "item", cursor end end
 ClearCursor = function() cursor = nil end
 SlashCmdList.TACKLEBOX("menu")
 check(TackleboxMenu and TackleboxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
-for _, key in ipairs({ "lures", "log", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
+for _, key in ipairs({ "lures", "bobbers", "log", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
 check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")

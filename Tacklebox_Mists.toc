@@ -15,6 +15,7 @@ Core.lua
 Audio.lua
 Gear.lua
 Lures.lua
+Bobbers.lua
 Log.lua
 HUD.lua
 Alerts.lua

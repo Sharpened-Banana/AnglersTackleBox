@@ -24,6 +24,8 @@ Data.lureDuration = 600
 Data.knownLures = Data.lures
 
 Data.special = {}
+Data.bobberToys = {}
+Data.bobberDuration = 3600
 Data.npcs = {}
 Data.spells = {}
 Data.mounts = {}
