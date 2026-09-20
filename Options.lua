@@ -242,7 +242,8 @@ commands.help = function()
     L["/tb find <fish> - where you catch it, from your own log"],
     L["/tb gold - best zones and spots by gold per hour"],
     L["/tb scan - refresh fish prices (at the auction house, needs Auctionator)"],
-    L["/tb records - personal records;  /tb share [party|guild|say] - post this session to chat"],
+    L["/tb records - personal records (/tb records reset gold clears the gold ones)"],
+    L["/tb share [party|guild|say] - post this session to chat"],
     L["/tb camera save|on|off - fishing camera zoom;  /tb pins, /tb minimap - toggle map pins, minimap button"],
     L["/tb stats - session and zone catch stats"],
     L["/tb reset - restart the session counters"],
@@ -419,7 +420,18 @@ commands.scan = function()
   ns:Print(message)
 end
 
-commands.records = function() ns:PrintLines(ns.Records:Lines()) end
+commands.records = function(rest)
+  local lower = rest:lower()
+  if lower == "reset" then
+    ns.Records:Reset(false)
+    ns:Print(L["All personal records cleared."])
+  elseif lower == "reset gold" then
+    ns.Records:Reset(true)
+    ns:Print(L["Gold records cleared. The next session sets new ones."])
+  else
+    ns:PrintLines(ns.Records:Lines())
+  end
+end
 commands.share = function(rest) ns.Records:Share(rest) end
 
 commands.camera = function(rest)

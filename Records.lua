@@ -70,6 +70,16 @@ ns:On("SESSION_END", function(summary)
   Records.run = nil
 end)
 
+-- Clears the records (all, or just the gold ones that prices can distort).
+function Records:Reset(goldOnly)
+  local records = ns.chardb.records
+  for key in pairs(records) do
+    if not goldOnly or key == "sessionValue" or key == "perHour" or key == "catch" then
+      records[key] = nil
+    end
+  end
+end
+
 function Records:Lines()
   local records = ns.chardb.records
   local lines = { { text = L["Personal records"], header = true } }

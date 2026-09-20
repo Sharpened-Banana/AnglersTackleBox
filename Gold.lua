@@ -197,13 +197,15 @@ function Gold:PriceAge()
   if not api or not api.GetAuctionAgeByItemID then return nil end
   local newest, oldest, unseen, total = nil, nil, 0, 0
   for _, fish in ipairs(ns.Journal:Fish()) do
-    total = total + 1
-    local ok, age = pcall(api.GetAuctionAgeByItemID, "Tacklebox", fish.id)
-    if ok and age then
-      newest = math.min(newest or age, age)
-      oldest = math.max(oldest or age, age)
-    else
-      unseen = unseen + 1
+    if not ns.Log.IsJunk(fish.id) then -- junk is never priced at auction
+      total = total + 1
+      local ok, age = pcall(api.GetAuctionAgeByItemID, "Tacklebox", fish.id)
+      if ok and age then
+        newest = math.min(newest or age, age)
+        oldest = math.max(oldest or age, age)
+      else
+        unseen = unseen + 1
+      end
     end
   end
   return { newest = newest, oldest = oldest, unseen = unseen, total = total }
@@ -228,7 +230,8 @@ function Gold:Scan()
   local names = {}
   for _, fish in ipairs(ns.Journal:Fish()) do
     -- Item names only; Auctionator rejects terms with these characters.
-    if #names < SCAN_LIMIT and not fish.name:find("^item:") and not fish.name:find('[;^"]') then
+    if #names < SCAN_LIMIT and not ns.Log.IsJunk(fish.id)
+      and not fish.name:find("^item:") and not fish.name:find('[;^"]') then
       names[#names + 1] = fish.name
     end
   end

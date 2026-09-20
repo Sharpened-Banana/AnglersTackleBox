@@ -66,7 +66,7 @@ wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
 WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC = 1, 1, 2
 issecretvalue = function() return false end
 C_Spell = { GetSpellName = function(id) if id == 131474 or id == 131476 then return "Fishing" end if id == 999 then return "Test Lure" end end }
-C_Item = { GetItemInfo = function(id) return "Item" .. id, "[Item" .. id .. "]", 1, 1, 1, "", "", 1, "", 1, 250 end,
+C_Item = { GetItemInfo = function(id) return "Item" .. id, "[Item" .. id .. "]", id == 777 and 0 or 1, 1, 1, "", "", 1, "", 1, 250 end,
   GetItemInfoInstant = function(id) return id, "", "", "", 1, 0, 0 end,
   GetItemCount = function(id) return counts[id] or 0 end,
   GetItemSpell = function(id) if id == 555 then return "Test Lure", 999 end if id == 142529 then return "Cat Head", 5005 end end,
@@ -308,6 +308,13 @@ check(searched and #searched >= 2, "scan: opening the auction house searches for
 searched = nil; ns.db.ahScan = false; fire("AUCTION_HOUSE_SHOW"); advance(1.1)
 check(searched == nil, "scan: automatic refresh can be turned off")
 check(ns.Gold:Lines()[1].text:find("oldest 3 days ago", 1, true), "gold report shows how old the prices are")
+Auctionator.API.v1.GetAuctionPriceByItemID = function() return 9999999 end
+check(ns.Log.UnitValue(777) == 250, "junk: a grey item is worth its vendor price despite a troll listing")
+check(ns.Log.UnitValue(220134) == 9999999, "junk: real fish still use the auction price")
+ns.chardb.records.sessionValue = { value = 1, at = 1 }; ns.chardb.records.sessionCatches = { value = 1, at = 1 }
+ns.Records:Reset(true)
+check(ns.chardb.records.sessionValue == nil and ns.chardb.records.sessionCatches ~= nil, "records: gold records can be cleared alone")
+ns.chardb.records.sessionCatches = nil
 AuctionHouseFrame.shown = false; Auctionator = nil
 
 -- share and away warning

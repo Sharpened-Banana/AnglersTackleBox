@@ -25,15 +25,23 @@ end
 local UnitValue
 function Log.UnitValue(itemID) return UnitValue(itemID) end
 
--- Auction price (nil without a pricing addon) and vendor price, in copper.
+-- Grey items have no real auction market, only troll listings, so they are
+-- always worth what a vendor pays.
+function Log.IsJunk(itemID)
+  local _, _, quality = Compat.GetItemInfo(itemID)
+  return quality == 0
+end
+
+-- Auction price (nil without a pricing addon, and for junk) and vendor
+-- price, in copper.
 function Log.Prices(itemID)
   local auction
-  local api = Auctionator and Auctionator.API and Auctionator.API.v1
+  local api = not Log.IsJunk(itemID) and Auctionator and Auctionator.API and Auctionator.API.v1
   if api and api.GetAuctionPriceByItemID then
     local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
     if ok and price then auction = price end
   end
-  if not auction and TSM_API and TSM_API.GetCustomPriceValue then
+  if not auction and not Log.IsJunk(itemID) and TSM_API and TSM_API.GetCustomPriceValue then
     local ok, price = pcall(TSM_API.GetCustomPriceValue, "dbmarket", "i:" .. itemID)
     if ok and price then auction = price end
   end
@@ -42,17 +50,8 @@ function Log.Prices(itemID)
 end
 
 function UnitValue(itemID)
-  local api = Auctionator and Auctionator.API and Auctionator.API.v1
-  if api and api.GetAuctionPriceByItemID then
-    local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
-    if ok and price then return price end
-  end
-  if TSM_API and TSM_API.GetCustomPriceValue then
-    local ok, price = pcall(TSM_API.GetCustomPriceValue, "dbmarket", "i:" .. itemID)
-    if ok and price then return price end
-  end
-  local _, _, _, _, _, _, _, _, _, _, sellPrice = Compat.GetItemInfo(itemID)
-  return sellPrice or 0
+  local auction, vendor = Log.Prices(itemID)
+  return auction or vendor
 end
 
 -- With always-on the session starts at the first cast instead.
