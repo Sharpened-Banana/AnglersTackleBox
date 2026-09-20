@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="TACKLEBOX_TOGGLE" header="TACKLEBOX" category="ADDONS">
+    Tacklebox_ToggleFishingMode()
+  </Binding>
+</Bindings>

@@ -1,0 +1,188 @@
+-- Catch Log: every catch by zone and subzone, plus live session stats.
+-- Reads the loot window (LOOT_READY + GetLootSlotLink) rather than chat,
+-- because chat loot messages may be secret inside instances on 12.x.
+local _, ns = ...
+local L, Compat, Data = ns.L, ns.Compat, ns.Data
+
+local Log = ns:NewModule("Log")
+
+local MAX_SESSIONS = 30
+local LOOT_SLOT_ITEM = Enum and Enum.LootSlotType and Enum.LootSlotType.Item or 1
+
+local function NewSession()
+  return {
+    start = time(), t0 = GetTime(),
+    casts = 0, catches = 0, value = 0, sinceRare = 0,
+    items = {},
+  }
+end
+
+-- Copper value of one item: auction price when a pricing addon is loaded,
+-- vendor price otherwise.
+local function UnitValue(itemID)
+  local api = Auctionator and Auctionator.API and Auctionator.API.v1
+  if api and api.GetAuctionPriceByItemID then
+    local ok, price = pcall(api.GetAuctionPriceByItemID, "Tacklebox", itemID)
+    if ok and price then return price end
+  end
+  if TSM_API and TSM_API.GetCustomPriceValue then
+    local ok, price = pcall(TSM_API.GetCustomPriceValue, "dbmarket", "i:" .. itemID)
+    if ok and price then return price end
+  end
+  local _, _, _, _, _, _, _, _, _, _, sellPrice = Compat.GetItemInfo(itemID)
+  return sellPrice or 0
+end
+
+function Log:Enable()
+  self.session = NewSession()
+  self.lootSeen = nil
+end
+
+function Log:Disable()
+  local s = self.session
+  self.session = nil
+  if not s or s.casts == 0 then return end
+
+  local sessions = ns.chardb.sessions
+  table.insert(sessions, {
+    start = s.start, stop = time(),
+    casts = s.casts, catches = s.catches, value = s.value,
+    mapID = C_Map and C_Map.GetBestMapForUnit("player") or nil,
+  })
+
+  -- Old sessions roll up into daily totals so the file stays small.
+  while #sessions > MAX_SESSIONS do
+    local old = table.remove(sessions, 1)
+    local day = date("%Y-%m-%d", old.start)
+    local total = ns.chardb.daily[day] or { casts = 0, catches = 0, value = 0, seconds = 0 }
+    total.casts = total.casts + old.casts
+    total.catches = total.catches + old.catches
+    total.value = total.value + old.value
+    total.seconds = total.seconds + math.max(0, old.stop - old.start)
+    ns.chardb.daily[day] = total
+  end
+end
+
+function Log:OnCast()
+  local s = self.session
+  if not s then return end
+  if s.casts == 0 then s.t0 = GetTime() end -- the clock starts at the first cast
+  s.casts = s.casts + 1
+  s.sinceRare = s.sinceRare + 1
+  ns.HUD:Refresh()
+end
+
+function Log:Stats()
+  local s = self.session
+  if not s then return nil end
+  local elapsed = s.casts > 0 and (GetTime() - s.t0) or 0
+  return {
+    casts = s.casts,
+    catches = s.catches,
+    rate = s.casts > 0 and (s.catches / s.casts) or 0,
+    value = s.value,
+    perHour = elapsed >= 60 and (s.value / elapsed * 3600) or 0,
+    sinceRare = s.sinceRare,
+    elapsed = elapsed,
+  }
+end
+
+local function Record(itemID, name, quantity, quality)
+  local s = Log.session
+  local now = time()
+  local mapID = (C_Map and C_Map.GetBestMapForUnit("player")) or 0
+  local subzone = GetSubZoneText() or ""
+  if subzone == "" then subzone = GetZoneText() or "" end
+
+  local zone = ns.chardb.log[mapID]
+  if not zone then zone = {} ns.chardb.log[mapID] = zone end
+  local entry = zone[itemID]
+  if not entry then
+    entry = { count = 0, first = now, subs = {} }
+    zone[itemID] = entry
+  end
+  entry.count = entry.count + quantity
+  entry.last = now
+  entry.name = name
+  entry.subs[subzone] = (entry.subs[subzone] or 0) + quantity
+
+  s.items[itemID] = (s.items[itemID] or 0) + quantity
+  s.value = s.value + UnitValue(itemID) * quantity
+
+  local special = Data.special[name]
+  local isRare = special ~= nil or (quality or 0) >= ns.db.alertQuality
+  if isRare then
+    s.sinceRare = 0
+    if ns.db.alerts then
+      if special == "teleport" then
+        ns.HUD:Alert(string.format(L["%s: looting it teleports you!"], name))
+      elseif special == "hostile" then
+        ns.HUD:Alert(string.format(L["%s: a hostile spirit is coming."], name))
+      else
+        ns.HUD:Alert(string.format(L["Caught %s!"], name))
+      end
+    end
+  end
+end
+
+local function OnLoot()
+  local s = Log.session
+  if not s or Log.lootSeen then return end
+  local engine = ns.Engine
+  local recentlyFished = engine.state == "CHANNELING"
+    or (engine.lastFishEnd ~= nil and GetTime() - engine.lastFishEnd < 3)
+  if not Compat.IsFishingLoot(recentlyFished) then return end
+  Log.lootSeen = true
+
+  local caught = false
+  for slot = 1, GetNumLootItems() do
+    if GetLootSlotType(slot) == LOOT_SLOT_ITEM then
+      local link = GetLootSlotLink(slot)
+      local _, name, quantity, _, quality = GetLootSlotInfo(slot)
+      if link and not Compat.IsSecret(link) and not Compat.IsSecret(name) then
+        local itemID = tonumber(link:match("item:(%d+)"))
+        if itemID then
+          Record(itemID, name, quantity or 1, quality)
+          caught = true
+        end
+      end
+    end
+  end
+  if caught then s.catches = s.catches + 1 end
+  ns.HUD:Refresh()
+end
+
+ns:OnModeEvent("LOOT_READY", OnLoot)
+ns:OnModeEvent("LOOT_OPENED", OnLoot)
+ns:OnModeEvent("LOOT_CLOSED", function() Log.lootSeen = nil end)
+
+function Log:ResetSession()
+  if self.session then self.session = NewSession() end
+  ns.HUD:Refresh()
+end
+
+-- /tb stats
+function Log:PrintStats()
+  local stats = self:Stats()
+  if stats then
+    ns:Print(string.format(L["Session: %d casts, %d catches (%d%%), %s, %s/hour."],
+      stats.casts, stats.catches, math.floor(stats.rate * 100 + 0.5),
+      Compat.CoinString(stats.value), Compat.CoinString(stats.perHour)))
+  end
+
+  local mapID = (C_Map and C_Map.GetBestMapForUnit("player")) or 0
+  local zone = ns.chardb.log[mapID]
+  if not zone then
+    ns:Print(L["Nothing logged in this zone yet."])
+    return
+  end
+  local rows = {}
+  for itemID, entry in pairs(zone) do
+    rows[#rows + 1] = { name = entry.name or ("item:" .. itemID), count = entry.count }
+  end
+  table.sort(rows, function(a, b) return a.count > b.count end)
+  ns:Print(string.format(L["All-time catches in %s:"], GetZoneText() or "?"))
+  for i = 1, math.min(10, #rows) do
+    print(string.format("   %5d  %s", rows[i].count, rows[i].name))
+  end
+end

@@ -1,0 +1,24 @@
+## Interface: 50504
+## Title: Tacklebox
+## Notes: One-key fishing that remembers what you caught.
+## Version: @project-version@
+## IconTexture: Interface\Icons\Trade_Fishing
+## Category: Professions
+## SavedVariables: TackleboxDB
+## SavedVariablesPerCharacter: TackleboxCharDB
+## AddonCompartmentFunc: Tacklebox_OnAddonCompartmentClick
+
+Locales/enUS.lua
+Compat.lua
+Data/Classic.lua
+Core.lua
+Audio.lua
+Gear.lua
+Lures.lua
+Log.lua
+HUD.lua
+Events.lua
+Goals.lua
+Planner.lua
+Engine.lua
+Options.lua
