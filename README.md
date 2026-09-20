@@ -37,6 +37,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb stats`, `/tb reset` | Print or restart session stats |
 | `/tb find <fish>` | Where you catch it, from your own log (no argument opens the Journal) |
 | `/tb gold` | Best zones and spots by gold per hour |
+| `/tb scan` | Refresh fish prices through Auctionator (only works with the auction house open) |
 | `/tb records`, `/tb share [party\|guild\|say]` | Personal records; post this session to chat |
 | `/tb camera save\|on\|off` | Fishing camera zoom preset |
 | `/tb pins`, `/tb minimap` | Toggle world map pins and the minimap button |

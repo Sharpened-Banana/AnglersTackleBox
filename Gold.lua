@@ -63,8 +63,31 @@ function Gold:Spots()
   return list
 end
 
+local function Days(age)
+  if age == 0 then return L["today"] end
+  return string.format(age == 1 and L["%d day ago"] or L["%d days ago"], age)
+end
+
 function Gold:Lines()
-  local lines = { { text = L["Best zones by gold per hour (your sessions):"], header = true } }
+  local lines = {}
+  local age = self:PriceAge()
+  if not age then
+    lines[#lines + 1] = { header = true,
+      text = L["Prices: vendor value only. Install Auctionator for auction prices."] }
+  elseif age.total > 0 then
+    local text
+    if age.newest then
+      text = string.format(L["Auction prices: newest %s, oldest %s."], Days(age.newest), Days(age.oldest))
+    else
+      text = L["Auction prices: none seen yet."]
+    end
+    if age.unseen > 0 then text = text .. " " .. string.format(L["%d fish never priced."], age.unseen) end
+    lines[#lines + 1] = { text = text, header = true }
+    if self:PricesStale() then
+      lines[#lines + 1] = { text = L["Visit the auction house to refresh them (/tb scan while it is open)."] }
+    end
+  end
+  lines[#lines + 1] = { text = L["Best zones by gold per hour (your sessions):"], header = true }
   local zones = self:Zones()
   for index = 1, math.min(8, #zones) do
     local zone = zones[index]
@@ -150,19 +173,96 @@ function Gold:SellLines()
   return lines
 end
 
+---------------------------------------------------------------------------
+-- Price refresh: the game only answers auction queries while the auction
+-- house is open, so that is when fish prices get refreshed. Auctionator does
+-- the searching and keeps the prices; Tacklebox just hands it the fish list.
+---------------------------------------------------------------------------
+
+local SCAN_LIMIT = 80 -- fish names per search, most caught first
+
+local function AuctionatorAPI()
+  return Auctionator and Auctionator.API and Auctionator.API.v1
+end
+
+local function AuctionHouseOpen()
+  return (AuctionHouseFrame and AuctionHouseFrame:IsShown())
+    or (AuctionFrame and AuctionFrame:IsShown()) or false
+end
+
+-- Days since each logged fish was last priced: newest, oldest, and how many
+-- have never been seen. nil without Auctionator.
+function Gold:PriceAge()
+  local api = AuctionatorAPI()
+  if not api or not api.GetAuctionAgeByItemID then return nil end
+  local newest, oldest, unseen, total = nil, nil, 0, 0
+  for _, fish in ipairs(ns.Journal:Fish()) do
+    total = total + 1
+    local ok, age = pcall(api.GetAuctionAgeByItemID, "Tacklebox", fish.id)
+    if ok and age then
+      newest = math.min(newest or age, age)
+      oldest = math.max(oldest or age, age)
+    else
+      unseen = unseen + 1
+    end
+  end
+  return { newest = newest, oldest = oldest, unseen = unseen, total = total }
+end
+
+function Gold:PricesStale()
+  local age = self:PriceAge()
+  if not age or age.total == 0 then return false end
+  return age.unseen > 0 or (age.oldest or 0) >= (ns.db.ahScanDays or 1)
+end
+
+-- Searches the auction house for every logged fish. Returns false and a
+-- reason when it can't.
+function Gold:Scan()
+  local api = AuctionatorAPI()
+  if not api or not api.MultiSearchExact then
+    return false, L["Price scans need the Auctionator addon."]
+  end
+  if not AuctionHouseOpen() then
+    return false, L["Open the auction house first - the game only answers price queries there."]
+  end
+  local names = {}
+  for _, fish in ipairs(ns.Journal:Fish()) do
+    -- Item names only; Auctionator rejects terms with these characters.
+    if #names < SCAN_LIMIT and not fish.name:find("^item:") and not fish.name:find('[;^"]') then
+      names[#names + 1] = fish.name
+    end
+  end
+  if #names == 0 then return false, L["No fish in your log to price yet."] end
+  local ok, problem = pcall(api.MultiSearchExact, "Tacklebox", names)
+  if not ok then return false, tostring(problem) end
+  self.lastScan = GetTime()
+  return true, string.format(L["Pricing %d kinds of fish. Auctionator shows the results in its Shopping tab."], #names)
+end
+
 local frame
-local function OnShopOpened()
+local function OnShopOpened(_, event)
+  if event == "AUCTION_HOUSE_SHOW" and ns.db.ahScan and Gold:PricesStale() then
+    -- Give Auctionator a moment to build its tabs.
+    C_Timer.After(1, function()
+      if not AuctionHouseOpen() then return end
+      local ok, message = Gold:Scan()
+      if ok then ns:Print(message) end
+    end)
+  end
   local now = GetTime()
   if Gold.lastShop and now - Gold.lastShop < 30 then return end
   Gold.lastShop = now
   ns:PrintLines(Gold:SellLines())
 end
 
--- The shop events are only registered once there has been a session.
-ns:On("SESSION_START", function()
-  if frame then return end
+-- Opening the auction house never happens in combat, so this one event is
+-- safe to keep registered. The vendor event waits for a session.
+function Gold:Init()
   frame = CreateFrame("Frame")
-  frame:RegisterEvent("MERCHANT_SHOW")
-  pcall(frame.RegisterEvent, frame, "AUCTION_HOUSE_SHOW")
   frame:SetScript("OnEvent", OnShopOpened)
+  pcall(frame.RegisterEvent, frame, "AUCTION_HOUSE_SHOW")
+end
+
+ns:On("SESSION_START", function()
+  if frame then frame:RegisterEvent("MERCHANT_SHOW") end
 end)

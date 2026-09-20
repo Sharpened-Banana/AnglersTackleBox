@@ -292,6 +292,24 @@ SlashCmdList.TACKLEBOX("bobber random"); advance(1)
 check(btn.attrs.spell == "Fishing", "random: nothing queued while a bobber is already up")
 SlashCmdList.TACKLEBOX("bobber off"); auras[397827] = nil; ns.db.oversizedBobber = false; advance(1)
 
+-- auction price refresh
+local ok, why = ns.Gold:Scan()
+check(not ok and why:find("Auctionator", 1, true), "scan: says it needs Auctionator when it is missing")
+local searched
+Auctionator = { API = { v1 = {
+  GetAuctionPriceByItemID = function() return 250 end,
+  GetAuctionAgeByItemID = function(_, id) return id == 220134 and 3 or nil end,
+  MultiSearchExact = function(_, terms) searched = terms end } } }
+ok, why = ns.Gold:Scan()
+check(not ok and why:find("auction house", 1, true), "scan: refuses away from the auction house")
+check(ns.Gold:PricesStale(), "scan: three-day-old and never-seen prices count as stale")
+AuctionHouseFrame = Frame(); fire("AUCTION_HOUSE_SHOW"); advance(1.1)
+check(searched and #searched >= 2, "scan: opening the auction house searches for the logged fish")
+searched = nil; ns.db.ahScan = false; fire("AUCTION_HOUSE_SHOW"); advance(1.1)
+check(searched == nil, "scan: automatic refresh can be turned off")
+check(ns.Gold:Lines()[1].text:find("oldest 3 days ago", 1, true), "gold report shows how old the prices are")
+AuctionHouseFrame.shown = false; Auctionator = nil
+
 -- share and away warning
 SlashCmdList.TACKLEBOX("share")
 check(#sent == 1 and sent[1].channel == "GUILD" and sent[1].text:find("catches", 1, true), "share: session posted to guild when not in a party")

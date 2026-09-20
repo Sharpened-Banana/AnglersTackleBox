@@ -72,6 +72,8 @@ ns.defaults = {
   alertQuality = 3,     -- alert on catches of this quality and up
   alertFlash = false,   -- flash the screen edges with each alert
   valueAlert = 0,       -- gold; alert on a single catch worth at least this (0 = off)
+  ahScan = true,        -- refresh stale fish prices when the auction house opens
+  ahScanDays = 1,       -- prices at least this old count as stale
   mapPins = true,       -- show fished spots on the world map
   afkWarning = true,
   camera = { enabled = false }, -- zoom preset applied while fishing

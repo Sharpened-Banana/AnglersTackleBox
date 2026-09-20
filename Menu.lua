@@ -459,10 +459,18 @@ local function BuildGold(panel)
   box:SetScript("OnEditFocusLost", Commit)
   box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
+  local autoScan = Check(panel, L["Refresh stale fish prices when I open the auction house"], ns.db, "ahScan")
+  autoScan:SetPoint("TOPLEFT", 0, -28)
+  local scan = Button(panel, L["Scan now"], 90, function()
+    local _, message = ns.Gold:Scan()
+    ns:Print(message)
+  end)
+  scan:SetPoint("TOPLEFT", 330, -28)
+
   local chartTitle = Label(panel, "GameFontNormal")
-  chartTitle:SetPoint("TOPLEFT", 2, -34)
+  chartTitle:SetPoint("TOPLEFT", 2, -64)
   local chart = CreateFrame("Frame", nil, panel)
-  chart:SetPoint("TOPLEFT", 0, -52)
+  chart:SetPoint("TOPLEFT", 0, -82)
   chart:SetSize(410, CHART_HEIGHT)
   Fill(chart, "BACKGROUND", COLOR.tray, 0.08):SetAllPoints()
   local bars = {}
@@ -485,11 +493,12 @@ local function BuildGold(panel)
   end
 
   local report = CreateFrame("Frame", nil, panel)
-  report:SetPoint("TOPLEFT", 0, -134)
+  report:SetPoint("TOPLEFT", 0, -164)
   report:SetPoint("BOTTOMRIGHT", 0, 0)
   local refreshReport = Report(report, function() return ns.Gold:Lines() end)
 
   panel.Refresh = function()
+    autoScan.Sync()
     if not box:HasFocus() then box:SetText(tostring(ns.db.valueAlert or 0)) end
     local history = ns.Gold:History(CHART_BARS)
     local best = 0

@@ -241,6 +241,7 @@ commands.help = function()
     L["/tb log - open the catch log window"],
     L["/tb find <fish> - where you catch it, from your own log"],
     L["/tb gold - best zones and spots by gold per hour"],
+    L["/tb scan - refresh fish prices (at the auction house, needs Auctionator)"],
     L["/tb records - personal records;  /tb share [party|guild|say] - post this session to chat"],
     L["/tb camera save|on|off - fishing camera zoom;  /tb pins, /tb minimap - toggle map pins, minimap button"],
     L["/tb stats - session and zone catch stats"],
@@ -407,6 +408,15 @@ commands.gold = function()
   else
     ns:Print(L["The gold module isn't part of this build."])
   end
+end
+
+commands.scan = function()
+  if not ns.Gold then
+    ns:Print(L["The gold module isn't part of this build."])
+    return
+  end
+  local _, message = ns.Gold:Scan()
+  ns:Print(message)
 end
 
 commands.records = function() ns:PrintLines(ns.Records:Lines()) end
