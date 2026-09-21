@@ -248,6 +248,15 @@ check(ns.Engine.state == "CHANNELING" and bindings.F == "CLICK AnglersTackleBoxA
 keydown = false; advance(0.06)
 check(bindings.F == "INTERACTTARGET", "key released -> armed to reel in")
 
+-- a key that reads as down forever (focus lost mid-press) must not freeze the binding
+keydown = true
+fire("UNIT_SPELLCAST_CHANNEL_STOP", "player", "guid", 131476)
+advance(0.06)
+check(bindings.F == "INTERACTTARGET", "stuck key: held at first, binding untouched")
+advance(2)
+check(bindings.F == "CLICK AnglersTackleBoxActionButton", "stuck key: re-armed to cast after the cap")
+keydown = false
+
 loot = { { id = 220134, name = "Test Fish", qty = 2, quality = 1 }, { id = 268730, name = "Nether-Warped Egg", qty = 1, quality = 1 } }
 fire("LOOT_READY"); fire("LOOT_OPENED")
 check(ns.Engine.state == "LOOTING" and bindings.F == "CLICK AnglersTackleBoxActionButton", "loot opened -> LOOTING, key already casts")

@@ -27,6 +27,8 @@ local function KeyHeld(key)
   return ok and down or false
 end
 
+local STUCK_KEY = 1.5 -- seconds a key can read as down before it counts as stuck
+
 local function ShouldPause()
   return IsMounted() or UnitIsDeadOrGhost("player")
 end
@@ -53,8 +55,15 @@ function Engine:Rearm()
   if InCombatLockdown() then return end -- Core re-arms after combat
   local key = ns.db.key -- may be nil for double-click-only players
 
-  -- Never rebind mid-press. This timer only rebinds; it never acts.
+  -- Never rebind mid-press. This timer only rebinds; it never acts. When
+  -- the window loses focus mid-press the game never sees the key come up
+  -- and IsKeyDown can stay true, so a hold past STUCK_KEY is not a press.
   if key and KeyHeld(key) then
+    self.heldSince = self.heldSince or GetTime()
+  else
+    self.heldSince = nil
+  end
+  if self.heldSince and GetTime() - self.heldSince < STUCK_KEY then
     if not self.retrying then
       self.retrying = true
       C_Timer.After(0.05, function()

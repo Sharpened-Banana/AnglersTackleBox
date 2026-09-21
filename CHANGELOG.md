@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Sunwell Fish no longer triggers the rare catch alert. It is an uncommon fish; only special catches and fish at or above your alert quality alert.
+- The fishing key no longer stops working after the mouse leaves the game window mid-press. A key that reads as held for over 1.5 seconds is now treated as stuck.
+
 ## 1.0.0
 
 First release, for Retail (Midnight 12.1) and WoW Forever.
