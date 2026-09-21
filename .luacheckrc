@@ -1,6 +1,6 @@
 std = "lua51"
 max_line_length = 120
-exclude_files = { ".release", "tests" }
+exclude_files = { ".release", "tests", "dist" }
 ignore = { "212" } -- unused arguments (event handler signatures)
 
 globals = {
