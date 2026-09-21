@@ -54,7 +54,6 @@ Data.special = {
   [238380] = "rare",     -- Null Voidfish
   [238373] = "rare",     -- Ominous Octopus
   [238376] = "rare",     -- Lucky Loa
-  [238384] = "rare",     -- Sunwell Fish
 }
 
 Data.npcs = {
