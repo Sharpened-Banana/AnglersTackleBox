@@ -4,6 +4,7 @@
 ## Version: @project-version@
 ## Author: Sharpened Banana
 ## X-License: All Rights Reserved
+## X-Curse-Project-ID: 1705432
 ## X-Website: https://github.com/Sharpened-Banana/AnglersTackleBox
 ## IconTexture: Interface\Icons\Trade_Fishing
 ## Category: Professions

@@ -13,9 +13,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Add "## X-Curse-Project-ID" and "## X-Wago-ID" to the TOC files once
-      # the projects exist; the packager skips any upload it has no ID or
-      # token for.
+      # Uploads to CurseForge (X-Curse-Project-ID in the TOC files) and, once
+      # "## X-Wago-ID" is added, to Wago. The packager skips any upload it has
+      # no ID or token for.
       - uses: BigWigsMods/packager@v2
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
