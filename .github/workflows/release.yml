@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+# The packager creates the GitHub Release, which needs write access.
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
