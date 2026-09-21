@@ -655,6 +655,21 @@ local function BuildRecords(panel)
   end
 end
 
+local function BuildStats(panel)
+  local clear = Button(panel, L["Reset statistics"], 150, function()
+    ns.Stats:Reset()
+    Menu:Refresh()
+  end)
+  clear:SetPoint("BOTTOMLEFT", 0, 0)
+  local note = Label(panel, "GameFontDisableSmall", L["Restarts the lifetime totals. Sessions and the log stay."])
+  note:SetPoint("LEFT", clear, "RIGHT", 10, 0)
+  local report = CreateFrame("Frame", nil, panel)
+  report:SetPoint("TOPLEFT", 0, 0)
+  report:SetPoint("BOTTOMRIGHT", 0, 30)
+  local refreshReport = Report(report, function() return ns.Stats:Lines() end)
+  panel.Refresh = refreshReport
+end
+
 local function BuildLog(panel)
   ns.LogWindow:Attach(panel)
   panel.Refresh = function() ns.LogWindow:Refresh() end
@@ -726,6 +741,8 @@ local function Compartments()
     list[#list + 1] = { key = "midnight", name = L["Coiled Isle"], icon = info and info.iconFileID,
       build = function(panel) Report(panel, function() return ns.Midnight:Lines() end) end }
   end
+  list[#list + 1] = { key = "stats", name = L["Statistics"], icon = "Interface\\Icons\\INV_Misc_Note_05",
+    build = BuildStats }
   list[#list + 1] = { key = "records", name = L["Records"], icon = "Interface\\Icons\\INV_Crown_01",
     build = BuildRecords }
   if not ns.Gold then -- the gold module can be left out of a build

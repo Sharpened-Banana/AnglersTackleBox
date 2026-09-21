@@ -4,6 +4,7 @@
 
 - Sunwell Fish no longer triggers the rare catch alert. It is an uncommon fish; only special catches and fish at or above your alert quality alert.
 - The fishing key no longer stops working after the mouse leaves the game window mid-press. A key that reads as held for over 1.5 seconds is now treated as stuck.
+- New Statistics tab in the box, and a lifetime line for `/tb stats`: casts, catch and miss rates, time fishing and time with the line in the water, casts, catches and gold per hour, catches by quality, the last 24 hours, 7 days and 30 days, and a per-zone breakdown. Existing characters start from their saved sessions. "Line in the water" counts from this version on. Reset statistics starts the totals over.
 
 ## 1.0.0
 

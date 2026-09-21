@@ -175,7 +175,7 @@ if CLASSIC then
 
   for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Audio.lua", "Gear.lua",
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
-    "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Planner.lua", "Engine.lua",
+    "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Planner.lua", "Engine.lua",
     "Menu.lua", "Welcome.lua", "Options.lua" }) do
     assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
   end
@@ -222,7 +222,7 @@ if CLASSIC then
   os.exit(0)
 end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua",
+  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
   "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
 end
@@ -480,6 +480,16 @@ check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session su
 check(zoom == 15, "camera: restored when fishing ends")
 check(ns.chardb.records.sessionValue and ns.chardb.records.sessionCatches, "records: set when the session ends")
 check(#ns.Gold:Lines() >= 4 and #ns.Records:Lines() >= 3, "gold and records reports build")
+do
+  local data = ns.Stats:Data()
+  check(data.casts > 0 and data.casts >= data.catches, "stats: casts counted, catches never exceed them")
+  check(data.castSeconds > 0, "stats: time in the water is tracked")
+  check(#ns.Stats:Lines() >= 8, "stats report builds")
+  check(ns.Stats:Window(1).casts > 0, "stats: the last day includes this session")
+  check(next(data.zones or {}) ~= nil, "stats: casts are counted per zone")
+  ns.Stats:Reset()
+  check(ns.Stats:Data().casts == 0 and #ns.Stats:Lines() == 1, "stats: reset starts the totals over")
+end
 counts[220134] = 3
 check(ns.Gold:SellLines()[1] ~= nil, "gold: sell helper prices the session's fish still in the bags")
 counts[220134] = nil

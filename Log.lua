@@ -371,6 +371,7 @@ end
 
 -- /tb stats
 function Log:PrintStats()
+  if ns.Stats then ns.Stats:Print() end
   local stats = self:Stats()
   if stats then
     ns:Print(string.format(L["Session: %d casts, %d catches (%d%%), %s, %s/hour."],

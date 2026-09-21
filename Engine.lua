@@ -247,6 +247,7 @@ ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_START", function(_, _, spellID)
   ns.Core:Focus()
   SetState("CHANNELING")
   ns.Log:OnCast()
+  ns:Fire("CAST_START")
   Engine:Rearm()
 end)
 
@@ -255,6 +256,7 @@ ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_STOP", function()
   if Engine.state ~= "CHANNELING" then return end
   Engine.lastFishEnd = GetTime()
   ns.Core.lastActivity = Engine.lastFishEnd
+  ns:Fire("CAST_END")
   Engine.state = "READY"
   Engine:Rearm()
 end)

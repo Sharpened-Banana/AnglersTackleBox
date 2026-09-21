@@ -32,6 +32,7 @@ Gold.lua
 QoL.lua
 Broker.lua
 Records.lua
+Stats.lua
 Midnight.lua
 Planner.lua
 Engine.lua
