@@ -2,6 +2,8 @@
 
 **Summary (one line):** One-key fishing that remembers what you caught: catch log, gold per hour, map pins, goals and a tackle-box window. Retail and WoW Forever.
 
+**Project image:** `art/logo-512.png` (square; `art/logo-1024.png` if the site wants larger, `art/logo.svg` is the source).
+
 **Categories:** Professions, Fishing (if offered), Map & Minimap, Auction & Economy.
 
 ---

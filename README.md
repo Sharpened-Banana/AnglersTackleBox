@@ -1,5 +1,7 @@
 # Angler's TackleBox
 
+<img src="art/logo-256.png" width="128" alt="Angler's TackleBox logo: a green tackle box with a brass latch and a red and white bobber">
+
 One-key fishing for World of Warcraft that remembers what you caught. For Retail (Midnight 12.1) and WoW Forever (the `_Camelot` client, interface 16001). The full design is in `Tacklebox — WoW Fishing Addon Design.md`.
 
 ## How it works
