@@ -2,6 +2,9 @@
 ## Title: Angler's TackleBox
 ## Notes: One-key fishing that remembers what you caught.
 ## Version: @project-version@
+## Author: Sharpened Banana
+## X-License: All Rights Reserved
+## X-Website: https://github.com/Sharpened-Banana/AnglersTackleBox
 ## IconTexture: Interface\Icons\Trade_Fishing
 ## Category: Professions
 ## SavedVariables: AnglersTackleBoxDB
