@@ -16,6 +16,7 @@ Alerts.categories = {
   { key = "value", label = L["Valuable catches"] },
   { key = "record", label = L["Personal records"] },
   { key = "afk", label = L["Away warnings"] },
+  { key = "goal", label = L["Session goals"] },
 }
 
 local NPC_THROTTLE = 120
