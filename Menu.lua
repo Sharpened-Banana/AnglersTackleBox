@@ -455,13 +455,26 @@ end
 -- Shopping: Cooking reagents among the fish you've caught, how many you're
 -- holding, and how many more casts closing the gap takes at your rate.
 local function BuildShopping(panel)
+  local view = "fish"
+  local byFish, byRecipe
+  local report = CreateFrame("Frame", nil, panel)
+  report:SetPoint("TOPLEFT", 0, -44)
+  report:SetPoint("BOTTOMRIGHT", 0, 0)
+  local refreshReport = Report(report, function() return ns.Shopping:Lines(view) end)
+  local function Show(which)
+    view = which
+    byFish:SetEnabled(view ~= "fish")
+    byRecipe:SetEnabled(view ~= "recipe")
+    refreshReport()
+  end
+  byFish = Button(panel, L["By fish"], 100, function() Show("fish") end)
+  byFish:SetPoint("TOPLEFT", 0, 0)
+  byRecipe = Button(panel, L["By recipe"], 100, function() Show("recipe") end)
+  byRecipe:SetPoint("LEFT", byFish, "RIGHT", 6, 0)
   local note = Label(panel, "GameFontDisableSmall",
     L["Reads your Cooking window's known recipes - open it once and the list is kept."])
-  note:SetPoint("TOPLEFT", 0, 0)
-  local report = CreateFrame("Frame", nil, panel)
-  report:SetPoint("TOPLEFT", 0, -20)
-  report:SetPoint("BOTTOMRIGHT", 0, 0)
-  local refreshReport = Report(report, function() return ns.Shopping:Lines() end)
+  note:SetPoint("TOPLEFT", 0, -28)
+  Show(view)
   panel.Refresh = function()
     ns.Shopping:Refresh()
     refreshReport()

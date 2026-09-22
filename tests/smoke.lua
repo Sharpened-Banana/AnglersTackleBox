@@ -369,6 +369,12 @@ check(not shopping:find("Unlearned Fish Pie", 1, true), "shopping: recipes you h
 check(ns.chardb.cookingReagents and ns.chardb.cookingReagents[220134], "shopping: the recipe list is saved for the next login")
 check(shopping:find("|Hitem:220134|h[Test Fish]|h", 1, true) ~= nil, "shopping: the fish name is a clickable item link")
 check(not shopping:find("Open your Cooking window again", 1, true), "shopping: a fresh scan needs no reminder about links")
+local byRecipe = {}
+for _, line in ipairs(ns.Shopping:Lines("recipe")) do byRecipe[#byRecipe + 1] = line.text end
+byRecipe = table.concat(byRecipe, "|")
+check(byRecipe:find("[Test Fish Feast]|h", 1, true) and byRecipe:find("1 / 4", 1, true)
+  and byRecipe:find("short on fish", 1, true) and byRecipe:find("[Test Fish]|h", 1, true),
+  "shopping: By recipe lists each recipe, linked, with its fish and have / need")
 check(shopping:find("|TInterface\\Icons\\INV_Misc_Fish_02:20:20:0:0|t", 1, true) ~= nil, "shopping: the fish gets an inline icon")
 check(shopping:find("|Hitem:80618::::::::::::|h[Test Fish Feast]|h", 1, true) ~= nil, "shopping: a recipe links to its crafted dish when the API offers one")
 check(shopping:find("Unlearned Fish Pie", 1, true) == nil
@@ -671,7 +677,8 @@ check(cvars.Sound_SFXVolume == "0.4" and cvars.Sound_MusicVolume == "0.6" and cv
 local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do
   if e ~= "PLAYER_LOGOUT" and e ~= "PLAYER_ENTERING_WORLD" and e ~= "MERCHANT_SHOW" and e ~= "AUCTION_HOUSE_SHOW"
     and e ~= "AUCTION_HOUSE_CLOSED"
-    and e ~= "TRADE_SKILL_SHOW" and e ~= "TRADE_SKILL_LIST_UPDATE" then live = live + 1 end
+    and e ~= "TRADE_SKILL_SHOW" and e ~= "TRADE_SKILL_LIST_UPDATE"
+    and e ~= "TRADE_SKILL_DATA_SOURCE_CHANGED" then live = live + 1 end
 end end
 advance(5)
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers (shop-window events for the sell helper aside)")

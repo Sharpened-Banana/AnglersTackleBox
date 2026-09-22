@@ -2,6 +2,7 @@
 
 ## 1.1.0
 
+- Shopping has By fish and By recipe views. By recipe lists each Cooking recipe that uses a fish you've caught, linked to the dish, with have / need for each fish and how many your fish covers. The Cooking window is now rescanned on every list update, so recipe links appear after one visit.
 - New Alarms compartment: session goals moved here from Goals, together with a switch for each kind of alert.
 - Coiled Isle is now a section at the bottom of Events instead of its own compartment. The Window compartment is now called Fishing Companion.
 - Shopping recipes and fish are real links again: hover for the tooltip, shift-click to put one in chat. A recipe list saved before this asks you to open Cooking once more to pick up the links.

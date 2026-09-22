@@ -33,10 +33,17 @@ local function Rebuild()
   if ns.chardb then ns.chardb.cookingReagents = uses end
 end
 
+-- Retail fills the recipe list a moment after the window shows, so scan on
+-- every list update and once more shortly after opening. Events a client
+-- does not know are skipped rather than erroring.
 local watcher = CreateFrame("Frame")
-watcher:RegisterEvent("TRADE_SKILL_SHOW")
-watcher:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
-watcher:SetScript("OnEvent", Rebuild)
+for _, event in ipairs({ "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE", "TRADE_SKILL_DATA_SOURCE_CHANGED" }) do
+  pcall(watcher.RegisterEvent, watcher, event)
+end
+watcher:SetScript("OnEvent", function(_, event)
+  Rebuild()
+  if event == "TRADE_SKILL_SHOW" and C_Timer then C_Timer.After(1, Rebuild) end
+end)
 
 -- Rows: one per fish that is both a known Cooking reagent and something the
 -- player has actually caught, worst shortfall first.
@@ -112,7 +119,46 @@ local function MissingLinks()
   return false
 end
 
-function Shopping:Lines()
+-- By recipe: each known recipe that takes a fish you've caught, with every
+-- such fish under it and how many of the recipe your fish would cover.
+local function RecipeLines(rows)
+  local recipes, order = {}, {}
+  for _, row in ipairs(rows) do
+    for _, use in ipairs(row.uses) do
+      local key = use.recipeID or use.recipe
+      local recipe = recipes[key]
+      if not recipe then
+        recipe = { use = use, name = use.recipe, fish = {} }
+        recipes[key] = recipe
+        order[#order + 1] = recipe
+      end
+      recipe.fish[#recipe.fish + 1] = { row = row, need = use.need }
+    end
+  end
+  table.sort(order, function(a, b) return a.name < b.name end)
+
+  local lines = { { text = L["Your Cooking recipes that use fish you've caught:"], header = true } }
+  for _, recipe in ipairs(order) do
+    local covers
+    for _, fish in ipairs(recipe.fish) do
+      local times = math.floor(fish.row.held / math.max(1, fish.need))
+      covers = covers and math.min(covers, times) or times
+    end
+    local note = covers > 0 and string.format(L["|cff40ff40fish for %d|r"], covers)
+      or "|cffff6060" .. L["short on fish"] .. "|r"
+    lines[#lines + 1] = { text = RecipeText(recipe.use) .. "  " .. note }
+    table.sort(recipe.fish, function(a, b) return a.row.name < b.row.name end)
+    for _, fish in ipairs(recipe.fish) do
+      local color = fish.row.held >= fish.need and "ffffff" or "ff6060"
+      lines[#lines + 1] = { text = string.format("      %s%s  |cff%s%d / %d|r",
+        Icon(Compat.ItemIcon(fish.row.id), 14), FishLink(fish.row.id, fish.row.name), color, fish.row.held, fish.need) }
+    end
+  end
+  return lines
+end
+
+-- view: "fish" (default) or "recipe".
+function Shopping:Lines(view)
   local lines = {}
   if not Saved() then
     lines[1] = { text = L["Open your Cooking profession window once and this list fills in."] }
@@ -125,10 +171,15 @@ function Shopping:Lines()
     return lines
   end
 
-  lines[#lines + 1] = { text = L["Cooking reagents you've fished up before:"], header = true }
-  if MissingLinks() then
-    lines[#lines + 1] = { text = "|cff808080" .. L["Open your Cooking window again to turn these recipes into links."] .. "|r" }
+  if view == "recipe" then
+    lines = RecipeLines(rows)
+  else
+    lines[#lines + 1] = { text = L["Cooking reagents you've fished up before:"], header = true }
   end
+  if MissingLinks() then
+    table.insert(lines, 2, { text = "|cff808080" .. L["Open your Cooking window again to turn these recipes into links."] .. "|r" })
+  end
+  if view == "recipe" then return lines end
   for _, row in ipairs(rows) do
     lines[#lines + 1] = { text = string.format(L["%s%s - have %d:"],
       Icon(Compat.ItemIcon(row.id), 20), FishLink(row.id, row.name), row.held) }
