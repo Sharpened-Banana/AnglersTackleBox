@@ -34,7 +34,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb doubleclick [on\|off]` | A quick double right-click does the same as the key |
 | `/tb set <name>`, `/tb set none` | Equipment set to wear while fishing |
 | `/tb hud` | Show or hide the session window |
-| `/tb tabs` | Choose and order the session window's tabs (Session always stays first) |
+| `/tb tabs` | Choose and order the fishing companion's tabs, in the Top Tray (Session always stays first) |
 | `/tb log` | Catch log, By zone view: per-zone catches, share, value and pools |
 | `/tb journal` | Catch log, By fish view: a page per fish with where you catch it |
 | `/tb export` | The catch log as CSV in a copyable box |

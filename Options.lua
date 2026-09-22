@@ -428,7 +428,7 @@ commands.midnight = function()
   end
 end
 commands.tokka = commands.midnight
-commands.tabs = function() ns.Menu:Open("window") end
+commands.tabs = function() ns.Menu:Open("top") end
 commands.hud = function() ns.HUD:Toggle() end
 commands.find = function(rest)
   if rest == "" then

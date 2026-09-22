@@ -5,7 +5,7 @@
 - A /reload no longer ends your fishing session. Session numbers, goal progress and which goals already alerted carry on, and fishing mode turns itself back on. Back within 10 minutes of a logout works the same way; later than that, the session is filed as finished.
 - Shopping has By fish and By recipe views. By recipe lists each Cooking recipe that uses a fish you've caught, linked to the dish, with have / need for each fish and how many your fish covers. The Cooking window is now rescanned on every list update, so recipe links appear after one visit.
 - New Alarms compartment: session goals moved here from Goals, together with a switch for each kind of alert.
-- Coiled Isle is now a section at the bottom of Events instead of its own compartment. The Window compartment is now called Fishing Companion.
+- Coiled Isle is now a section at the bottom of Events instead of its own compartment. The Window compartment's settings moved into the Top Tray as a Fishing Companion section under the double right-click option, and the Top Tray now scrolls.
 - Shopping recipes and fish are real links again: hover for the tooltip, shift-click to put one in chat. A recipe list saved before this asks you to open Cooking once more to pick up the links.
 - The Journal is now part of the Catch Log: one compartment with By zone and By fish views. `/tb log` opens By zone, and `/tb journal` and `/tb find` open By fish.
 - The Shopping tab now fills in on Retail. It was looking for the open Cooking window with a function Blizzard removed in Dragonflight. It also works in every client language, counts only recipes you have learned, and remembers the list across logins.

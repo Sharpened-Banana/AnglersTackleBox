@@ -753,6 +753,9 @@ check(ns.Menu.frame.panels.midnight == nil and ns.Menu.frame.panels.alarms ~= ni
   "menu: Coiled Isle lives in Events, and Alarms has its own compartment")
 ns.Menu:Select("midnight")
 check(ns.Menu.selected == "events", "menu: the old Coiled Isle key opens Events")
+ns.Menu:Select("window")
+check(ns.Menu.selected == "top" and ns.Menu.frame.panels.window == nil,
+  "menu: the fishing companion settings live in the Top Tray")
 ns.Menu:Select("top")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")
