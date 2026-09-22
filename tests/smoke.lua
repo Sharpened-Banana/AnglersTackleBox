@@ -157,6 +157,30 @@ local ach = { { 1, "Done One", true }, { 2, "1000 Fish", false }, { 3, "Checklis
 GetAchievementInfo = function(_, i) return ach[i][1], ach[i][2], 10, ach[i][3] end
 GetAchievementNumCriteria = function(id) return id == 2 and 1 or 4 end
 GetAchievementCriteriaInfo = function(id, i) if id == 2 then return "fish", 0, false, 412, 1000 end return "part", 0, i <= 1, 0, 1 end
+-- Cooking window: one recipe using a fish already in the catch log, so
+-- Shopping.lua has something real to cross-reference against.
+local tradeSkillOpen = false
+if CLASSIC then
+  GetTradeSkillLine = function() return tradeSkillOpen and "Cooking" or nil end
+  GetNumTradeSkills = function() return tradeSkillOpen and 1 or 0 end
+  GetTradeSkillInfo = function(i) if i == 1 then return "Test Fish Feast", nil end end
+  GetTradeSkillNumReagents = function(i) return i == 1 and 1 or 0 end
+  GetTradeSkillReagentInfo = function(i, r) if i == 1 and r == 1 then return "Oily Blackmouth", "", 4, 0 end end
+  GetTradeSkillReagentItemLink = function(i, r)
+    if i == 1 and r == 1 then return "|Hitem:6358:0|h[Oily Blackmouth]|h" end
+  end
+else
+  C_TradeSkillUI = {
+    GetTradeSkillLine = function() return tradeSkillOpen and "Cooking" or nil end,
+    GetAllRecipeIDs = function() return tradeSkillOpen and { 1 } or {} end,
+    GetRecipeSchematic = function(id)
+      if id == 1 then
+        return { name = "Test Fish Feast",
+          reagentSlotSchematics = { { quantityRequired = 4, reagents = { { itemID = 220134 } } } } }
+      end
+    end,
+  }
+end
 local printed = {}
 print_real = print
 print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
@@ -175,8 +199,8 @@ if CLASSIC then
 
   for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Audio.lua", "Gear.lua",
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
-    "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Planner.lua", "Engine.lua",
-    "Menu.lua", "Welcome.lua", "Options.lua" }) do
+    "Spots.lua", "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
+    "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
     assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
   end
   local btn = AnglersTackleBoxActionButton
@@ -210,6 +234,16 @@ if CLASSIC then
   for _, line in ipairs(ns.Events:Lines()) do seen[#seen + 1] = line.text end
   local events = table.concat(seen, "|")
   check(events:find("Nightfin Snapper peak", 1, true) and events:find("In season", 1, true), "classic: time-of-day and seasonal fish listed")
+  check(ns.Shopping:Lines()[1].text:find("Open your Cooking", 1, true) ~= nil, "classic: shopping list waits for a profession window")
+  tradeSkillOpen, counts[6358] = true, 1
+  fire("TRADE_SKILL_SHOW")
+  local shoppingText = {}
+  for _, line in ipairs(ns.Shopping:Lines()) do shoppingText[#shoppingText + 1] = line.text end
+  local shopping = table.concat(shoppingText, "|")
+  check(shopping:find("Oily Blackmouth", 1, true) and shopping:find("have 1", 1, true)
+    and shopping:find("Test Fish Feast", 1, true), "classic: shopping list matches a caught fish to a recipe reagent")
+  check(shopping:find("Need 3 more", 1, true), "classic: shopping list shows the shortfall against the bag count")
+  tradeSkillOpen, counts[6358] = false, nil
   SlashCmdList.ANGLERSTACKLEBOX("menu")
   for key in pairs(AnglersTackleBoxMenu.panels) do ns.Menu:Select(key) end
   check(AnglersTackleBoxMenu.panels.bobbers == nil and AnglersTackleBoxMenu.panels.midnight == nil, "classic: no Bobbers or Coiled Isle compartments")
@@ -222,7 +256,8 @@ if CLASSIC then
   os.exit(0)
 end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
+  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
+  "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
   "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
 end
@@ -280,6 +315,16 @@ check(ns.Journal:Fish()[1].name == "Test Fish", "journal: fish aggregated from t
 local found = ns.Journal:Find("test")
 check(found[1].text == "Test Fish" and found[#found].text:find("Fairbreeze", 1, true), "journal: /tb find says where you catch it")
 check(#ns.Journal:Find("zzz") == 1, "journal: no match handled")
+check(ns.Shopping:Lines()[1].text:find("Open your Cooking", 1, true) ~= nil, "shopping: waits for a profession window before showing anything")
+tradeSkillOpen, counts[220134] = true, 1
+fire("TRADE_SKILL_SHOW")
+local shoppingText = {}
+for _, line in ipairs(ns.Shopping:Lines()) do shoppingText[#shoppingText + 1] = line.text end
+local shopping = table.concat(shoppingText, "|")
+check(shopping:find("Test Fish", 1, true) and shopping:find("have 1", 1, true)
+  and shopping:find("Test Fish Feast", 1, true), "shopping: cooking window scanned for a fish reagent you've caught")
+check(shopping:find("Need 3 more", 1, true), "shopping: shortfall computed from bag count vs. recipe need")
+tradeSkillOpen, counts[220134] = false, nil
 check(ns.chardb.skill.level == 100, "goals: fishing skill tracked")
 check(ns.chardb.attempts.netherEgg.n == 0, "goals: an out-of-scope cast is not an attempt")
 ns.db.valueAlert = 0.02; ns.db.camera = { enabled = true, zoom = 6 }
@@ -473,7 +518,10 @@ SlashCmdList.ANGLERSTACKLEBOX("stats")
 SlashCmdList.ANGLERSTACKLEBOX("")
 check(not ns.Core.mode and next(bindings) == nil and ns.Engine.state == "OFF", "mode off: bindings cleared")
 check(cvars.Sound_SFXVolume == "0.4" and cvars.Sound_MusicVolume == "0.6" and cvars.autoLootDefault == "0" and cvars.SoftTargetInteractArc == "0" and next(ns.db.cvarBackup) == nil, "mode off: every CVar restored")
-local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do if e ~= "PLAYER_LOGOUT" and e ~= "PLAYER_ENTERING_WORLD" and e ~= "MERCHANT_SHOW" and e ~= "AUCTION_HOUSE_SHOW" then live = live + 1 end end end
+local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do
+  if e ~= "PLAYER_LOGOUT" and e ~= "PLAYER_ENTERING_WORLD" and e ~= "MERCHANT_SHOW" and e ~= "AUCTION_HOUSE_SHOW"
+    and e ~= "TRADE_SKILL_SHOW" and e ~= "TRADE_SKILL_LIST_UPDATE" then live = live + 1 end
+end end
 advance(5)
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers (shop-window events for the sell helper aside)")
 check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session summary saved")
@@ -499,7 +547,7 @@ GetCursorInfo = function() if cursor then return "item", cursor end end
 ClearCursor = function() cursor = nil end
 SlashCmdList.ANGLERSTACKLEBOX("menu")
 check(AnglersTackleBoxMenu and AnglersTackleBoxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
-for _, key in ipairs({ "lures", "bobbers", "log", "journal", "gold", "records", "window", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
+for _, key in ipairs({ "lures", "bobbers", "log", "journal", "shopping", "gold", "records", "window", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
 check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")

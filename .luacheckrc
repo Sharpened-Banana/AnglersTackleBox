@@ -48,6 +48,9 @@ read_globals = {
   "WorldMapFrame", "hooksecurefunc", "GetCameraZoom", "CameraZoomIn", "CameraZoomOut", "UnitIsAFK",
   "LibStub", "Minimap", "GetCursorPosition", "IsInGroup", "IsInGuild", "SendChatMessage", "C_ChatInfo",
   "GetProfessions", "GetProfessionInfo", "GetNumSkillLines", "GetSkillLineInfo", "C_QuestLog",
+  -- Trade skill / cooking reagents
+  "C_TradeSkillUI", "GetTradeSkillLine", "GetNumTradeSkills", "GetTradeSkillInfo", "GetTradeSkillNumReagents",
+  "GetTradeSkillReagentInfo", "GetTradeSkillReagentItemLink", "PROFESSIONS_COOKING",
   -- Auction house
   "AuctionHouseFrame", "AuctionFrame",
   -- Misc

@@ -171,3 +171,79 @@ function Compat.CoinString(copper)
   end
   return GetCoinTextureString(copper)
 end
+
+---------------------------------------------------------------------------
+-- Cooking reagents (Shopping.lua). Retail's trade skill window is read
+-- through C_TradeSkillUI; WoW Forever still uses the classic global API.
+-- Both only expose the currently open profession's recipes.
+---------------------------------------------------------------------------
+
+function Compat.OpenTradeSkillName()
+  if C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillLine then
+    local ok, name = pcall(C_TradeSkillUI.GetTradeSkillLine)
+    return ok and name or nil
+  end
+  if GetTradeSkillLine then
+    local ok, name = pcall(GetTradeSkillLine)
+    return ok and name or nil
+  end
+  return nil
+end
+
+function Compat.IsCookingWindowOpen()
+  local name = Compat.OpenTradeSkillName()
+  return name ~= nil and name == (PROFESSIONS_COOKING or "Cooking")
+end
+
+-- Every reagent item used by the open trade skill window's known recipes,
+-- as { [itemID] = { { recipe = name, need = count }, ... } }. Empty (not
+-- nil) when nothing is open or the API doesn't behave as expected.
+function Compat.TradeSkillReagentUses()
+  local uses = {}
+  local function AddUse(itemID, recipeName, need)
+    if not itemID or not recipeName then return end
+    local list = uses[itemID]
+    if not list then list = {} uses[itemID] = list end
+    list[#list + 1] = { recipe = recipeName, need = need or 1 }
+  end
+
+  if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs and C_TradeSkillUI.GetRecipeSchematic then
+    local ok, recipeIDs = pcall(C_TradeSkillUI.GetAllRecipeIDs)
+    if ok and recipeIDs then
+      for _, recipeID in ipairs(recipeIDs) do
+        local okSchem, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false)
+        if okSchem and schematic and schematic.reagentSlotSchematics then
+          for _, slot in ipairs(schematic.reagentSlotSchematics) do
+            for _, reagent in ipairs(slot.reagents or {}) do
+              AddUse(reagent.itemID, schematic.name, slot.quantityRequired)
+            end
+          end
+        end
+      end
+    end
+    return uses
+  end
+
+  if GetNumTradeSkills and GetTradeSkillInfo and GetTradeSkillReagentInfo then
+    local ok, count = pcall(GetNumTradeSkills)
+    if ok and count then
+      for index = 1, count do
+        local okInfo, name, kind = pcall(GetTradeSkillInfo, index)
+        if okInfo and name and kind ~= "header" and kind ~= "subheader" then
+          local numReagents = 0
+          if GetTradeSkillNumReagents then
+            local okNum, n = pcall(GetTradeSkillNumReagents, index)
+            numReagents = okNum and n or 0
+          end
+          for reagentIndex = 1, numReagents do
+            local okReagent, _, _, reagentCount = pcall(GetTradeSkillReagentInfo, index, reagentIndex)
+            local link = GetTradeSkillReagentItemLink and GetTradeSkillReagentItemLink(index, reagentIndex)
+            local itemID = link and tonumber(link:match("item:(%d+)"))
+            if okReagent and itemID then AddUse(itemID, name, reagentCount) end
+          end
+        end
+      end
+    end
+  end
+  return uses
+end
