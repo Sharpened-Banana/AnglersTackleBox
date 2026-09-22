@@ -175,8 +175,8 @@ if CLASSIC then
 
   for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Audio.lua", "Gear.lua",
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
-    "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Planner.lua", "Engine.lua",
-    "Menu.lua", "Welcome.lua", "Options.lua" }) do
+    "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
+    "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
     assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
   end
   local btn = AnglersTackleBoxActionButton
@@ -222,7 +222,7 @@ if CLASSIC then
   os.exit(0)
 end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
+  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua", "Journal.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
   "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
 end
@@ -277,6 +277,7 @@ local spots = ns.chardb.spots[2395]
 check(spots and #spots == 1 and spots[1].n == 3 and spots[1].items[220134] == 2, "spots: the catch location is remembered")
 WorldMapFrame.shown = true; ns.Spots:RefreshPins()
 check(ns.Journal:Fish()[1].name == "Test Fish", "journal: fish aggregated from the log")
+check(ns.Recommend:Rank()[1].mapID == 2395, "recommend: the only zone with data ranks first")
 local found = ns.Journal:Find("test")
 check(found[1].text == "Test Fish" and found[#found].text:find("Fairbreeze", 1, true), "journal: /tb find says where you catch it")
 check(#ns.Journal:Find("zzz") == 1, "journal: no match handled")
@@ -480,6 +481,7 @@ check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session su
 check(zoom == 15, "camera: restored when fishing ends")
 check(ns.chardb.records.sessionValue and ns.chardb.records.sessionCatches, "records: set when the session ends")
 check(#ns.Gold:Lines() >= 4 and #ns.Records:Lines() >= 3, "gold and records reports build")
+check(#ns.Recommend:Lines() >= 1, "recommend report builds")
 do
   local data = ns.Stats:Data()
   check(data.casts > 0 and data.casts >= data.catches, "stats: casts counted, catches never exceed them")
@@ -499,7 +501,7 @@ GetCursorInfo = function() if cursor then return "item", cursor end end
 ClearCursor = function() cursor = nil end
 SlashCmdList.ANGLERSTACKLEBOX("menu")
 check(AnglersTackleBoxMenu and AnglersTackleBoxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
-for _, key in ipairs({ "lures", "bobbers", "log", "journal", "gold", "records", "window", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
+for _, key in ipairs({ "lures", "bobbers", "log", "journal", "gold", "recommend", "records", "window", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
 check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")

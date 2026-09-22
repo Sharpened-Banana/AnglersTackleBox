@@ -743,6 +743,8 @@ local function Compartments()
   end
   list[#list + 1] = { key = "stats", name = L["Statistics"], icon = "Interface\\Icons\\INV_Misc_Note_05",
     build = BuildStats }
+  list[#list + 1] = { key = "recommend", name = L["Best Spot"], icon = "Interface\\Icons\\INV_Misc_Map_01",
+    build = function(panel) Report(panel, function() return ns.Recommend:Lines() end) end }
   list[#list + 1] = { key = "records", name = L["Records"], icon = "Interface\\Icons\\INV_Crown_01",
     build = BuildRecords }
   if not ns.Gold then -- the gold module can be left out of a build

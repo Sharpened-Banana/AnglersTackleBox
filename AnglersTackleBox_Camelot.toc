@@ -33,6 +33,7 @@ QoL.lua
 Broker.lua
 Records.lua
 Stats.lua
+Recommend.lua
 Planner.lua
 Engine.lua
 Menu.lua
