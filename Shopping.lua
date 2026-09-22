@@ -114,11 +114,13 @@ function Shopping:Lines()
 
   lines[#lines + 1] = { text = L["Cooking reagents you've fished up before:"], header = true }
   for _, row in ipairs(rows) do
-    local recipeNames = {}
-    for _, use in ipairs(row.uses) do recipeNames[#recipeNames + 1] = RecipeText(use) end
-    lines[#lines + 1] = { text = string.format(L["%s%s - have %d, %d recipes want %d:"],
-      Icon(Compat.ItemIcon(row.id), 20), FishLink(row.id, row.name), row.held, #row.uses, row.needed) }
-    lines[#lines + 1] = { text = "   " .. table.concat(recipeNames, ", ") }
+    lines[#lines + 1] = { text = string.format(L["%s%s - have %d:"],
+      Icon(Compat.ItemIcon(row.id), 20), FishLink(row.id, row.name), row.held) }
+    -- One recipe per line, each with its own amount, rather than a single
+    -- comma-packed line - easier to read when a fish is used several ways.
+    for _, use in ipairs(row.uses) do
+      lines[#lines + 1] = { text = "      " .. RecipeText(use) .. string.format(L[" - needs %d"], use.need) }
+    end
     if row.short > 0 then
       local text = string.format(L["Need %d more."], row.short)
       local casts = CastsNeeded(row)
@@ -127,7 +129,9 @@ function Shopping:Lines()
       end
       lines[#lines + 1] = { text = "   |cff808080" .. text .. "|r" }
     end
+    lines[#lines + 1] = { text = " " } -- breathing room before the next fish
   end
+  lines[#lines] = nil -- no trailing gap after the last one
   return lines
 end
 

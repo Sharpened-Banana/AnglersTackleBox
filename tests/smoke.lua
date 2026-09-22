@@ -189,7 +189,8 @@ else
     end,
     IsTradeSkillLinked = function() return false end,
     GetAllRecipeIDs = function() return tradeSkillOpen and { 1, 2 } or {} end,
-    GetRecipeInfo = function(id) return { recipeID = id, learned = id == 1 } end,
+    GetRecipeInfo = function(id) return { recipeID = id, learned = id == 1, icon = "Interface\\Icons\\INV_Misc_Food_15" } end,
+    GetRecipeItemLink = function(id) if id == 1 then return "|Hitem:80618::::::::::::|h[Test Fish Feast]|h" end end,
     GetRecipeSchematic = function(id)
       if id == 1 then
         return { name = "Test Fish Feast",
@@ -368,6 +369,9 @@ check(not shopping:find("Unlearned Fish Pie", 1, true), "shopping: recipes you h
 check(ns.chardb.cookingReagents and ns.chardb.cookingReagents[220134], "shopping: the recipe list is saved for the next login")
 check(shopping:find("|Hitem:220134|h[Test Fish]|h", 1, true) ~= nil, "shopping: the fish name is a clickable item link")
 check(shopping:find("|TInterface\\Icons\\INV_Misc_Fish_02:20:20:0:0|t", 1, true) ~= nil, "shopping: the fish gets an inline icon")
+check(shopping:find("|Hitem:80618::::::::::::|h[Test Fish Feast]|h", 1, true) ~= nil, "shopping: a recipe links to its crafted dish when the API offers one")
+check(shopping:find("Unlearned Fish Pie", 1, true) == nil
+  and shopping:find("Test Fish Feast]|h - needs 4", 1, true) ~= nil, "shopping: each recipe gets its own line and amount")
 tradeSkillOpen, counts[220134] = false, nil
 check(ns.chardb.skill.level == 100, "goals: fishing skill tracked")
 check(ns.chardb.attempts.netherEgg.n == 0, "goals: an out-of-scope cast is not an attempt")

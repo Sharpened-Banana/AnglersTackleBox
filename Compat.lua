@@ -250,7 +250,7 @@ function Compat.TradeSkillReagentUses()
         local okSchem, schematic = false, nil
         if learned then okSchem, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false) end
         if okSchem and schematic and schematic.reagentSlotSchematics then
-          local okLink, link = pcall(C_TradeSkillUI.GetRecipeLink, recipeID)
+          local okLink, link = pcall(C_TradeSkillUI.GetRecipeItemLink, recipeID)
           link = okLink and link or nil
           local icon = info and info.icon or nil
           for _, slot in ipairs(schematic.reagentSlotSchematics) do
