@@ -255,14 +255,37 @@ function Gold:Scan()
 end
 
 local frame
+local POPUP = "ANGLERS_TACKLEBOX_PRICE_SCAN"
+
+-- Asks before searching: a scan fills Auctionator's Shopping tab, which
+-- the player may want for something else.
+function Gold:OfferScan()
+  if not StaticPopupDialogs or not StaticPopup_Show then return end
+  if not StaticPopupDialogs[POPUP] then
+    StaticPopupDialogs[POPUP] = {
+      text = L["Some fish prices are out of date. Scan the auction house for them now?"],
+      button1 = L["Scan"],
+      button2 = L["Not now"],
+      OnAccept = function()
+        local _, message = Gold:Scan()
+        ns:Print(message)
+      end,
+      timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+    }
+  end
+  StaticPopup_Show(POPUP)
+end
+
 local function OnShopOpened(_, event)
-  if event == "AUCTION_HOUSE_SHOW" and ns.db.ahScan and Gold:PricesStale() then
-    -- Give Auctionator a moment to build its tabs.
-    C_Timer.After(1, function()
-      if not AuctionHouseOpen() then return end
-      local ok, message = Gold:Scan()
-      if ok then ns:Print(message) end
-    end)
+  if event == "AUCTION_HOUSE_CLOSED" then
+    Gold.offered = nil
+    if StaticPopup_Hide then StaticPopup_Hide(POPUP) end
+    return
+  end
+  -- At most one offer per auction house visit.
+  if event == "AUCTION_HOUSE_SHOW" and ns.db.ahScan and not Gold.offered and Gold:PricesStale() then
+    Gold.offered = true
+    Gold:OfferScan()
   end
   local now = GetTime()
   if Gold.lastShop and now - Gold.lastShop < 30 then return end
@@ -270,12 +293,13 @@ local function OnShopOpened(_, event)
   ns:PrintLines(Gold:SellLines())
 end
 
--- Opening the auction house never happens in combat, so this one event is
--- safe to keep registered. The vendor event waits for a session.
+-- Opening the auction house never happens in combat, so these two events
+-- are safe to keep registered. The vendor event waits for a session.
 function Gold:Init()
   frame = CreateFrame("Frame")
   frame:SetScript("OnEvent", OnShopOpened)
   pcall(frame.RegisterEvent, frame, "AUCTION_HOUSE_SHOW")
+  pcall(frame.RegisterEvent, frame, "AUCTION_HOUSE_CLOSED")
 end
 
 ns:On("SESSION_START", function()

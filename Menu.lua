@@ -475,7 +475,7 @@ local function BuildGold(panel)
   box:SetScript("OnEditFocusLost", Commit)
   box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
-  local autoScan = Check(panel, L["Refresh stale fish prices when I open the auction house"], ns.db, "ahScan")
+  local autoScan = Check(panel, L["Offer to refresh stale fish prices when I open the auction house"], ns.db, "ahScan")
   autoScan:SetPoint("TOPLEFT", 0, -28)
   local scan = Button(panel, L["Scan now"], 90, function()
     local _, message = ns.Gold:Scan()

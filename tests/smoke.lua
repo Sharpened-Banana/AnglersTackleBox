@@ -432,10 +432,25 @@ Auctionator = { API = { v1 = {
 ok, why = ns.Gold:Scan()
 check(not ok and why:find("auction house", 1, true), "scan: refuses away from the auction house")
 check(ns.Gold:PricesStale(), "scan: three-day-old and never-seen prices count as stale")
+local popups, shown = {}, {}
+StaticPopupDialogs = popups
+StaticPopup_Show = function(name) shown[name] = (shown[name] or 0) + 1 end
+StaticPopup_Hide = function(name) shown[name] = nil end
+local POPUP = "ANGLERS_TACKLEBOX_PRICE_SCAN"
 AuctionHouseFrame = Frame(); fire("AUCTION_HOUSE_SHOW"); advance(1.1)
-check(searched and #searched >= 2, "scan: opening the auction house searches for the logged fish")
-searched = nil; ns.db.ahScan = false; fire("AUCTION_HOUSE_SHOW"); advance(1.1)
-check(searched == nil, "scan: automatic refresh can be turned off")
+check(searched == nil, "scan: opening the auction house does not search on its own")
+check(shown[POPUP] == 1, "scan: stale prices at the auction house -> asks first")
+fire("AUCTION_HOUSE_SHOW"); advance(1.1)
+check(shown[POPUP] == 1, "scan: asks at most once per auction house visit")
+popups[POPUP].OnAccept()
+check(searched and #searched >= 2, "scan: clicking Scan searches for the logged fish")
+fire("AUCTION_HOUSE_CLOSED")
+check(shown[POPUP] == nil, "scan: the question goes away when the auction house closes")
+searched = nil; fire("AUCTION_HOUSE_SHOW"); advance(1.1)
+check(shown[POPUP] == 1 and searched == nil, "scan: asks again next visit, still without searching")
+fire("AUCTION_HOUSE_CLOSED")
+ns.db.ahScan = false; fire("AUCTION_HOUSE_SHOW"); advance(1.1)
+check(shown[POPUP] == nil and searched == nil, "scan: the offer can be turned off")
 check(ns.Gold:Lines()[1].text:find("oldest 3 days ago", 1, true), "gold report shows how old the prices are")
 Auctionator.API.v1.GetAuctionPriceByItemID = function() return 9999999 end
 check(ns.Log.UnitValue(777) == 250, "junk: a grey item is worth its vendor price despite a troll listing")
@@ -534,6 +549,7 @@ check(not ns.Core.mode and next(bindings) == nil and ns.Engine.state == "OFF", "
 check(cvars.Sound_SFXVolume == "0.4" and cvars.Sound_MusicVolume == "0.6" and cvars.autoLootDefault == "0" and cvars.SoftTargetInteractArc == "0" and next(ns.db.cvarBackup) == nil, "mode off: every CVar restored")
 local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do
   if e ~= "PLAYER_LOGOUT" and e ~= "PLAYER_ENTERING_WORLD" and e ~= "MERCHANT_SHOW" and e ~= "AUCTION_HOUSE_SHOW"
+    and e ~= "AUCTION_HOUSE_CLOSED"
     and e ~= "TRADE_SKILL_SHOW" and e ~= "TRADE_SKILL_LIST_UPDATE" then live = live + 1 end
 end end
 advance(5)
