@@ -663,10 +663,25 @@ local function BuildStats(panel)
   clear:SetPoint("BOTTOMLEFT", 0, 0)
   local note = Label(panel, "GameFontDisableSmall", L["Restarts the lifetime totals. Sessions and the log stay."])
   note:SetPoint("LEFT", clear, "RIGHT", 10, 0)
+
+  -- Toggles between this character's lifetime totals and the combined
+  -- warband view built from ns.db.characters.
+  local scope = "character"
+  local toggle
+  toggle = Button(panel, "", 170, function()
+    scope = scope == "character" and "account" or "character"
+    toggle:SetText(scope == "account" and L["This character"] or L["Warband totals"])
+    panel.Refresh()
+  end)
+  toggle:SetText(L["Warband totals"])
+  toggle:SetPoint("TOPLEFT", 0, 0)
+
   local report = CreateFrame("Frame", nil, panel)
-  report:SetPoint("TOPLEFT", 0, 0)
+  report:SetPoint("TOPLEFT", 0, -34)
   report:SetPoint("BOTTOMRIGHT", 0, 30)
-  local refreshReport = Report(report, function() return ns.Stats:Lines() end)
+  local refreshReport = Report(report, function()
+    return scope == "account" and ns.Stats:AccountLines() or ns.Stats:Lines()
+  end)
   panel.Refresh = refreshReport
 end
 
