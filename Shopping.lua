@@ -90,13 +90,26 @@ end
 -- rather than through GetItemInfo, so it doesn't depend on that item's
 -- info being cached yet. Clickable and tooltip-able like any other link.
 local function FishLink(itemID, name)
-  return string.format("|Hitem:%d|h[%s]|h", itemID, name)
+  local link = select(2, Compat.GetItemInfo(itemID))
+  if type(link) == "string" and link:find("|Hitem:", 1, true) then return link end
+  return string.format("|cffffffff|Hitem:%d|h[%s]|h|r", itemID, name)
 end
 
 -- One recipe's name, as a clickable link to the crafted dish when the API
 -- hands one over, or plain text otherwise.
 local function RecipeText(use)
+  if not use.link and use.recipeID then use.link = Compat.RecipeLink(use.recipeID) end
   return Icon(use.icon) .. (use.link or use.recipe)
+end
+
+-- A list saved before recipe links existed has names only.
+local function MissingLinks()
+  for _, uses in pairs(Saved() or {}) do
+    for _, use in ipairs(uses) do
+      if not use.link and not use.recipeID then return true end
+    end
+  end
+  return false
 end
 
 function Shopping:Lines()
@@ -113,6 +126,9 @@ function Shopping:Lines()
   end
 
   lines[#lines + 1] = { text = L["Cooking reagents you've fished up before:"], header = true }
+  if MissingLinks() then
+    lines[#lines + 1] = { text = "|cff808080" .. L["Open your Cooking window again to turn these recipes into links."] .. "|r" }
+  end
   for _, row in ipairs(rows) do
     lines[#lines + 1] = { text = string.format(L["%s%s - have %d:"],
       Icon(Compat.ItemIcon(row.id), 20), FishLink(row.id, row.name), row.held) }

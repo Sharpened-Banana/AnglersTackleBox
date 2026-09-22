@@ -225,13 +225,26 @@ end
 -- link/icon point at the recipe's own crafted item, when the API offers one,
 -- so the shopping list can show a picture and a clickable link instead of
 -- plain text. Empty (not nil) when nothing is open or the API misbehaves.
+-- A clickable link for a Retail recipe: the crafted item's link, which
+-- hovers to the food's tooltip. nil when the client has neither function.
+function Compat.RecipeLink(recipeID)
+  local ui = C_TradeSkillUI
+  if not ui or not recipeID then return nil end
+  for _, get in ipairs({ ui.GetRecipeItemLink, ui.GetRecipeLink }) do
+    local ok, link = pcall(get, recipeID)
+    if ok and type(link) == "string" and link:find("|H", 1, true) then return link end
+  end
+  return nil
+end
+
 function Compat.TradeSkillReagentUses()
   local uses = {}
-  local function AddUse(itemID, recipeName, need, link, icon)
+  local function AddUse(itemID, recipeName, need, link, icon, recipeID)
     if not itemID or not recipeName then return end
     local list = uses[itemID]
     if not list then list = {} uses[itemID] = list end
-    list[#list + 1] = { recipe = recipeName, need = need or 1, link = link, icon = icon }
+    list[#list + 1] = { recipe = recipeName, need = need or 1, link = type(link) == "string" and link or nil,
+      icon = icon, recipeID = recipeID }
   end
 
   if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs and C_TradeSkillUI.GetRecipeSchematic then
@@ -250,13 +263,12 @@ function Compat.TradeSkillReagentUses()
         local okSchem, schematic = false, nil
         if learned then okSchem, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false) end
         if okSchem and schematic and schematic.reagentSlotSchematics then
-          local okLink, link = pcall(C_TradeSkillUI.GetRecipeItemLink, recipeID)
-          link = okLink and link or nil
+          local link = Compat.RecipeLink(recipeID)
           local icon = info and info.icon or nil
           for _, slot in ipairs(schematic.reagentSlotSchematics) do
             if not basic or slot.reagentType == nil or slot.reagentType == basic then
               for _, reagent in ipairs(slot.reagents or {}) do
-                AddUse(reagent.itemID, schematic.name, slot.quantityRequired, link, icon)
+                AddUse(reagent.itemID, schematic.name, slot.quantityRequired, link, icon, recipeID)
               end
             end
           end

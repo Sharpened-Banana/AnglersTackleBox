@@ -268,7 +268,7 @@ if CLASSIC then
   SlashCmdList.ANGLERSTACKLEBOX("menu")
   for key in pairs(AnglersTackleBoxMenu.panels) do ns.Menu:Select(key) end
   check(AnglersTackleBoxMenu.panels.bobbers == nil and AnglersTackleBoxMenu.panels.midnight == nil, "classic: no Bobbers or Coiled Isle compartments")
-  for _, key in ipairs({ "lures", "log", "gold", "goals", "events", "records", "bobbers", "midnight" }) do
+  for _, key in ipairs({ "lures", "log", "gold", "goals", "alarms", "events", "records", "bobbers", "midnight" }) do
     ns.db.hud.tabs = { key }; ns.db.hud.tab = key; SlashCmdList.ANGLERSTACKLEBOX(""); ns.HUD:Refresh(); SlashCmdList.ANGLERSTACKLEBOX("")
   end
   check(true, "classic: every window tab survives, including ones Classic lacks")
@@ -368,6 +368,7 @@ check(shopping:find("Need 3 more", 1, true), "shopping: shortfall computed from 
 check(not shopping:find("Unlearned Fish Pie", 1, true), "shopping: recipes you have not learned are left out")
 check(ns.chardb.cookingReagents and ns.chardb.cookingReagents[220134], "shopping: the recipe list is saved for the next login")
 check(shopping:find("|Hitem:220134|h[Test Fish]|h", 1, true) ~= nil, "shopping: the fish name is a clickable item link")
+check(not shopping:find("Open your Cooking window again", 1, true), "shopping: a fresh scan needs no reminder about links")
 check(shopping:find("|TInterface\\Icons\\INV_Misc_Fish_02:20:20:0:0|t", 1, true) ~= nil, "shopping: the fish gets an inline icon")
 check(shopping:find("|Hitem:80618::::::::::::|h[Test Fish Feast]|h", 1, true) ~= nil, "shopping: a recipe links to its crafted dish when the API offers one")
 check(shopping:find("Unlearned Fish Pie", 1, true) == nil
@@ -719,8 +720,13 @@ GetCursorInfo = function() if cursor then return "item", cursor end end
 ClearCursor = function() cursor = nil end
 SlashCmdList.ANGLERSTACKLEBOX("menu")
 check(AnglersTackleBoxMenu and AnglersTackleBoxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
-for _, key in ipairs({ "lures", "bobbers", "log", "journal", "shopping", "gold", "recommend", "records", "window", "goals", "events", "midnight", "stats", "settings", "top" }) do ns.Menu:Select(key) end
+for _, key in ipairs({ "lures", "bobbers", "log", "journal", "shopping", "gold", "recommend", "records", "window", "goals", "alarms", "events", "midnight", "stats", "settings", "top" }) do ns.Menu:Select(key) end
 check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
+check(ns.Menu.frame.panels.midnight == nil and ns.Menu.frame.panels.alarms ~= nil,
+  "menu: Coiled Isle lives in Events, and Alarms has its own compartment")
+ns.Menu:Select("midnight")
+check(ns.Menu.selected == "events", "menu: the old Coiled Isle key opens Events")
+ns.Menu:Select("top")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")
 SlashCmdList.ANGLERSTACKLEBOX("log")

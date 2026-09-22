@@ -101,6 +101,7 @@ local function Report(panel, getLines, top)
   local content = CreateFrame("Frame", nil, scroll)
   content:SetSize(410, 10)
   content:EnableMouse(true)
+  if content.SetHyperlinksEnabled then content:SetHyperlinksEnabled(true) end -- else the handlers never fire
   -- Any item/spell link a report line embeds (e.g. Shopping.lua's recipes
   -- and fish) becomes hoverable and clickable, the same as a chat link.
   content:SetScript("OnHyperlinkEnter", function(_, link)
@@ -170,7 +171,7 @@ local function BuildTopTray(panel)
   reset:SetPoint("TOPLEFT", 0, -284)
   local share = Button(panel, L["Share to chat"], 120, function() ns.Records:Share() end)
   share:SetPoint("LEFT", reset, "RIGHT", 8, 0)
-  local window = Button(panel, L["Customise the fishing window..."], 220, function() Menu:Select("window") end)
+  local window = Button(panel, L["Customise the fishing companion..."], 220, function() Menu:Select("window") end)
   window:SetPoint("TOPLEFT", 0, -320)
 
   panel.Refresh = function()
@@ -631,6 +632,12 @@ end
 
 -- Goals: this session's targets up top, the long-term tracker below.
 local function BuildGoals(panel)
+  Report(panel, function() return ns.Goals:Lines() end)
+end
+
+-- Alarms: targets that alert you (session goals) and which kinds of alert
+-- are on. The sound and flash choices stay on the Settings tab.
+local function BuildAlarms(panel)
   local header = Label(panel, "GameFontNormal", L["Session goals"])
   header:SetPoint("TOPLEFT", 2, -2)
   local note = Label(panel, "GameFontDisableSmall", L["0 = off. Each one alerts once per session."])
@@ -660,17 +667,24 @@ local function BuildGoals(panel)
     rows[index] = { key = goal.key, box = box, progress = progress }
   end
 
-  local report = CreateFrame("Frame", nil, panel)
-  report:SetPoint("TOPLEFT", 0, -110)
-  report:SetPoint("BOTTOMRIGHT", 0, 0)
-  local refreshReport = Report(report, function() return ns.Goals:Lines() end)
+  local kindsHeader = Label(panel, "GameFontNormal", L["Alert me about"])
+  kindsHeader:SetPoint("TOPLEFT", 2, -116)
+  local checks = {}
+  for index, kind in ipairs(ns.Alerts.categories) do
+    -- A missing entry means on; only false turns a kind off.
+    local check = Check(panel, kind.label, ns.db.alertTypes, kind.key)
+    check.Sync = function() check:SetChecked(ns.db.alertTypes[kind.key] ~= false) end
+    local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
+    check:SetPoint("TOPLEFT", column * 205, -136 - row * 24)
+    checks[#checks + 1] = check
+  end
 
   panel.Refresh = function()
     for _, row in ipairs(rows) do
       if not row.box:HasFocus() then row.box:SetText(tostring(ns.db.sessionGoals[row.key] or 0)) end
       row.progress:SetText(ns.SessionGoals:Text(row.key, true))
     end
-    refreshReport()
+    for _, check in ipairs(checks) do check.Sync() end
   end
 end
 
@@ -1006,6 +1020,19 @@ local function SpellIcon(spellID)
   return getTexture and getTexture(spellID)
 end
 
+-- Events, then on Retail the Coiled Isle helpers (Tokka reputation,
+-- Coiled Filament), which used to be a compartment of their own.
+local function EventLines()
+  local lines = {}
+  for _, line in ipairs(ns.Events:Lines()) do lines[#lines + 1] = line end
+  if ns.Midnight then
+    lines[#lines + 1] = { text = " " }
+    lines[#lines + 1] = { text = L["Coiled Isle"], header = true }
+    for _, line in ipairs(ns.Midnight:Lines()) do lines[#lines + 1] = line end
+  end
+  return lines
+end
+
 local function Compartments()
   local list = {
     { key = "top", name = L["Top Tray"], icon = "Interface\\Icons\\Trade_Fishing", build = BuildTopTray },
@@ -1018,16 +1045,11 @@ local function Compartments()
       build = BuildShopping },
     { key = "gold", name = L["Gold"], icon = "Interface\\Icons\\INV_Misc_Coin_01", build = BuildGold },
     { key = "goals", name = L["Goals"], icon = SpellIcon(64731), build = BuildGoals },
+    { key = "alarms", name = L["Alarms"], icon = "Interface\\Icons\\Spell_Nature_TimeStop", build = BuildAlarms },
     { key = "events", name = L["Events"], icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
-      build = function(panel) Report(panel, function() return ns.Events:Lines() end) end },
+      build = function(panel) Report(panel, EventLines) end },
   }
   if not Data.oversizedBobber then table.remove(list, 3) end -- no bobber toys on Classic
-  if ns.Midnight then
-    local info = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo
-      and C_CurrencyInfo.GetCurrencyInfo(Data.midnight.currencyID)
-    list[#list + 1] = { key = "midnight", name = L["Coiled Isle"], icon = info and info.iconFileID,
-      build = function(panel) Report(panel, function() return ns.Midnight:Lines() end) end }
-  end
   list[#list + 1] = { key = "stats", name = L["Statistics"], icon = "Interface\\Icons\\INV_Misc_Note_05",
     build = BuildStats }
   list[#list + 1] = { key = "recommend", name = L["Best Spot"], icon = "Interface\\Icons\\INV_Misc_Map_01",
@@ -1039,7 +1061,7 @@ local function Compartments()
       if list[index].key == "gold" then table.remove(list, index) end
     end
   end
-  list[#list + 1] = { key = "window", name = L["Window"], icon = "Interface\\Icons\\INV_Misc_Spyglass_03",
+  list[#list + 1] = { key = "window", name = L["Fishing Companion"], icon = "Interface\\Icons\\INV_Misc_Spyglass_03",
     build = BuildWindow }
   list[#list + 1] = { key = "settings", name = L["Settings"], icon = "Interface\\Icons\\INV_Misc_Gear_01",
     build = BuildSettings }
@@ -1211,7 +1233,7 @@ local function BuildBox()
 end
 
 -- Old compartment keys that now open a view inside another compartment.
-local ALIASES = { journal = { "log", "fish" } }
+local ALIASES = { journal = { "log", "fish" }, midnight = { "events" } }
 
 local function Resolve(key, view)
   local alias = key and ALIASES[key]
