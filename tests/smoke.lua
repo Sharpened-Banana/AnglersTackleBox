@@ -39,6 +39,8 @@ local function Frame(name)
   function f:GetHighlightTexture() return Frame() end
   function f:CreateAnimationGroup() return Frame() end
   function f:CreateAnimation() return Frame() end
+  -- Texture lines on Retail only, so the Classic run takes the bar fallback.
+  if os.getenv("TB_FLAVOR") ~= "classic" then function f:CreateLine() return Frame() end end
   frames[#frames + 1] = f
   if name then _G[name] = f end
   return f
@@ -202,7 +204,7 @@ if CLASSIC then
   for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Audio.lua", "Gear.lua",
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
     "Spots.lua", "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
-    "Recommend.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
+    "Recommend.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
     assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
   end
   local btn = AnglersTackleBoxActionButton
@@ -253,6 +255,9 @@ if CLASSIC then
     ns.db.hud.tabs = { key }; ns.db.hud.tab = key; SlashCmdList.ANGLERSTACKLEBOX(""); ns.HUD:Refresh(); SlashCmdList.ANGLERSTACKLEBOX("")
   end
   check(true, "classic: every window tab survives, including ones Classic lacks")
+  local graph = ns.Graph.New(UIParent, 100, 40)
+  check(graph:SetValues({ 1, 3, 2 }, { mode = "line" }) == false and #graph.bars == 3,
+    "classic: a line graph falls back to bars without texture lines")
   SlashCmdList.ANGLERSTACKLEBOX("goals"); SlashCmdList.ANGLERSTACKLEBOX("midnight"); SlashCmdList.ANGLERSTACKLEBOX("bobber")
   print_real("classic run complete")
   os.exit(0)
@@ -260,7 +265,7 @@ end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
   "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
-  "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
+  "Midnight.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
 end
 local btn = AnglersTackleBoxActionButton
@@ -370,6 +375,29 @@ end
 ns.HUD:ResetTabs()
 check(tabKeys() == "session,lures,log" and ns.db.hud.tab == "session", "tabs: every catalogue tab renders; reset restores the default")
 
+-- catch-rate trend and graphs
+do
+  local b = ns.Log.Buckets({ 0, 10, 299, 300, 650, 900 }, 0, 900, 300)
+  check(#b == 3 and b[1] == 3 and b[2] == 1 and b[3] == 2, "trend: catches bucketed by five minutes, the last edge included")
+  check(#ns.Log.Buckets({}, 0, 0, 300) == 1, "trend: a session just started has one empty bucket")
+  local times = {}
+  for i = 1, 20 do times[#times + 1] = i * 40 end -- 20 catches in the first 15 minutes
+  times[#times + 1] = 1500; times[#times + 1] = 1700 -- then 2 in the last 15
+  local trend = ns.Log.Trend(times, 0, 1800)
+  check(trend.average == 44 and math.floor(trend.recent + 0.5) == 8 and trend.direction == "falling",
+    "trend: last 15 minutes against the session average reads falling")
+  check(ns.Stats.RateText(trend) == "Rate: 8/hr, falling", "trend: one-line rate for the fishing window")
+  check(ns.Log.Trend(times, 0, 800).direction == nil and ns.Stats.RateText(ns.Log.Trend({}, 0, 30)) == nil,
+    "trend: no direction without enough fishing to compare, no rate in the first minute")
+  local live = ns.Log:CatchTrend()
+  check(#ns.Log.session.catchTimes == 1 and live and live.buckets[1] == 1, "trend: live session catches are timed")
+  local graph = ns.Graph.New(UIParent, 100, 40)
+  check(graph:SetValues({ 1, 3, 2 }, { mode = "line", reference = 2 }) == true, "graph: draws a line where the client can")
+  check(graph:SetValues({ 1, 3, 2 }) == false and #graph.bars == 3, "graph: bars by default")
+  ns.Menu:Open("stats"); ns.Menu:Select("gold"); ns.Menu:Select("top"); AnglersTackleBoxMenu:Hide()
+  check(ns.Menu.ticker == nil, "graph: statistics and gold compartments draw with a live session")
+end
+
 -- pools
 advance(40) -- focus has lapsed, so this cast re-applies the camera
 hover("Mailbox"); hover("Sunwell Swarm")
@@ -455,6 +483,29 @@ ns.db.priceCap = 0
 Auctionator.API.v1.GetAuctionPriceByItemID = function() return 600 end
 TSM_API = { GetCustomPriceValue = function() return 400 end }
 check(price(555) == 400, "guard: the lower of Auctionator and TSM wins")
+do
+  local history = ns.Log.PriceHistory(555)
+  check(history and history[#history][2] == 400 and history[#history][1] == date("%Y-%m-%d"),
+    "price history: a trusted price is recorded under today")
+  local spiked = ns.Log.PriceHistory(220134)
+  check(spiked and spiked[#spiked][2] == 9999999, "price history: a spike believed on a later day is recorded")
+  ns.Log.RememberPrice(220134, 250, date("%Y-%m-%d"))
+  local ahead = false
+  for _, point in ipairs(spiked) do if point[1] >= "2099" then ahead = true end end
+  check(spiked[#spiked][1] == date("%Y-%m-%d") and spiked[#spiked][2] == 250 and not ahead,
+    "price history: a clock that ran ahead does not freeze it")
+  local suspectHistory = ns.Log.PriceHistory(238366)
+  check(suspectHistory == nil or suspectHistory[#suspectHistory][2] ~= 30000000,
+    "price history: a price above the ceiling is never recorded")
+  for day = 1, 20 do ns.Log.RememberPrice(4242, day * 100, string.format("2026-01-%02d", day)) end
+  ns.Log.RememberPrice(4242, 5, "2026-01-20")
+  local points = ns.Log.PriceHistory(4242)
+  check(#points == 14 and points[1][1] == "2026-01-07" and points[14][2] == 5,
+    "price history: capped at 14 days, one point a day, the latest price that day wins")
+  local priced = ns.Gold:PricedFish(20)
+  check(#priced >= 1 and priced[1].id == 220134, "price history: the gold graph lists priced fish, most caught first")
+  ns.db.priceHistory[4242] = nil
+end
 TSM_API = nil; ns.db.priceCap = 2000; ns.db.prices = {}; ns.Log.suspect = {}
 ns.chardb.records.sessionValue = { value = 1, at = 1 }; ns.chardb.records.sessionCatches = { value = 1, at = 1 }
 ns.Records:Reset(true)
@@ -583,7 +634,7 @@ GetCursorInfo = function() if cursor then return "item", cursor end end
 ClearCursor = function() cursor = nil end
 SlashCmdList.ANGLERSTACKLEBOX("menu")
 check(AnglersTackleBoxMenu and AnglersTackleBoxMenu.shown and ns.Menu.selected == "top", "menu opens on the top tray")
-for _, key in ipairs({ "lures", "bobbers", "log", "journal", "shopping", "gold", "recommend", "records", "window", "goals", "events", "midnight", "settings", "top" }) do ns.Menu:Select(key) end
+for _, key in ipairs({ "lures", "bobbers", "log", "journal", "shopping", "gold", "recommend", "records", "window", "goals", "events", "midnight", "stats", "settings", "top" }) do ns.Menu:Select(key) end
 check(ns.Menu.selected == "top", "menu: every compartment builds and refreshes")
 advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")

@@ -138,6 +138,19 @@ function Gold:History(count)
   return out
 end
 
+-- Fish with a price history, most caught first, for the price graph.
+function Gold:PricedFish(count)
+  local list = {}
+  for _, fish in ipairs(ns.Journal:Fish()) do
+    local points = ns.Log.PriceHistory(fish.id)
+    if points and #points > 0 then
+      list[#list + 1] = { id = fish.id, name = fish.name, points = points }
+      if #list >= count then break end
+    end
+  end
+  return list
+end
+
 ---------------------------------------------------------------------------
 -- Value alert: a single catch worth at least the chosen amount.
 ---------------------------------------------------------------------------
