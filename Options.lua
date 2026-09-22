@@ -151,6 +151,8 @@ local function BuildPanel()
     L["Puts your normal gear back the moment you are attacked."])
   Checkbox(chardb, charDefaults, "lureEnabled", L["Keep a lure up"],
     L["Puts 'apply lure' into the one-key queue. Pick the lure with /tb lure."])
+  Checkbox(chardb, charDefaults, "lureAutoSwap", L["Swap lures when out"],
+    L["When your chosen lure runs out, the next press of the fishing key applies another lure from your bags."])
   Slider(db, defaults, "lureWarn", L["Lure warning"],
     L["Warn this long before the lure runs out."], 0, 300, 10, Seconds)
 
