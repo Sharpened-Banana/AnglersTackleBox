@@ -206,21 +206,30 @@ local COOKING_SKILL_LINE = 185
 function Compat.IsCookingWindowOpen()
   local ui = C_TradeSkillUI
   if ui and ui.GetBaseProfessionInfo then
-    for _, check in ipairs({ ui.IsTradeSkillLinked, ui.IsTradeSkillGuild, ui.IsNPCCrafting }) do
-      local ok, yes = pcall(check or function() end)
+    for _, method in ipairs({ "IsTradeSkillLinked", "IsTradeSkillGuild", "IsNPCCrafting" }) do
+      local ok, yes = pcall(ui[method] or function() end)
       if ok and yes then return false end
     end
     -- Base or expansion-tier info, by skill line, Enum or name.
     local cooking = Enum and Enum.Profession and Enum.Profession.Cooking
     local cookingName = PROFESSIONS_COOKING or "Cooking"
-    for _, get in ipairs({ ui.GetBaseProfessionInfo, ui.GetChildProfessionInfo }) do
-      local ok, info = pcall(get or function() end)
+    for _, method in ipairs({ "GetBaseProfessionInfo", "GetChildProfessionInfo" }) do
+      local ok, info = pcall(ui[method] or function() end)
       if ok and type(info) == "table" then
         if info.professionID == COOKING_SKILL_LINE or info.parentProfessionID == COOKING_SKILL_LINE
           or (cooking ~= nil and info.profession == cooking)
           or info.professionName == cookingName or info.parentProfessionName == cookingName then
           return true
         end
+      end
+    end
+    -- Midnight can report ID 0 for both while the window is open; the
+    -- skill line of a recipe in the open list says which profession it is.
+    if ui.GetAllRecipeIDs and ui.GetTradeSkillLineForRecipe then
+      local okIDs, ids = pcall(ui.GetAllRecipeIDs)
+      if okIDs and type(ids) == "table" and ids[1] then
+        local okLine, line, _, parent = pcall(ui.GetTradeSkillLineForRecipe, ids[1])
+        if okLine and (line == COOKING_SKILL_LINE or parent == COOKING_SKILL_LINE) then return true end
       end
     end
     return false
@@ -236,12 +245,20 @@ end
 -- plain text. Empty (not nil) when nothing is open or the API misbehaves.
 -- A clickable link for a Retail recipe: the crafted item's link, which
 -- hovers to the food's tooltip. nil when the client has neither function.
-function Compat.RecipeLink(recipeID)
+-- The recipe's own link comes first; the dish's item link is the fallback.
+-- A link whose item isn't loaded yet arrives as "[]", so the recipe name
+-- is written into the brackets.
+function Compat.RecipeLink(recipeID, name)
   local ui = C_TradeSkillUI
   if not ui or not recipeID then return nil end
-  for _, get in ipairs({ ui.GetRecipeItemLink, ui.GetRecipeLink }) do
-    local ok, link = pcall(get, recipeID)
-    if ok and type(link) == "string" and link:find("|H", 1, true) then return link end
+  for _, method in ipairs({ "GetRecipeLink", "GetRecipeItemLink" }) do -- by name: a nil would end ipairs early
+    local ok, link = pcall(ui[method] or function() end, recipeID)
+    if ok and type(link) == "string" and link:find("|H", 1, true) then
+      if name and link:find("[]", 1, true) then
+        link = link:gsub("%[%]", function() return "[" .. name .. "]" end, 1)
+      end
+      if not link:find("[]", 1, true) then return link end
+    end
   end
   return nil
 end
@@ -262,8 +279,13 @@ function Compat.ShoppingDiagnostics()
         Add("%s: %s", name, ok and "nil" or "error")
       end
     end
-    Add("Cooking window detected: %s", tostring(Compat.IsCookingWindowOpen()))
     local ok, ids = pcall(ui.GetAllRecipeIDs or function() end)
+    if ok and type(ids) == "table" and ids[1] and ui.GetTradeSkillLineForRecipe then
+      local okLine, line, lineName, parent = pcall(ui.GetTradeSkillLineForRecipe, ids[1])
+      Add("First recipe's skill line: %s", okLine and string.format("%s %s, parent %s", tostring(line),
+        tostring(lineName), tostring(parent)) or "error")
+    end
+    Add("Cooking window detected: %s", tostring(Compat.IsCookingWindowOpen()))
     local count, learned, withLink, sample = 0, 0, 0, nil
     if ok and type(ids) == "table" then
       for _, id in ipairs(ids) do
@@ -271,7 +293,7 @@ function Compat.ShoppingDiagnostics()
         local okInfo, info = pcall(ui.GetRecipeInfo or function() end, id)
         if okInfo and type(info) == "table" and info.learned then
           learned = learned + 1
-          local link = Compat.RecipeLink(id)
+          local link = Compat.RecipeLink(id, info.name)
           if link then
             withLink = withLink + 1
             sample = sample or link
@@ -315,7 +337,7 @@ function Compat.TradeSkillReagentUses()
         local okSchem, schematic = false, nil
         if learned then okSchem, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false) end
         if okSchem and schematic and schematic.reagentSlotSchematics then
-          local link = Compat.RecipeLink(recipeID)
+          local link = Compat.RecipeLink(recipeID, schematic.name)
           local icon = info and info.icon or nil
           for _, slot in ipairs(schematic.reagentSlotSchematics) do
             if not basic or slot.reagentType == nil or slot.reagentType == basic then

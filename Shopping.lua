@@ -105,7 +105,7 @@ end
 -- One recipe's name, as a clickable link to the crafted dish when the API
 -- hands one over, or plain text otherwise.
 local function RecipeText(use)
-  if not use.link and use.recipeID then use.link = Compat.RecipeLink(use.recipeID) end
+  if not use.link and use.recipeID then use.link = Compat.RecipeLink(use.recipeID, use.recipe) end
   return Icon(use.icon) .. (use.link or use.recipe)
 end
 
@@ -211,6 +211,7 @@ end
 
 -- /tb shopdebug
 function Shopping:Diagnose()
+  Rebuild()
   for _, line in ipairs(Compat.ShoppingDiagnostics()) do ns:Print(line) end
   local saved, withID = 0, 0
   for _, uses in pairs(Saved() or {}) do

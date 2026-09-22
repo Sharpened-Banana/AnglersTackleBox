@@ -183,14 +183,15 @@ else
   -- Shaped like the real Retail API: no GetTradeSkillLine since Dragonflight.
   -- Recipe 2 is unlearned and must not count.
   C_TradeSkillUI = {
-    GetBaseProfessionInfo = function()
-      if tradeSkillOpen then return { professionID = 185, professionName = "Cooking" } end
-      return { professionID = 0 }
-    end,
+    -- Like Midnight: profession info is blank even with the window open,
+    -- and the dish's link has an empty name until the item loads.
+    GetBaseProfessionInfo = function() return { professionID = 0 } end,
+    GetTradeSkillLineForRecipe = function(id) return 2912, "Midnight Cooking", 185 end,
     IsTradeSkillLinked = function() return false end,
     GetAllRecipeIDs = function() return tradeSkillOpen and { 1, 2 } or {} end,
-    GetRecipeInfo = function(id) return { recipeID = id, learned = id == 1, icon = "Interface\\Icons\\INV_Misc_Food_15" } end,
-    GetRecipeItemLink = function(id) if id == 1 then return "|Hitem:80618::::::::::::|h[Test Fish Feast]|h" end end,
+    GetRecipeInfo = function(id) return { recipeID = id, name = id == 1 and "Test Fish Feast" or "Unlearned Fish Pie",
+      learned = id == 1, icon = "Interface\\Icons\\INV_Misc_Food_15" } end,
+    GetRecipeItemLink = function(id) if id == 1 then return "|Hitem:80618::::::::::::|h[]|h" end end,
     GetRecipeSchematic = function(id)
       if id == 1 then
         return { name = "Test Fish Feast",
