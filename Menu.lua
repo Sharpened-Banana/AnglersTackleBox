@@ -457,8 +457,10 @@ local function BuildShopping(panel)
   end
 end
 
--- Gold: the value alert, a bar chart of recent sessions, and the rankings.
+-- Gold: the value alert, a bar chart of recent sessions, a price graph for
+-- one fish at a time, and the rankings.
 local CHART_BARS, CHART_HEIGHT = 30, 70
+local PRICE_FISH, PRICE_HEIGHT = 20, 50
 
 local function BuildGold(panel)
   local label = Label(panel, "GameFontHighlight", L["Alert when one catch is worth at least"])
@@ -538,8 +540,58 @@ local function BuildGold(panel)
     bars[index] = bar
   end
 
+  -- Price over time for one fish, stepped through with the arrows (most
+  -- caught first). Points come from Log.RememberPrice, one a day.
+  local fishIndex = 1
+  local priceTitle = Label(panel, "GameFontNormal")
+  priceTitle:SetPoint("TOPLEFT", 2, -188)
+  priceTitle:SetWidth(346)
+  priceTitle:SetJustifyH("LEFT")
+  priceTitle:SetWordWrap(false)
+  local prevFish = Button(panel, "<", 26, function()
+    fishIndex = fishIndex - 1
+    Menu:Refresh()
+  end)
+  prevFish:SetPoint("TOPLEFT", 354, -183)
+  local nextFish = Button(panel, ">", 26, function()
+    fishIndex = fishIndex + 1
+    Menu:Refresh()
+  end)
+  nextFish:SetPoint("LEFT", prevFish, "RIGHT", 4, 0)
+  local priceGraph = ns.Graph.New(panel, 410, PRICE_HEIGHT, COLOR.trayLifted,
+    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.08 })
+  priceGraph.frame:SetPoint("TOPLEFT", 0, -208)
+
+  local function RefreshPrices()
+    local priced = ns.Gold:PricedFish(PRICE_FISH)
+    prevFish:SetEnabled(#priced > 1)
+    nextFish:SetEnabled(#priced > 1)
+    if #priced == 0 then
+      priceTitle:SetText(L["Fish prices over time - none recorded yet"])
+      priceGraph:Clear()
+      return
+    end
+    fishIndex = (fishIndex - 1) % #priced + 1
+    local fish = priced[fishIndex]
+    local values, low = {}, nil
+    for index, point in ipairs(fish.points) do
+      values[index] = point[2]
+      low = math.min(low or point[2], point[2])
+    end
+    priceTitle:SetText(string.format(L["%s: %s, %d days  (%d of %d)"], fish.name,
+      Compat.CoinString(values[#values]), #values, fishIndex, #priced))
+    priceGraph:SetValues(values, {
+      mode = "line",
+      floor = math.floor(low * 0.75), -- so a small move still shows
+      tooltip = function(index)
+        local point = fish.points[index]
+        return point and { point[1], Compat.CoinString(point[2]) }
+      end,
+    })
+  end
+
   local report = CreateFrame("Frame", nil, panel)
-  report:SetPoint("TOPLEFT", 0, -188)
+  report:SetPoint("TOPLEFT", 0, -216 - PRICE_HEIGHT)
   report:SetPoint("BOTTOMRIGHT", 0, 0)
   local refreshReport = Report(report, function() return ns.Gold:Lines() end)
 
@@ -561,6 +613,7 @@ local function BuildGold(panel)
         bar:SetHeight(math.max(2, session.perHour / best * CHART_HEIGHT))
       end
     end
+    RefreshPrices()
     refreshReport()
   end
 end
@@ -719,6 +772,10 @@ local function BuildRecords(panel)
   end
 end
 
+-- Statistics: this session's catch rate in five-minute bars, with the
+-- session average as a flat line, above the lifetime report.
+local RATE_BARS, RATE_HEIGHT = 48, 50
+
 local function BuildStats(panel)
   local clear = Button(panel, L["Reset statistics"], 150, function()
     ns.Stats:Reset()
@@ -740,13 +797,53 @@ local function BuildStats(panel)
   toggle:SetText(L["Warband totals"])
   toggle:SetPoint("TOPLEFT", 0, 0)
 
+  local rateTitle = Label(panel, "GameFontNormal")
+  rateTitle:SetPoint("TOPLEFT", 2, -32)
+  rateTitle:SetWidth(410)
+  rateTitle:SetJustifyH("LEFT")
+  rateTitle:SetWordWrap(false)
+  local rateGraph = ns.Graph.New(panel, 410, RATE_HEIGHT, COLOR.brass,
+    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.08 })
+  rateGraph.frame:SetPoint("TOPLEFT", 0, -50)
+
+  local function RefreshRate()
+    local trend = ns.Log:CatchTrend()
+    if not trend then
+      rateTitle:SetText(L["Catch rate this session - start fishing to see it"])
+      rateGraph:Clear()
+      return
+    end
+    if trend.average then
+      rateTitle:SetText(string.format(L["%s  (last %d min; session %d/hr)"], ns.Stats.RateText(trend),
+        ns.Log.RATE_WINDOW / 60, math.floor(trend.average + 0.5)))
+    else
+      rateTitle:SetText(L["Catch rate: under a minute of fishing so far"])
+    end
+    -- The newest RATE_BARS buckets; a very long session scrolls off the left.
+    local buckets, first = trend.buckets, math.max(1, #trend.buckets - RATE_BARS + 1)
+    local shown = {}
+    for index = first, #buckets do shown[#shown + 1] = buckets[index] end
+    local minutes = trend.width / 60
+    rateGraph:SetValues(shown, {
+      reference = trend.average and trend.average * trend.width / 3600,
+      tooltip = function(index, value)
+        local bucket = first + index - 1
+        return { string.format(L["Minutes %d-%d"], (bucket - 1) * minutes, bucket * minutes),
+          string.format(L["%d catches (%d/hr)"], value, math.floor(value * 3600 / trend.width + 0.5)) }
+      end,
+    })
+  end
+
   local report = CreateFrame("Frame", nil, panel)
-  report:SetPoint("TOPLEFT", 0, -34)
+  report:SetPoint("TOPLEFT", 0, -58 - RATE_HEIGHT)
   report:SetPoint("BOTTOMRIGHT", 0, 30)
   local refreshReport = Report(report, function()
     return scope == "account" and ns.Stats:AccountLines() or ns.Stats:Lines()
   end)
-  panel.Refresh = refreshReport
+  panel.Refresh = function()
+    RefreshRate()
+    refreshReport()
+  end
 end
 
 local function BuildLog(panel)

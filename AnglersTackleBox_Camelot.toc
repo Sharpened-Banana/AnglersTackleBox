@@ -38,6 +38,7 @@ Stats.lua
 Recommend.lua
 Planner.lua
 Engine.lua
+Graph.lua
 Menu.lua
 Welcome.lua
 Options.lua

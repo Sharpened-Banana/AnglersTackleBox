@@ -168,7 +168,8 @@ function fill.session(frame)
   else
     SetRow(rows[6], L["Next press"], ns.Engine.nextLabel or "")
   end
-  return ns.Events:Headline(true) or "", nil
+  -- The footer carries the event headline; with none, the catch-rate trend.
+  return ns.Events:Headline(true) or ns.Stats.RateText(ns.Log:CatchTrend()) or "", nil
 end
 
 -- The lure in use, then the lures in the bags: click one to switch to it.

@@ -11,12 +11,17 @@ local SESSION_IDLE = 600 -- always-on: a session closes after this long without 
 local HOVER_WINDOW = 20 -- seconds a hovered pool stays valid before a cast
 local HookTooltips
 local LOOT_SLOT_ITEM = Enum and Enum.LootSlotType and Enum.LootSlotType.Item or 1
+local RATE_BUCKET = 300 -- seconds per bar in the catch-rate graph
+local RATE_WINDOW = 900 -- the recent catch rate looks back this far
+local RATE_SWING = 0.15 -- the recent rate must differ this much from the average to count as a trend
+local PRICE_POINTS = 14 -- days of price history kept per fish
+Log.RATE_BUCKET, Log.RATE_WINDOW = RATE_BUCKET, RATE_WINDOW
 
 local function NewSession()
   return {
     start = time(), t0 = GetTime(),
     casts = 0, catches = 0, value = 0, sinceRare = 0,
-    items = {},
+    items = {}, catchTimes = {}, -- GetTime() of each catch, for the rate trend
   }
 end
 
@@ -60,6 +65,36 @@ local function RawAuctionPrice(itemID)
 end
 
 -- The price to trust for an item, given what the pricing addons say now.
+-- Price history: at most one point a day per fish, the last PRICE_POINTS
+-- days, as { "YYYY-MM-DD", copper } pairs oldest first. A later price the
+-- same day replaces that day's point.
+function Log.RememberPrice(itemID, price, day)
+  local all = ns.db.priceHistory
+  local points = all[itemID]
+  if not points then
+    points = {}
+    all[itemID] = points
+  end
+  -- A clock that ran ahead once should not freeze the history.
+  while points[#points] and points[#points][1] > day do table.remove(points) end
+  local last = points[#points]
+  if last and last[1] == day then
+    last[2] = price
+  else
+    points[#points + 1] = { day, price }
+    while #points > PRICE_POINTS do table.remove(points, 1) end
+  end
+end
+
+function Log.PriceHistory(itemID)
+  return ns.db.priceHistory[itemID]
+end
+
+local function Trusted(itemID, price, day)
+  ns.db.prices[itemID] = { price = price, day = day }
+  Log.RememberPrice(itemID, price, day)
+end
+
 local function Guarded(itemID, raw)
   local memory = ns.db.prices
   local known = memory[itemID]
@@ -75,7 +110,7 @@ local function Guarded(itemID, raw)
     -- A spike. Believe it only once it has lasted into another day.
     local pending = known.pending
     if pending and pending.day ~= today and raw >= pending.price / 2 then
-      memory[itemID] = { price = raw, day = today }
+      Trusted(itemID, raw, today)
       Log.suspect[itemID] = nil
       return raw
     end
@@ -84,7 +119,7 @@ local function Guarded(itemID, raw)
     return known.price
   end
 
-  memory[itemID] = { price = raw, day = today }
+  Trusted(itemID, raw, today)
   Log.suspect[itemID] = nil
   return raw
 end
@@ -193,6 +228,57 @@ function Log:Stats()
   }
 end
 
+---------------------------------------------------------------------------
+-- Catch-rate trend: catches per RATE_BUCKET across the session, and the
+-- last RATE_WINDOW against the session average.
+---------------------------------------------------------------------------
+
+-- How many of `times` fall in each `width`-second bucket from t0 to now.
+function Log.Buckets(times, t0, now, width)
+  local count = math.max(1, math.ceil((now - t0) / width))
+  local out = {}
+  for index = 1, count do out[index] = 0 end
+  for _, at in ipairs(times) do
+    local index = math.min(count, math.floor((at - t0) / width) + 1)
+    if index >= 1 then out[index] = out[index] + 1 end
+  end
+  return out
+end
+
+-- Catches per hour from catch times (oldest first): the whole span and the
+-- recent window, and "rising", "falling" or "steady" once there is enough
+-- fishing before the window to compare against. average is nil for the
+-- first minute, when a rate is only noise.
+function Log.Trend(times, t0, now)
+  local elapsed = now - t0
+  local trend = { buckets = Log.Buckets(times, t0, now, RATE_BUCKET), width = RATE_BUCKET, elapsed = elapsed }
+  if elapsed < 60 then return trend end
+  trend.average = #times / elapsed * 3600
+  local since, recent = now - RATE_WINDOW, 0
+  for index = #times, 1, -1 do
+    if times[index] < since then break end
+    recent = recent + 1
+  end
+  trend.recent = recent / math.min(elapsed, RATE_WINDOW) * 3600
+  if elapsed >= RATE_WINDOW + RATE_BUCKET then
+    if trend.recent > trend.average * (1 + RATE_SWING) then
+      trend.direction = "rising"
+    elseif trend.recent < trend.average * (1 - RATE_SWING) then
+      trend.direction = "falling"
+    else
+      trend.direction = "steady"
+    end
+  end
+  return trend
+end
+
+-- The live session's trend, or nil before the first cast.
+function Log:CatchTrend()
+  local s = self.session
+  if not s or s.casts == 0 then return nil end
+  return Log.Trend(s.catchTimes, s.t0, GetTime())
+end
+
 local function Record(itemID, name, quantity, quality)
   local s = Log.session
   local now = time()
@@ -299,6 +385,7 @@ local function OnLoot()
   end
   if caught then
     s.catches = s.catches + 1
+    s.catchTimes[#s.catchTimes + 1] = GetTime()
     ns:Fire("CAST_LOOTED", looted, Log.pool)
   end
   ns.HUD:Refresh()

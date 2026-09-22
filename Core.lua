@@ -76,6 +76,7 @@ ns.defaults = {
   valueAlert = 0,       -- gold; alert on a single catch worth at least this (0 = off)
   priceCap = 2000,      -- gold; a single fish listed above this is ignored (0 = no ceiling)
   prices = {},          -- [itemID] = last trusted auction price, for spike detection
+  priceHistory = {},    -- [itemID] = up to 14 { day, price } points, one a day, for the price graph
   ahScan = true,        -- offer to refresh stale fish prices when the auction house opens
   ahScanDays = 1,       -- prices at least this old count as stale
   mapPins = true,       -- show fished spots on the world map

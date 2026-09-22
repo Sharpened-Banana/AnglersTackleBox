@@ -191,6 +191,19 @@ local function Duration(seconds)
 end
 Stats.Duration = Duration
 
+local DIRECTION = { rising = L["rising"], falling = L["falling"], steady = L["steady"] }
+
+-- One line for a catch-rate trend from ns.Log.Trend: "Rate: 42/hr, falling".
+-- The recent rate, since that is what the direction describes. nil while
+-- the session is too young for a rate.
+function Stats.RateText(trend)
+  if not trend or not trend.recent then return nil end
+  if trend.direction then
+    return string.format(L["Rate: %d/hr, %s"], math.floor(trend.recent + 0.5), DIRECTION[trend.direction])
+  end
+  return string.format(L["Rate: %d/hr"], math.floor(trend.recent + 0.5))
+end
+
 local function Percent(part, whole)
   return whole > 0 and string.format("%d%%", math.floor(part / whole * 100 + 0.5)) or "-"
 end
