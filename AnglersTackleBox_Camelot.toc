@@ -28,6 +28,7 @@ Events.lua
 Goals.lua
 Spots.lua
 Journal.lua
+Shopping.lua
 Gold.lua
 QoL.lua
 Broker.lua

@@ -438,6 +438,22 @@ local function BuildJournal(panel)
   panel.Refresh = Refresh
 end
 
+-- Shopping: Cooking reagents among the fish you've caught, how many you're
+-- holding, and how many more casts closing the gap takes at your rate.
+local function BuildShopping(panel)
+  local note = Label(panel, "GameFontDisableSmall",
+    L["Reads your Cooking window's known recipes - open it once to fill this in."])
+  note:SetPoint("TOPLEFT", 0, 0)
+  local report = CreateFrame("Frame", nil, panel)
+  report:SetPoint("TOPLEFT", 0, -20)
+  report:SetPoint("BOTTOMRIGHT", 0, 0)
+  local refreshReport = Report(report, function() return ns.Shopping:Lines() end)
+  panel.Refresh = function()
+    ns.Shopping:Refresh()
+    refreshReport()
+  end
+end
+
 -- Gold: the value alert, a bar chart of recent sessions, and the rankings.
 local CHART_BARS, CHART_HEIGHT = 30, 70
 
@@ -743,6 +759,7 @@ local function Compartments()
       build = BuildBobbers },
     { key = "log", name = L["Catch Log"], icon = "Interface\\Icons\\INV_Misc_Book_09", build = BuildLog },
     { key = "journal", name = L["Journal"], icon = "Interface\\Icons\\INV_Misc_Note_01", build = BuildJournal },
+    { key = "shopping", name = L["Shopping"], icon = "Interface\\Icons\\Trade_Cooking", build = BuildShopping },
     { key = "gold", name = L["Gold"], icon = "Interface\\Icons\\INV_Misc_Coin_01", build = BuildGold },
     { key = "goals", name = L["Goals"], icon = SpellIcon(64731),
       build = function(panel) Report(panel, function() return ns.Goals:Lines() end) end },
