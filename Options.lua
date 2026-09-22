@@ -580,7 +580,7 @@ commands.minimap = function(rest)
 end
 
 commands.menu = function() ns.Menu:Toggle() end
-commands.log = function() ns.Menu:Toggle("log") end
+commands.log = function() ns.Menu:Toggle("log", "zone") end
 commands.lures = function() ns.Menu:Toggle("lures") end
 commands.stats = function() ns.Log:PrintStats() end
 commands.reset = function() ns.Log:ResetSession() end

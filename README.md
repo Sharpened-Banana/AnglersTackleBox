@@ -35,13 +35,14 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb set <name>`, `/tb set none` | Equipment set to wear while fishing |
 | `/tb hud` | Show or hide the session window |
 | `/tb tabs` | Choose and order the session window's tabs (Session always stays first) |
-| `/tb log` | Catch log window: per-zone catches, share, value and pools |
+| `/tb log` | Catch log, By zone view: per-zone catches, share, value and pools |
+| `/tb journal` | Catch log, By fish view: a page per fish with where you catch it |
 | `/tb export` | The catch log as CSV in a copyable box |
 | `/tb sessions [drop N\|clear]` | List or remove saved sessions |
 | `/tb forget spot` | Forget the fishing spot you are standing on |
 | `/tb welcome` | Reopen the first-run welcome |
 | `/tb stats`, `/tb reset` | Print or restart session stats |
-| `/tb find <fish>` | Where you catch it, from your own log (no argument opens the Journal) |
+| `/tb find <fish>` | Where you catch it, from your own log (no argument opens the catch log By fish view) |
 | `/tb gold` | Best zones and spots by gold per hour |
 | `/tb scan` | Refresh fish prices through Auctionator (only works with the auction house open) |
 | `/tb records`, `/tb share [party\|guild\|say]` | Personal records; post this session to chat |

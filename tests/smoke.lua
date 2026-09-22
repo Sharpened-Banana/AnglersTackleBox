@@ -715,6 +715,12 @@ advance(2)
 check(ns.Menu.ticker ~= nil, "menu: live refresh runs while open")
 SlashCmdList.ANGLERSTACKLEBOX("log")
 check(AnglersTackleBoxMenu.shown and ns.Menu.selected == "log", "/tb log switches to the catch log compartment")
+SlashCmdList.ANGLERSTACKLEBOX("journal")
+check(AnglersTackleBoxMenu.shown and ns.Menu.selected == "log" and ns.Menu.logView == "fish",
+  "/tb journal opens the catch log on its By fish view")
+check(ns.Menu.frame.panels.journal == nil, "journal: no separate compartment any more")
+ns.Menu:Select("log", "zone")
+check(ns.Menu.logView == "zone" and ns.LogWindow.frame:IsShown(), "catch log: By zone view shows the zone table")
 SlashCmdList.ANGLERSTACKLEBOX("log")
 check(not AnglersTackleBoxMenu.shown and ns.Menu.ticker == nil, "menu closes and its ticker stops")
 

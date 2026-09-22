@@ -2,6 +2,7 @@
 
 ## 1.1.0
 
+- The Journal is now part of the Catch Log: one compartment with By zone and By fish views. `/tb log` opens By zone, and `/tb journal` and `/tb find` open By fish.
 - The Shopping tab now fills in on Retail. It was looking for the open Cooking window with a function Blizzard removed in Dragonflight. It also works in every client language, counts only recipes you have learned, and remembers the list across logins.
 - The Shopping tab is easier to read: each fish gets its own icon and a clickable, tooltip-able item link, its recipes each get their own line with a bit more room, and a recipe links to its dish too, using the item-link function Blizzard actually ships (the first attempt called one that doesn't exist).
 - The box's compartment list now fits inside the box however many compartments there are, instead of the last ones spilling out the bottom. Shopping gets its icon.

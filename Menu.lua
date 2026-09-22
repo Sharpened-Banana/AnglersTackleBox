@@ -856,10 +856,37 @@ local function BuildStats(panel)
   end
 end
 
+-- Catch Log: one compartment, two views of the same catches. By zone is
+-- the per-zone table; By fish is the journal, a page per fish.
 local function BuildLog(panel)
-  ns.LogWindow:Attach(panel)
-  panel.Refresh = function() ns.LogWindow:Refresh() end
-  panel.OnOpen = function() ns.LogWindow:ShowHere() end
+  local zoneView = CreateFrame("Frame", nil, panel)
+  zoneView:SetPoint("TOPLEFT", 0, -30)
+  zoneView:SetPoint("BOTTOMRIGHT", 0, 0)
+  local fishView = CreateFrame("Frame", nil, panel)
+  fishView:SetPoint("TOPLEFT", 0, -30)
+  fishView:SetPoint("BOTTOMRIGHT", 0, 0)
+  ns.LogWindow:Attach(zoneView)
+  BuildJournal(fishView)
+
+  local byZone, byFish
+  local function Show(view)
+    Menu.logView = view == "fish" and "fish" or "zone"
+    local fish = Menu.logView == "fish"
+    zoneView:SetShown(not fish)
+    fishView:SetShown(fish)
+    byZone:SetEnabled(fish)
+    byFish:SetEnabled(not fish)
+    if fish then fishView.Refresh() else ns.LogWindow:ShowHere() end
+  end
+  byZone = Button(panel, L["By zone"], 100, function() Show("zone") end)
+  byZone:SetPoint("TOPLEFT", 0, 0)
+  byFish = Button(panel, L["By fish"], 100, function() Show("fish") end)
+  byFish:SetPoint("LEFT", byZone, "RIGHT", 6, 0)
+
+  panel.Refresh = function()
+    if fishView:IsShown() then fishView.Refresh() else ns.LogWindow:Refresh() end
+  end
+  panel.OnOpen = function() Show(Menu.logView) end
 end
 
 local function BuildSettings(panel)
@@ -967,7 +994,6 @@ local function Compartments()
     { key = "bobbers", name = L["Bobbers"], icon = Data.oversizedBobber and ItemIcon(Data.oversizedBobber.item),
       build = BuildBobbers },
     { key = "log", name = L["Catch Log"], icon = "Interface\\Icons\\INV_Misc_Book_09", build = BuildLog },
-    { key = "journal", name = L["Journal"], icon = "Interface\\Icons\\INV_Misc_Note_01", build = BuildJournal },
     { key = "shopping", name = L["Shopping"], icon = SpellIcon(2550) or "Interface\\Icons\\INV_Misc_Food_15",
       build = BuildShopping },
     { key = "gold", name = L["Gold"], icon = "Interface\\Icons\\INV_Misc_Coin_01", build = BuildGold },
@@ -1164,7 +1190,18 @@ local function BuildBox()
   return frame
 end
 
-function Menu:Select(key)
+-- Old compartment keys that now open a view inside another compartment.
+local ALIASES = { journal = { "log", "fish" } }
+
+local function Resolve(key, view)
+  local alias = key and ALIASES[key]
+  if alias then return alias[1], alias[2] end
+  return key, view
+end
+
+function Menu:Select(key, view)
+  key, view = Resolve(key, view)
+  if view then self.logView = view end
   local frame = self.frame
   if not frame.panels[key] then key = "top" end
   self.selected = key
@@ -1197,16 +1234,19 @@ function Menu:Refresh()
   if panel and panel.Refresh then panel.Refresh() end
 end
 
-function Menu:Open(key)
+function Menu:Open(key, view)
   if not self.frame then self.frame = BuildBox() end
   self.frame:Show()
-  self:Select(key or self.selected or "top")
+  self:Select(key or self.selected or "top", view)
 end
 
-function Menu:Toggle(key)
-  if self.frame and self.frame:IsShown() and (not key or key == self.selected) then
+function Menu:Toggle(key, view)
+  local resolved
+  resolved, view = Resolve(key, view)
+  local sameView = not view or view == self.logView
+  if self.frame and self.frame:IsShown() and (not key or (resolved == self.selected and sameView)) then
     self.frame:Hide()
   else
-    self:Open(key)
+    self:Open(resolved, view)
   end
 end

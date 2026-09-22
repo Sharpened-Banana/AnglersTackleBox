@@ -20,8 +20,7 @@ Pick any key. While fishing mode is on, each press does the next right thing: eq
 - Sound and interact settings change only while you are actually fishing, and are always put back, even after a crash.
 
 ### It remembers
-- **Catch log** by zone, subzone and pool, with CSV export.
-- **Journal**: a page per fish. "Where do I catch this?" answered from your own catches.
+- **Catch log** with two views: by zone, subzone and pool with CSV export, and by fish, a page per fish answering "where do I catch this?" from your own catches.
 - **Map pins** for every spot you have fished, with what you caught there.
 - **Gold**: session gold and gold per hour, your best zones and best individual spots, an alert for valuable catches, a sell helper at vendors and the auction house, and a 30-session chart. Uses Auctionator or TSM prices when you have them, guarded against troll listings.
 - **Goals**: fishing achievements with their missing parts, fishing mounts, rare-drop attempt counters (Sea Turtle, Nether-Warped Egg), and skill-ups per catch.
