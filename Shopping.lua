@@ -80,6 +80,25 @@ local function CastsNeeded(row)
   return math.ceil(row.short / perCast)
 end
 
+-- Inline icon markup, WoW's own "|T<path>:<size>|t" escape sequence. Blank
+-- when there is no icon, so a missing texture never leaves a gap of spaces.
+local function Icon(texture, size)
+  return texture and ("|T" .. texture .. ":" .. (size or 16) .. ":" .. (size or 16) .. ":0:0|t ") or ""
+end
+
+-- A plain item hyperlink built from what we already know (id and name),
+-- rather than through GetItemInfo, so it doesn't depend on that item's
+-- info being cached yet. Clickable and tooltip-able like any other link.
+local function FishLink(itemID, name)
+  return string.format("|Hitem:%d|h[%s]|h", itemID, name)
+end
+
+-- One recipe's name, as a clickable link to the crafted dish when the API
+-- hands one over, or plain text otherwise.
+local function RecipeText(use)
+  return Icon(use.icon) .. (use.link or use.recipe)
+end
+
 function Shopping:Lines()
   local lines = {}
   if not Saved() then
@@ -96,9 +115,10 @@ function Shopping:Lines()
   lines[#lines + 1] = { text = L["Cooking reagents you've fished up before:"], header = true }
   for _, row in ipairs(rows) do
     local recipeNames = {}
-    for _, use in ipairs(row.uses) do recipeNames[#recipeNames + 1] = use.recipe end
-    lines[#lines + 1] = { text = string.format(L["%s - have %d, %d recipes want %d: %s"],
-      row.name, row.held, #row.uses, row.needed, table.concat(recipeNames, ", ")) }
+    for _, use in ipairs(row.uses) do recipeNames[#recipeNames + 1] = RecipeText(use) end
+    lines[#lines + 1] = { text = string.format(L["%s%s - have %d, %d recipes want %d:"],
+      Icon(Compat.ItemIcon(row.id), 20), FishLink(row.id, row.name), row.held, #row.uses, row.needed) }
+    lines[#lines + 1] = { text = "   " .. table.concat(recipeNames, ", ") }
     if row.short > 0 then
       local text = string.format(L["Need %d more."], row.short)
       local casts = CastsNeeded(row)

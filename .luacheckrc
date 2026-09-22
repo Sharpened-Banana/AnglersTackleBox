@@ -43,14 +43,14 @@ read_globals = {
   -- Alerts, pools, log window, mounts
   "UnitGUID", "strsplit", "GetLocale", "TooltipDataProcessor", "GameTooltip", "C_MountJournal",
   -- Menu
-  "GetCursorInfo", "ClearCursor", "GetItemIcon", "GetSpellTexture",
+  "GetCursorInfo", "ClearCursor", "GetItemIcon", "GetSpellTexture", "SetItemRef",
   -- Spots, gold, comforts, broker, records, goals
   "WorldMapFrame", "hooksecurefunc", "GetCameraZoom", "CameraZoomIn", "CameraZoomOut", "UnitIsAFK",
   "LibStub", "Minimap", "GetCursorPosition", "IsInGroup", "IsInGuild", "SendChatMessage", "C_ChatInfo",
   "GetProfessions", "GetProfessionInfo", "GetNumSkillLines", "GetSkillLineInfo", "C_QuestLog",
   -- Trade skill / cooking reagents
   "C_TradeSkillUI", "GetTradeSkillLine", "GetNumTradeSkills", "GetTradeSkillInfo", "GetTradeSkillNumReagents",
-  "GetTradeSkillReagentInfo", "GetTradeSkillReagentItemLink", "PROFESSIONS_COOKING",
+  "GetTradeSkillReagentInfo", "GetTradeSkillReagentItemLink", "GetTradeSkillItemLink", "PROFESSIONS_COOKING",
   -- Auction house
   "AuctionHouseFrame", "AuctionFrame",
   -- Misc

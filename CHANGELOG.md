@@ -3,6 +3,7 @@
 ## 1.1.0
 
 - The Shopping tab now fills in on Retail. It was looking for the open Cooking window with a function Blizzard removed in Dragonflight. It also works in every client language, counts only recipes you have learned, and remembers the list across logins.
+- The Shopping tab is easier to read: each fish gets its own icon and a clickable, tooltip-able item link, and its recipes list on their own line. Recipes link to the dish too, when Blizzard's API offers one.
 - The box's compartment list now fits inside the box however many compartments there are, instead of the last ones spilling out the bottom. Shopping gets its icon.
 - Lure auto-swap, off by default: when your chosen lure runs out and its effect ends, the next press applies the best other lure in your bags. A quiet text alert names it. Restocking your chosen lure switches back.
 - Session goals on the Goals tab: set targets for catches, gold and minutes fished, see live progress, and get one alert per goal per session. Goal alerts have their own toggle.

@@ -74,7 +74,9 @@ C_Item = { GetItemInfo = function(id) return "Item" .. id, "[Item" .. id .. "]",
   GetItemInfoInstant = function(id) return id, "", "", "", 1, 0, 0 end,
   GetItemCount = function(id) return counts[id] or 0 end,
   GetItemSpell = function(id) if id == 555 then return "Test Lure", 999 end if id == 142529 then return "Cat Head", 5005 end end,
+  GetItemIconByID = function() return "Interface\\Icons\\INV_Misc_Fish_02" end,
   EquipItemByName = function() end }
+SetItemRef = function() end
 C_Container = { GetItemCooldown = function() return 0, 0 end, GetContainerNumSlots = function() return 0 end, GetContainerItemID = function() end }
 C_UnitAuras = { GetPlayerAuraBySpellID = function(id) return auras[id] end }
 AuraUtil = { FindAuraByName = function() end }
@@ -364,6 +366,8 @@ check(shopping:find("Test Fish", 1, true) and shopping:find("have 1", 1, true)
 check(shopping:find("Need 3 more", 1, true), "shopping: shortfall computed from bag count vs. recipe need")
 check(not shopping:find("Unlearned Fish Pie", 1, true), "shopping: recipes you have not learned are left out")
 check(ns.chardb.cookingReagents and ns.chardb.cookingReagents[220134], "shopping: the recipe list is saved for the next login")
+check(shopping:find("|Hitem:220134|h[Test Fish]|h", 1, true) ~= nil, "shopping: the fish name is a clickable item link")
+check(shopping:find("|TInterface\\Icons\\INV_Misc_Fish_02:20:20:0:0|t", 1, true) ~= nil, "shopping: the fish gets an inline icon")
 tradeSkillOpen, counts[220134] = false, nil
 check(ns.chardb.skill.level == 100, "goals: fishing skill tracked")
 check(ns.chardb.attempts.netherEgg.n == 0, "goals: an out-of-scope cast is not an attempt")

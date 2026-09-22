@@ -172,6 +172,13 @@ function Compat.CoinString(copper)
   return GetCoinTextureString(copper)
 end
 
+-- An item's icon texture, for inline |T..|t markup in a report line.
+function Compat.ItemIcon(itemID)
+  local getIcon = C_Item and C_Item.GetItemIconByID or GetItemIcon
+  local ok, icon = pcall(getIcon, itemID)
+  return ok and icon or nil
+end
+
 ---------------------------------------------------------------------------
 -- Cooking reagents (Shopping.lua). Retail's trade skill window is read
 -- through C_TradeSkillUI; WoW Forever still uses the classic global API.
@@ -214,15 +221,17 @@ function Compat.IsCookingWindowOpen()
 end
 
 -- Every reagent item used by the open trade skill window's known recipes,
--- as { [itemID] = { { recipe = name, need = count }, ... } }. Empty (not
--- nil) when nothing is open or the API doesn't behave as expected.
+-- as { [itemID] = { { recipe = name, need = count, link = ?, icon = ? }, ... } }.
+-- link/icon point at the recipe's own crafted item, when the API offers one,
+-- so the shopping list can show a picture and a clickable link instead of
+-- plain text. Empty (not nil) when nothing is open or the API misbehaves.
 function Compat.TradeSkillReagentUses()
   local uses = {}
-  local function AddUse(itemID, recipeName, need)
+  local function AddUse(itemID, recipeName, need, link, icon)
     if not itemID or not recipeName then return end
     local list = uses[itemID]
     if not list then list = {} uses[itemID] = list end
-    list[#list + 1] = { recipe = recipeName, need = need or 1 }
+    list[#list + 1] = { recipe = recipeName, need = need or 1, link = link, icon = icon }
   end
 
   if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs and C_TradeSkillUI.GetRecipeSchematic then
@@ -232,18 +241,22 @@ function Compat.TradeSkillReagentUses()
       -- Optional and finishing slots are extras, not what a recipe needs.
       local basic = Enum and Enum.CraftingReagentType and Enum.CraftingReagentType.Basic
       for _, recipeID in ipairs(recipeIDs) do
-        local learned = true
+        local learned, info = true, nil
         if C_TradeSkillUI.GetRecipeInfo then
-          local okInfo, info = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
-          learned = okInfo and info and info.learned
+          local okInfo, gotInfo = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
+          info = okInfo and gotInfo or nil
+          learned = info and info.learned
         end
         local okSchem, schematic = false, nil
         if learned then okSchem, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false) end
         if okSchem and schematic and schematic.reagentSlotSchematics then
+          local okLink, link = pcall(C_TradeSkillUI.GetRecipeLink, recipeID)
+          link = okLink and link or nil
+          local icon = info and info.icon or nil
           for _, slot in ipairs(schematic.reagentSlotSchematics) do
             if not basic or slot.reagentType == nil or slot.reagentType == basic then
               for _, reagent in ipairs(slot.reagents or {}) do
-                AddUse(reagent.itemID, schematic.name, slot.quantityRequired)
+                AddUse(reagent.itemID, schematic.name, slot.quantityRequired, link, icon)
               end
             end
           end
@@ -259,6 +272,13 @@ function Compat.TradeSkillReagentUses()
       for index = 1, count do
         local okInfo, name, kind = pcall(GetTradeSkillInfo, index)
         if okInfo and name and kind ~= "header" and kind ~= "subheader" then
+          local link
+          if GetTradeSkillItemLink then
+            local okLink, gotLink = pcall(GetTradeSkillItemLink, index)
+            link = okLink and gotLink or nil
+          end
+          local recipeItemID = link and tonumber(link:match("item:(%d+)"))
+          local icon = recipeItemID and Compat.ItemIcon(recipeItemID) or nil
           local numReagents = 0
           if GetTradeSkillNumReagents then
             local okNum, n = pcall(GetTradeSkillNumReagents, index)
@@ -266,9 +286,9 @@ function Compat.TradeSkillReagentUses()
           end
           for reagentIndex = 1, numReagents do
             local okReagent, _, _, reagentCount = pcall(GetTradeSkillReagentInfo, index, reagentIndex)
-            local link = GetTradeSkillReagentItemLink and GetTradeSkillReagentItemLink(index, reagentIndex)
-            local itemID = link and tonumber(link:match("item:(%d+)"))
-            if okReagent and itemID then AddUse(itemID, name, reagentCount) end
+            local reagentLink = GetTradeSkillReagentItemLink and GetTradeSkillReagentItemLink(index, reagentIndex)
+            local itemID = reagentLink and tonumber(reagentLink:match("item:(%d+)"))
+            if okReagent and itemID then AddUse(itemID, name, reagentCount, link, icon) end
           end
         end
       end
