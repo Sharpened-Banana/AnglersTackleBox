@@ -200,7 +200,7 @@ if CLASSIC then
   TooltipDataProcessor = nil
 
   for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Audio.lua", "Gear.lua",
-    "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
+    "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
     "Spots.lua", "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
     "Recommend.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
     assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
@@ -258,7 +258,7 @@ if CLASSIC then
   os.exit(0)
 end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
+  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
   "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
   "Midnight.lua", "Planner.lua", "Engine.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
@@ -386,6 +386,24 @@ check(spots[1].pool == "Sunwell Swarm" and #spots == 1, "spots: same place merge
 local alerted = false
 for _, line in ipairs(printed) do if line:find("is worth", 1, true) then alerted = true end end
 check(alerted, "gold: value alert fires above the threshold")
+
+-- session goals
+local function goalAlerts()
+  local n = 0
+  for _, line in ipairs(printed) do if line:find("Session goal reached", 1, true) then n = n + 1 end end
+  return n
+end
+check(ns.db.sessionGoals.catches == 0 and goalAlerts() == 0, "session goals: off by default, nothing fired")
+ns.db.sessionGoals.catches = ns.Log:Stats().catches + 1
+ns.SessionGoals:Check()
+check(goalAlerts() == 0 and ns.SessionGoals:Text("catches"):find("Catches 2 / 3", 1, true), "session goals: progress shown below target")
+ns.db.sessionGoals.catches = ns.Log:Stats().catches
+ns.SessionGoals:Check(); ns.SessionGoals:Check()
+check(goalAlerts() == 1 and ns.SessionGoals:Fired("catches"), "session goals: reached goal alerts once")
+local goalSession = ns.Log.session
+ns.Log:ResetSession()
+check(not ns.SessionGoals:Fired("catches"), "session goals: reset session clears the fired state")
+ns.Log.session = goalSession; ns.db.sessionGoals.catches = 0
 fire("PLAYER_STARTED_MOVING")
 check(ns.Log.pool == nil, "pool: forgotten once the player moves")
 

@@ -562,6 +562,51 @@ local function BuildGold(panel)
   end
 end
 
+-- Goals: this session's targets up top, the long-term tracker below.
+local function BuildGoals(panel)
+  local header = Label(panel, "GameFontNormal", L["Session goals"])
+  header:SetPoint("TOPLEFT", 2, -2)
+  local note = Label(panel, "GameFontDisableSmall", L["0 = off. Each one alerts once per session."])
+  note:SetPoint("LEFT", header, "RIGHT", 10, 0)
+
+  local rows = {}
+  for index, goal in ipairs(ns.SessionGoals.goals) do
+    local y = -4 - index * 24
+    local label = Label(panel, "GameFontHighlight", goal.label)
+    label:SetPoint("TOPLEFT", 2, y - 4)
+    local box = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+    box:SetSize(60, 20)
+    box:SetPoint("TOPLEFT", 130, y)
+    box:SetAutoFocus(false)
+    box:SetNumeric(true)
+    local function Commit(self)
+      ns.db.sessionGoals[goal.key] = tonumber(self:GetText()) or 0
+      self:ClearFocus()
+      ns.SessionGoals:Check()
+      Menu:Refresh()
+    end
+    box:SetScript("OnEnterPressed", Commit)
+    box:SetScript("OnEditFocusLost", Commit)
+    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    local progress = Label(panel, "GameFontHighlight")
+    progress:SetPoint("TOPLEFT", 210, y - 4)
+    rows[index] = { key = goal.key, box = box, progress = progress }
+  end
+
+  local report = CreateFrame("Frame", nil, panel)
+  report:SetPoint("TOPLEFT", 0, -110)
+  report:SetPoint("BOTTOMRIGHT", 0, 0)
+  local refreshReport = Report(report, function() return ns.Goals:Lines() end)
+
+  panel.Refresh = function()
+    for _, row in ipairs(rows) do
+      if not row.box:HasFocus() then row.box:SetText(tostring(ns.db.sessionGoals[row.key] or 0)) end
+      row.progress:SetText(ns.SessionGoals:Text(row.key, true))
+    end
+    refreshReport()
+  end
+end
+
 -- Window: which tabs the small fishing window shows, and in what order.
 local function BuildWindow(panel)
   local show = Check(panel, L["Show the window while fishing"], ns.db.hud, "shown",
@@ -794,8 +839,7 @@ local function Compartments()
     { key = "journal", name = L["Journal"], icon = "Interface\\Icons\\INV_Misc_Note_01", build = BuildJournal },
     { key = "shopping", name = L["Shopping"], icon = "Interface\\Icons\\Trade_Cooking", build = BuildShopping },
     { key = "gold", name = L["Gold"], icon = "Interface\\Icons\\INV_Misc_Coin_01", build = BuildGold },
-    { key = "goals", name = L["Goals"], icon = SpellIcon(64731),
-      build = function(panel) Report(panel, function() return ns.Goals:Lines() end) end },
+    { key = "goals", name = L["Goals"], icon = SpellIcon(64731), build = BuildGoals },
     { key = "events", name = L["Events"], icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
       build = function(panel) Report(panel, function() return ns.Events:Lines() end) end },
   }

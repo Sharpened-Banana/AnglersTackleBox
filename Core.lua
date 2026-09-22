@@ -83,6 +83,7 @@ ns.defaults = {
   camera = { enabled = false }, -- zoom preset applied while fishing
   minimap = { hide = false, angle = 215 },
   alertTypes = {},      -- [category] = false turns one kind of alert off
+  sessionGoals = { catches = 0, gold = 0, minutes = 0 }, -- per-session targets (0 = off)
   audio = {
     enabled = true,
     sfxVolume = 1.0,
