@@ -44,12 +44,14 @@ local function Flash()
   flash.fade:Play()
 end
 
-function Alerts:Fire(category, text)
+-- silent: show the text on screen without the sound or the flash.
+function Alerts:Fire(category, text, silent)
   ns:Print(text)
   if not ns.db.alerts or ns.db.alertTypes[category] == false then return end
   if RaidNotice_AddMessage and RaidWarningFrame then
     RaidNotice_AddMessage(RaidWarningFrame, text, ChatTypeInfo["RAID_WARNING"])
   end
+  if silent then return end
   PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
   if ns.db.alertFlash then Flash() end
 end

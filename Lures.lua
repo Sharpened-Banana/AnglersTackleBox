@@ -72,7 +72,9 @@ function Lures:Tick()
   if Compat.GetItemCount(itemID) == 0 then
     if not self.emptySaid then
       self.emptySaid = true
-      ns.Alerts:Fire("lure", L["Out of lures!"])
+      -- With always-on the mode runs all day, so an empty lure stack is
+      -- ordinary news: a text popup, not the raid warning sound.
+      ns.Alerts:Fire("lure", L["Out of lures!"], ns.db.alwaysOn)
     end
     return
   end
