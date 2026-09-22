@@ -740,9 +740,42 @@ local function BuildSettings(panel)
   saveCamera:SetPoint("TOPLEFT", 270, -(#checks - 1) * 25)
   local all = Button(panel, L["All settings..."], 140, function() ns.Options:Open() end)
   all:SetPoint("TOPLEFT", 0, -#checks * 25 - 8)
+  local feedback = Button(panel, L["Send feedback..."], 140, function() Menu:ShowFeedback() end)
+  feedback:SetPoint("LEFT", all, "RIGHT", 10, 0)
   panel.Refresh = function()
     for _, check in ipairs(checks) do check.Sync() end
   end
+end
+
+-- The game cannot open a browser, so the feedback button shows the issues
+-- link in a box with the text selected, ready for Ctrl-C.
+local FEEDBACK_URL = "https://github.com/Sharpened-Banana/AnglersTackleBox/issues"
+
+function Menu:ShowFeedback()
+  if not StaticPopupDialogs["ANGLERS_TACKLEBOX_FEEDBACK"] then
+    StaticPopupDialogs["ANGLERS_TACKLEBOX_FEEDBACK"] = {
+      text = L["Found a bug or have an idea? Copy this link (Ctrl-C) and open it in your browser:"],
+      button1 = CLOSE,
+      hasEditBox = true,
+      editBoxWidth = 320,
+      OnShow = function(self)
+        local box = self.editBox or self.EditBox
+        box:SetText(FEEDBACK_URL)
+        box:HighlightText()
+        box:SetFocus()
+      end,
+      EditBoxOnTextChanged = function(self)
+        if self:GetText() ~= FEEDBACK_URL then
+          self:SetText(FEEDBACK_URL)
+          self:HighlightText()
+        end
+      end,
+      EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+      EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
+      timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+    }
+  end
+  StaticPopup_Show("ANGLERS_TACKLEBOX_FEEDBACK")
 end
 
 local function SpellIcon(spellID)

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- New "Send feedback..." button on the Settings tab of the box: shows the GitHub issues link ready to copy.
+
 ## 1.0.1
 
 - With fishing mode always on, running out of lures shows the text popup and chat line without the alert sound or screen flash.
