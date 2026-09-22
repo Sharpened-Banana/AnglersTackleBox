@@ -19,6 +19,48 @@ Alerts.categories = {
   { key = "goal", label = L["Session goals"] },
 }
 
+-- Alert sounds: only the game's own sound kits, played with PlaySound. Each
+-- entry has its SOUNDKIT name and the numeric kit ID, so a client whose
+-- SOUNDKIT table lacks the name still plays the same sound.
+Alerts.sounds = {
+  { key = "raidWarning", label = L["Raid warning"], kit = "RAID_WARNING", id = 8959 },
+  { key = "readyCheck", label = L["Ready check"], kit = "READY_CHECK", id = 8960 },
+  { key = "auction", label = L["Auction window open"], kit = "AUCTION_WINDOW_OPEN", id = 5274 },
+  { key = "questComplete", label = L["Quest complete"], kit = "IG_QUEST_LIST_COMPLETE", id = 878 },
+  { key = "levelUp", label = L["Level up"], kit = "LEVEL_UP", id = 888 },
+  { key = "mapPing", label = L["Map ping"], kit = "MAP_PING", id = 3175 },
+  { key = "none", label = L["None"] },
+}
+
+function Alerts:Sound(key)
+  for _, sound in ipairs(self.sounds) do
+    if sound.key == key then return sound end
+  end
+end
+
+-- A category's own sound, else the global choice, else the raid warning.
+function Alerts:SoundFor(category)
+  local override = category and ns.db.alertSounds[category]
+  return self:Sound(override) or self:Sound(ns.db.alertSound) or self.sounds[1]
+end
+
+function Alerts:PlaySound(key)
+  local sound = self:Sound(key) or self.sounds[1]
+  if not sound.id then return end -- "None"
+  PlaySound(SOUNDKIT and SOUNDKIT[sound.kit] or sound.id)
+end
+
+-- Steps the global choice through the list; direction -1 goes back.
+function Alerts:CycleSound(direction)
+  local index = 1
+  for i, sound in ipairs(self.sounds) do
+    if sound.key == ns.db.alertSound then index = i end
+  end
+  index = (index - 1 + (direction or 1)) % #self.sounds + 1
+  ns.db.alertSound = self.sounds[index].key
+  return self.sounds[index]
+end
+
 local NPC_THROTTLE = 120
 
 local flash
@@ -53,7 +95,7 @@ function Alerts:Fire(category, text, silent)
     RaidNotice_AddMessage(RaidWarningFrame, text, ChatTypeInfo["RAID_WARNING"])
   end
   if silent then return end
-  PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+  self:PlaySound(self:SoundFor(category).key)
   if ns.db.alertFlash then Flash() end
 end
 

@@ -85,6 +85,10 @@ ns.defaults = {
   minimap = { hide = false, angle = 215 },
   alertTypes = {},      -- [category] = false turns one kind of alert off
   sessionGoals = { catches = 0, gold = 0, minutes = 0 }, -- per-session targets (0 = off)
+  alertSound = "raidWarning", -- key into Alerts.sounds; "none" plays nothing
+  alertSounds = {},     -- [category] = sound key, overriding alertSound
+  shareCharSettings = false, -- one set of per-character settings for all characters
+  sharedChar = {},      -- that shared set, saved at logout (see Profiles.lua)
   audio = {
     enabled = true,
     sfxVolume = 1.0,

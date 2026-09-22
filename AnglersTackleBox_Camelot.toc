@@ -16,6 +16,7 @@ Locales/enUS.lua
 Compat.lua
 Data/Classic.lua
 Core.lua
+Profiles.lua
 Audio.lua
 Gear.lua
 Lures.lua

@@ -116,7 +116,11 @@ ClearOverrideBindings = function(owner)
 end
 GetBindingAction = function() return "" end
 GetBindingName = function(a) return a end
-PlaySound = function() end
+played = {}
+PlaySound = function(id) played[#played + 1] = id end
+StaticPopupDialogs, CLOSE, CANCEL = {}, "Close", "Cancel"
+shownPopup = nil
+StaticPopup_Show = function(name) shownPopup = name end
 SlashCmdList = {}
 UISpecialFrames = {}
 GetLocale = function() return "enUS" end
@@ -201,7 +205,7 @@ if CLASSIC then
   C_Spell.GetSpellName = function(id) if id == 7620 or id == 7731 then return "Fishing" end end
   TooltipDataProcessor = nil
 
-  for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Audio.lua", "Gear.lua",
+  for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
     "Spots.lua", "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
     "Recommend.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
@@ -259,10 +263,15 @@ if CLASSIC then
   check(graph:SetValues({ 1, 3, 2 }, { mode = "line" }) == false and #graph.bars == 3,
     "classic: a line graph falls back to bars without texture lines")
   SlashCmdList.ANGLERSTACKLEBOX("goals"); SlashCmdList.ANGLERSTACKLEBOX("midnight"); SlashCmdList.ANGLERSTACKLEBOX("bobber")
+  local classicExport = ns.Profiles:Export()
+  ns.db.classicSoftInteract = true
+  check(ns.Profiles:Import(classicExport) and ns.db.classicSoftInteract == false, "classic: settings export and import round trip")
+  played = {}; ns.Alerts:Fire("rare", "x")
+  check(played[1] == 8959, "classic: alert sound falls back to the numeric raid warning kit")
   print_real("classic run complete")
   os.exit(0)
 end
-for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Audio.lua", "Gear.lua",
+for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
   "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
   "Midnight.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
@@ -489,6 +498,7 @@ ok, why = ns.Gold:Scan()
 check(not ok and why:find("auction house", 1, true), "scan: refuses away from the auction house")
 check(ns.Gold:PricesStale(), "scan: three-day-old and never-seen prices count as stale")
 local popups, shown = {}, {}
+local realDialogs, realShow, realHide = StaticPopupDialogs, StaticPopup_Show, StaticPopup_Hide
 StaticPopupDialogs = popups
 StaticPopup_Show = function(name) shown[name] = (shown[name] or 0) + 1 end
 StaticPopup_Hide = function(name) shown[name] = nil end
@@ -507,6 +517,7 @@ check(shown[POPUP] == 1 and searched == nil, "scan: asks again next visit, still
 fire("AUCTION_HOUSE_CLOSED")
 ns.db.ahScan = false; fire("AUCTION_HOUSE_SHOW"); advance(1.1)
 check(shown[POPUP] == nil and searched == nil, "scan: the offer can be turned off")
+StaticPopupDialogs, StaticPopup_Show, StaticPopup_Hide = realDialogs, realShow, realHide
 check(ns.Gold:Lines()[1].text:find("oldest 3 days ago", 1, true), "gold report shows how old the prices are")
 Auctionator.API.v1.GetAuctionPriceByItemID = function() return 9999999 end
 check(ns.Log.UnitValue(777) == 250, "junk: a grey item is worth its vendor price despite a troll listing")
@@ -725,4 +736,120 @@ check(ns.Core.mode, "always on: back on after the dungeon")
 SlashCmdList.ANGLERSTACKLEBOX(""); fire("PLAYER_ENTERING_WORLD")
 check(not ns.Core.mode, "always on: a manual /tb off survives loading screens")
 SlashCmdList.ANGLERSTACKLEBOX("always off")
+
+-- settings profiles
+local P = ns.Profiles
+local sample = { a = true, b = false, n = 0.05, big = 123456789, neg = -2.5, s = "Fish: {s3:x} ;=",
+  empty = "", list = { 1, 2, "three" }, nested = { deeper = { x = 1 } } }
+local back = P.Parse(P.Serialize(sample))
+check(back and back.a == true and back.b == false and back.n == 0.05 and back.big == 123456789 and back.neg == -2.5
+  and back.s == sample.s and back.empty == "" and back.list[3] == "three" and back.nested.deeper.x == 1,
+  "profiles: serialize -> parse round trip")
+for _, text in ipairs({ "", "hello", "\0\1\2" }) do
+  check(P.Decode(P.Encode(text)) == text, "profiles: base64 round trip (" .. #text .. " bytes)")
+end
+check(P.Parse("{s1:a") == nil and P.Parse("n1e999;") == nil and P.Parse("s99:ab") == nil
+  and P.Parse("T junk") == nil and P.Parse("{{{{{{T}}}}}}") == nil, "profiles: parser rejects damaged or hostile input")
+
+ns.chardb.log[9999] = { marker = true }; ns.db.prices[220134] = 42; ns.db.characters["Alt-Realm"] = { casts = 1 }; ns.db.ids.test = 1
+local exported = P:Export()
+check(exported:sub(1, 5) == "ATB1:" and not exported:find("[^%w%+/=:]"), "profiles: export is a tagged, edit-box-safe string")
+local payload = P.Parse(P.Decode(exported:sub(6)))
+local leaked = {}
+for _, name in ipairs({ "prices", "characters", "cvarBackup", "ids", "welcomed", "sharedChar", "shareCharSettings", "hud.pos", "hud.tab" }) do
+  if payload.account[name] ~= nil then leaked[#leaked + 1] = name end
+end
+for _, name in ipairs({ "log", "sessions", "spots", "records", "attempts", "skill", "daily", "gearBackup", "lifetime" }) do
+  if payload.char[name] ~= nil then leaked[#leaked + 1] = name end
+end
+check(#leaked == 0 and payload.account.alerts ~= nil and payload.account["audio.sfxVolume"] ~= nil
+  and payload.char.gearSwap ~= nil and payload.char.extras ~= nil, "profiles: export holds settings only, no data tables (" .. table.concat(leaked, ",") .. ")")
+
+local audioTable, minimapTable = ns.db.audio, ns.db.minimap
+local expect = { sfx = ns.db.audio.sfxVolume, warn = ns.db.lureWarn, gear = ns.chardb.gearSwap, rare = ns.db.alertTypes.rare,
+  extras = #ns.chardb.extras, tab = ns.db.hud.tabs[1], hide = ns.db.minimap.hide }
+ns.db.audio.sfxVolume = 0.3; ns.db.lureWarn = 5; ns.chardb.gearSwap = not expect.gear; ns.db.alertTypes.rare = false
+ns.chardb.extras = { 1, 2, 3, 4, 5 }; ns.db.hud.tabs = { "zzz" }; ns.db.minimap.hide = not expect.hide
+local applied, skipped = P:Import("  " .. exported .. "\n")
+check(applied and applied > 30 and skipped == 0 and ns.db.audio.sfxVolume == expect.sfx and ns.db.lureWarn == expect.warn
+  and ns.chardb.gearSwap == expect.gear and ns.db.alertTypes.rare == expect.rare and #ns.chardb.extras == expect.extras
+  and ns.db.hud.tabs[1] == expect.tab and ns.db.minimap.hide == expect.hide, "profiles: import restores exported settings")
+check(ns.db.audio == audioTable and ns.db.minimap == minimapTable and ns.db.prices[220134] == 42 and #ns.chardb.sessions > 0,
+  "profiles: import keeps saved tables and data in place")
+
+local hostile = "ATB1:" .. P.Encode(P.Serialize({
+  account = { alwaysOn = "yes", bogus = true, prices = { [1] = 1 }, lureWarn = 30, alertSound = "airhorn",
+    alertTypes = { rare = "no" }, ["hud.tabs"] = { "log", 5 }, ["audio.muteMusic"] = false, bobber = "random" },
+  char = { log = {}, gearSwap = false, extras = { 7, "x" } },
+}))
+ns.db.audio.muteMusic = true
+applied, skipped = P:Import(hostile)
+check(applied == 4 and skipped == 8 and ns.db.lureWarn == 30 and ns.chardb.gearSwap == false and ns.db.bobber == "random"
+  and ns.db.audio.muteMusic == false and ns.db.alwaysOn == false and ns.db.bogus == nil and ns.db.alertSound == "raidWarning"
+  and ns.db.prices[220134] == 42 and ns.chardb.log[9999].marker and #ns.chardb.extras == expect.extras,
+  "profiles: unknown keys and wrong types are skipped, the rest applied")
+local bad = {}
+for _, text in ipairs({ "", "hello", "ATB1:!!!!", "ATB1:" .. P.Encode("{s3:abc"), "ATB1:" .. P.Encode("T"),
+  "ATB1:" .. P.Encode(P.Serialize({ account = { bogus = 1 } })) }) do
+  local ok, message = P:Import(text)
+  if ok or type(message) ~= "string" then bad[#bad + 1] = text end
+end
+check(#bad == 0, "profiles: garbage strings give an error, not a crash")
+combat = true
+check(P:Import(exported) == nil, "profiles: no import in combat")
+combat = false
+ns.db.bobber = nil; ns.db.lureWarn = expect.warn; ns.chardb.gearSwap = true; ns.db.audio.muteMusic = true
+
+shownPopup = nil; SlashCmdList.ANGLERSTACKLEBOX("export settings")
+check(shownPopup == "ANGLERS_TACKLEBOX_EXPORT_SETTINGS" and StaticPopupDialogs[shownPopup], "/tb export settings shows the export popup")
+shownPopup = nil; SlashCmdList.ANGLERSTACKLEBOX("import")
+check(shownPopup == "ANGLERS_TACKLEBOX_IMPORT_SETTINGS", "/tb import shows the import popup")
+ns.db.lureWarn = 10
+local dialog = { editBox = Frame() }; dialog.editBox:SetText(exported)
+StaticPopupDialogs.ANGLERS_TACKLEBOX_IMPORT_SETTINGS.OnAccept(dialog)
+check(ns.db.lureWarn == expect.warn, "import popup: Accept applies the pasted string")
+
+-- same settings on all characters
+ns.chardb.lureID, ns.chardb.fishingSet = 555, "Fishing"
+P:SetShared(true)
+check(ns.db.shareCharSettings and ns.db.sharedChar.lureID == 555 and ns.db.sharedChar.fishingSet == "Fishing", "shared: turning it on copies this character's settings")
+ns.chardb.gearSwap = false; fire("PLAYER_LOGOUT")
+check(ns.db.sharedChar.gearSwap == false, "shared: changes are saved back at logout")
+ns.chardb.gearSwap, ns.chardb.lureID, ns.chardb.fishingSet, ns.chardb.extras = true, nil, nil, { 9 }
+P:Init() -- as at the next character's login
+check(ns.chardb.gearSwap == false and ns.chardb.lureID == 555 and ns.chardb.fishingSet == "Fishing" and #ns.chardb.extras == 0,
+  "shared: the next login takes the shared settings")
+check(ns.chardb.log[9999].marker and #ns.chardb.sessions > 0, "shared: per-character data is untouched")
+P:SetShared(false)
+ns.chardb.gearSwap = true; fire("PLAYER_LOGOUT")
+check(ns.db.sharedChar.gearSwap == false, "shared: off means nothing is saved back")
+ns.chardb.lureID, ns.chardb.fishingSet, ns.chardb.log[9999] = nil, nil, nil
+
+-- alert sounds
+ns.db.alerts, ns.db.alertTypes.rare = true, true
+played = {}; ns.Alerts:Fire("rare", "x")
+check(played[1] == 8959, "sound: raid warning by default")
+ns.db.alertSound = "readyCheck"; played = {}; ns.Alerts:Fire("rare", "x")
+check(played[1] == 8960, "sound: the chosen sound plays (numeric kit without SOUNDKIT)")
+SOUNDKIT = { READY_CHECK = 4242 }; played = {}; ns.Alerts:Fire("rare", "x"); SOUNDKIT = nil
+check(played[1] == 4242, "sound: SOUNDKIT name used when the client has it")
+played = {}; ns.Alerts:Fire("rare", "x", true)
+check(#played == 0, "sound: silent alerts stay silent")
+ns.db.alertSound = "none"; played = {}; ns.Alerts:Fire("rare", "x")
+check(#played == 0, "sound: None plays nothing")
+SlashCmdList.ANGLERSTACKLEBOX("sound mapping rare")
+played = {}; ns.Alerts:Fire("rare", "x"); ns.Alerts:Fire("lure", "y")
+check(played[1] == 3175 and #played == 1, "sound: a per-kind override beats the global choice")
+SlashCmdList.ANGLERSTACKLEBOX("sound default rare"); SlashCmdList.ANGLERSTACKLEBOX("sound levelup")
+check(ns.db.alertSounds.rare == nil and ns.db.alertSound == "levelUp", "/tb sound sets the global sound and clears overrides")
+ns.db.alertSound = "bogus"; played = {}; ns.Alerts:Fire("rare", "x")
+check(played[1] == 8959, "sound: an unknown choice falls back to the raid warning")
+ns.db.alertSound = "raidWarning"
+SlashCmdList.ANGLERSTACKLEBOX("sound"); SlashCmdList.ANGLERSTACKLEBOX("sound test")
+check(ns.Alerts:CycleSound(1).key == "readyCheck" and ns.Alerts:CycleSound(-1).key == "raidWarning"
+  and ns.Alerts:CycleSound(-1).key == "none", "sound: the settings button cycles both ways")
+ns.db.alertSound = "raidWarning"
+SlashCmdList.ANGLERSTACKLEBOX("menu"); ns.Menu:Select("settings")
+check(ns.Menu.selected == "settings", "menu: settings compartment builds with the new controls")
+SlashCmdList.ANGLERSTACKLEBOX("menu")
 print_real("--- chat output ---"); for _, l in ipairs(printed) do print_real(l) end

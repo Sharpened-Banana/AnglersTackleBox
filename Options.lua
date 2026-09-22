@@ -153,6 +153,9 @@ local function BuildPanel()
     L["Puts 'apply lure' into the one-key queue. Pick the lure with /tb lure."])
   Checkbox(chardb, charDefaults, "lureAutoSwap", L["Swap lures when out"],
     L["When your chosen lure runs out, the next press of the fishing key applies another lure from your bags."])
+  Checkbox(db, defaults, "shareCharSettings", L["Use the same settings on all my characters"],
+    L["Gear swap, fishing set, pole, lure and extras are shared. Turning this on copies this character's choices to the others."],
+    function(_, value) ns.Profiles:SetShared(value) end)
   Slider(db, defaults, "lureWarn", L["Lure warning"],
     L["Warn this long before the lure runs out."], 0, 300, 10, Seconds)
 
@@ -160,6 +163,22 @@ local function BuildPanel()
     L["Screen and sound alerts. The chat line always prints."])
   Checkbox(db, defaults, "alertFlash", L["Flash the screen on alerts"],
     L["A visual cue for players who fish with the sound off."])
+  if Settings.CreateDropdown and Settings.CreateControlTextContainer then
+    local sound = Settings.RegisterAddOnSetting(category, "AnglersTackleBox_alertSound", "alertSound", db,
+      "string", L["Alert sound"], defaults.alertSound)
+    local function Choices()
+      local container = Settings.CreateControlTextContainer()
+      for _, choice in ipairs(ns.Alerts.sounds) do container:Add(choice.key, choice.label) end
+      return container:GetData()
+    end
+    Settings.CreateDropdown(category, sound, Choices, L["The game sound played with each alert. None keeps alerts quiet."])
+    sound:SetValueChangedCallback(function(_, value) ns.Alerts:PlaySound(value) end)
+  end
+  if CreateSettingsButtonInitializer then
+    layout:AddInitializer(CreateSettingsButtonInitializer(L["Alert sound"], L["Test"],
+      function() ns.Alerts:PlaySound(ns.Alerts:SoundFor().key) end,
+      L["Plays the chosen alert sound."], true))
+  end
   local alertDefaults = {}
   for _, kind in ipairs(ns.Alerts.categories) do
     alertDefaults[kind.key] = true
@@ -180,6 +199,15 @@ local function BuildPanel()
     Checkbox(db, defaults, "autoPole", L["Fishing mode follows the pole"],
       L["Turns fishing mode on when you equip a fishing pole and off when you remove it."],
       function() ns.Core:UpdateAutoPole() end)
+  end
+
+  if CreateSettingsButtonInitializer then
+    layout:AddInitializer(CreateSettingsButtonInitializer(L["Export settings"], L["Export..."],
+      function() ns.Profiles:ShowExport() end,
+      L["Your settings as a text string, to copy to another account or keep as a backup."], true))
+    layout:AddInitializer(CreateSettingsButtonInitializer(L["Import settings"], L["Import..."],
+      function() ns.Profiles:ShowImport() end,
+      L["Paste a settings string. Only settings change; your catch log and records are kept."], true))
   end
 
   Settings.RegisterAddOnCategory(category)
@@ -243,6 +271,8 @@ commands.help = function()
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
     L["/tb hud - show or hide the session window;  /tb tabs - choose its tabs"],
     L["/tb log - open the catch log window;  /tb export - the catch log as CSV"],
+    L["/tb export settings - your settings as a string;  /tb import - paste one back in"],
+    L["/tb sound [name|test] [alert kind] - the alert sound (no argument lists them)"],
     L["/tb sessions [drop <number>|clear] - list or remove saved sessions"],
     L["/tb forget spot - forget the fishing spot you are standing on"],
     L["/tb find <fish> - where you catch it, from your own log"],
@@ -418,7 +448,65 @@ commands.gold = function()
 end
 
 commands.welcome = function() ns.Welcome:Show() end
-commands.export = function() ns.LogWindow:ShowExport() end
+-- /tb export alone stays the catch-log CSV it has always been.
+commands.export = function(rest)
+  if rest:lower() == "settings" then
+    ns.Profiles:ShowExport()
+  else
+    ns.LogWindow:ShowExport()
+  end
+end
+
+commands.import = function(rest)
+  if rest == "" then
+    ns.Profiles:ShowImport()
+  else
+    ns.Profiles:ImportAndReport(rest)
+  end
+end
+
+local function CategoryLabel(key)
+  for _, kind in ipairs(ns.Alerts.categories) do
+    if kind.key == key then return kind.label end
+  end
+end
+
+commands.sound = function(rest)
+  local Alerts = ns.Alerts
+  local choice, kind = rest:match("^(%S*)%s*(%S*)$")
+  choice, kind = (choice or ""):lower(), (kind or ""):lower()
+  if choice == "" then
+    ns:Print(string.format(L["Alert sound: %s"], Alerts:SoundFor().label))
+    for _, sound in ipairs(Alerts.sounds) do
+      print(string.format("   /tb sound %s  -  %s", sound.key:lower(), sound.label))
+    end
+    return
+  end
+  if choice == "test" then
+    Alerts:PlaySound(Alerts:SoundFor(kind ~= "" and kind or nil).key)
+    return
+  end
+  local sound
+  for _, entry in ipairs(Alerts.sounds) do
+    if entry.key:lower() == choice then sound = entry end
+  end
+  if not sound and choice ~= "default" then
+    ns:Print(L["No such sound. /tb sound lists them."])
+    return
+  end
+  if kind == "" then
+    if not sound then sound = Alerts.sounds[1] end
+    ns.db.alertSound = sound.key
+    ns:Print(string.format(L["Alert sound: %s"], sound.label))
+  elseif not CategoryLabel(kind) then
+    ns:Print(L["No such alert kind."])
+  else
+    ns.db.alertSounds[kind] = sound and sound.key or nil
+    ns:Print(string.format(L["%s alerts: %s"], CategoryLabel(kind), Alerts:SoundFor(kind).label))
+  end
+  Alerts:PlaySound(Alerts:SoundFor(kind ~= "" and kind or nil).key)
+  if ns.Menu then ns.Menu:Refresh() end
+end
 
 commands.sessions = function(rest)
   local action, number = rest:lower():match("^(%S*)%s*(%d*)$")
