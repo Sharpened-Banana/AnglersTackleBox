@@ -59,6 +59,7 @@ ns:On("CAST_START", function()
   zone.casts = zone.casts + 1
   Stats.castMap = CurrentMap()
   Stats.castStart = GetTime()
+  Stats:SyncAccount()
 end)
 
 -- Time the line was in the water, from the cast to the reel-in.
@@ -67,6 +68,7 @@ ns:On("CAST_END", function()
   local data = Stats:Data()
   data.castSeconds = data.castSeconds + math.max(0, GetTime() - Stats.castStart)
   Stats.castStart = nil
+  Stats:SyncAccount()
 end)
 
 ns:On("CATCH", function(_, _, quantity, quality, unit)
@@ -75,6 +77,7 @@ ns:On("CATCH", function(_, _, quantity, quality, unit)
   data.value = data.value + (unit or 0) * quantity
   quality = quality or 1
   data.quality[quality] = (data.quality[quality] or 0) + quantity
+  Stats:SyncAccount()
 end)
 
 ns:On("CAST_LOOTED", function()
@@ -82,6 +85,7 @@ ns:On("CAST_LOOTED", function()
   data.catches = data.catches + 1
   local zone = ZoneRow(data, Stats.castMap or CurrentMap())
   zone.catches = zone.catches + 1
+  Stats:SyncAccount()
 end)
 
 ns:On("SESSION_END", function(summary)
@@ -90,6 +94,7 @@ ns:On("SESSION_END", function(summary)
   data.sessions = data.sessions + 1
   data.seconds = data.seconds + seconds
   data.longest = math.max(data.longest, seconds)
+  Stats:SyncAccount()
 end)
 
 -- Starts the totals over. They are not re-seeded from old sessions.
@@ -98,6 +103,57 @@ function Stats:Reset()
     since = time(), casts = 0, catches = 0, items = 0, value = 0,
     seconds = 0, castSeconds = 0, sessions = 0, longest = 0, quality = {}, zones = {},
   }
+  self:SyncAccount()
+end
+
+---------------------------------------------------------------------------
+-- Account-wide (warband) totals: this character's lifetime Stats mirrored
+-- into ns.db (account-wide), keyed by name-realm, so every character that
+-- has played this addon on the account shows up in one place.
+---------------------------------------------------------------------------
+
+-- Stable across sessions and realms; nil while the player unit isn't ready
+-- yet (should not happen once ADDON_LOADED / PLAYER_ENTERING_WORLD fired).
+function Stats:AccountKey()
+  local name = UnitName and UnitName("player")
+  if not name or name == "" then return nil end
+  local realm = (GetRealmName and GetRealmName()) or "?"
+  if realm == "" then realm = "?" end
+  return name .. "-" .. realm
+end
+
+-- Called after every lifetime-affecting event, and on reset, so the
+-- account-wide slot never drifts from this character's own totals.
+function Stats:SyncAccount()
+  local key = self:AccountKey()
+  if not key then return end
+  local data = self:Data()
+  ns.db.characters = ns.db.characters or {}
+  ns.db.characters[key] = {
+    name = key:match("^(.-)%-[^-]+$") or key,
+    realm = key:match("%-([^-]+)$") or "?",
+    casts = data.casts, catches = data.catches, items = data.items, value = data.value,
+    seconds = data.seconds, since = data.since, updated = time(),
+  }
+end
+
+-- Combined totals across every known character, plus the list they were
+-- built from (sorted by gold value, richest first).
+function Stats:AccountData()
+  local characters = ns.db.characters or {}
+  local combined = { casts = 0, catches = 0, items = 0, value = 0, seconds = 0, count = 0 }
+  local list = {}
+  for _, entry in pairs(characters) do
+    combined.casts = combined.casts + (entry.casts or 0)
+    combined.catches = combined.catches + (entry.catches or 0)
+    combined.items = combined.items + (entry.items or 0)
+    combined.value = combined.value + (entry.value or 0)
+    combined.seconds = combined.seconds + (entry.seconds or 0)
+    combined.count = combined.count + 1
+    list[#list + 1] = entry
+  end
+  table.sort(list, function(a, b) return (a.value or 0) > (b.value or 0) end)
+  return combined, list
 end
 
 -- Casts, catches, value and time over the last `days` days, from the saved
@@ -239,6 +295,39 @@ function Stats:Lines()
     Header(L["Best zone"])
     Add(string.format(L["%s: %d fish"], zone, count))
   end
+  return lines
+end
+
+-- The warband report: combined totals across every character on the
+-- account, and a per-character breakdown. With only one character known,
+-- the breakdown is skipped - it would just repeat the totals above it.
+function Stats:AccountLines()
+  local combined, list = self:AccountData()
+  local lines = {}
+  local function Header(text) lines[#lines + 1] = { text = text, header = true } end
+  local function Add(text) lines[#lines + 1] = { text = text } end
+
+  if combined.count == 0 then
+    Add(L["Nothing yet - statistics start with your first cast."])
+    return lines
+  end
+
+  Header(L["Warband totals"])
+  Add(string.format(L["Characters tracked: %d"], combined.count))
+  Add(string.format(L["Casts: %d"], combined.casts))
+  Add(string.format(L["Catches: %d  (%s of casts)"], combined.catches, Percent(combined.catches, combined.casts)))
+  Add(string.format(L["Items caught: %d"], combined.items))
+  Add(string.format(L["Total value: %s"], Compat.CoinString(combined.value)))
+  Add(string.format(L["Time fishing: %s"], Duration(combined.seconds)))
+
+  if combined.count > 1 then
+    Header(L["By character"])
+    for _, entry in ipairs(list) do
+      Add(string.format(L["%s-%s: %d casts, %d catches, %s, last played %s"], entry.name, entry.realm,
+        entry.casts, entry.catches, Compat.CoinString(entry.value), date("%Y-%m-%d", entry.updated)))
+    end
+  end
+
   return lines
 end
 

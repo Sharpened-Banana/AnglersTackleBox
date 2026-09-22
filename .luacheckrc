@@ -24,7 +24,7 @@ read_globals = {
   "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown",
   -- Player state
   "InCombatLockdown", "IsInInstance", "IsMounted", "IsSwimming", "UnitIsDeadOrGhost",
-  "UnitChannelInfo", "GetTime", "GetZoneText", "GetSubZoneText",
+  "UnitChannelInfo", "GetTime", "GetZoneText", "GetSubZoneText", "UnitName", "GetRealmName",
   -- Spells, items, auras, gear
   "C_Spell", "GetSpellInfo", "C_Item", "GetItemInfo", "GetItemInfoInstant", "GetItemCount",
   "GetItemSpell", "EquipItemByName", "C_Container", "GetItemCooldown", "GetContainerNumSlots",

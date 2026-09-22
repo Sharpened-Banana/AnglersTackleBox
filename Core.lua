@@ -93,6 +93,7 @@ ns.defaults = {
   hud = { shown = true, scale = 1.0, tab = "session", tabs = { "lures", "log" } },
   ids = {},             -- game IDs discovered at runtime (faction, currency)
   cvarBackup = {},
+  characters = {},      -- [name-realm] = mirrored lifetime Stats totals, for the warband view
 }
 
 ns.charDefaults = {

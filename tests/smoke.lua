@@ -95,6 +95,8 @@ GetInventoryItemID = function() end
 GetInventoryItemLink = function() end
 GetZoneText = function() return "Eversong Woods" end
 GetSubZoneText = function() return "Fairbreeze" end
+UnitName = function(unit) return unit == "player" and "Testfin" or nil end
+GetRealmName = function() return "Silvermoon" end
 IsFishingLoot = function() return true end
 GetNumLootItems = function() return #loot end
 GetLootSlotType = function() return 1 end
@@ -489,8 +491,29 @@ do
   check(#ns.Stats:Lines() >= 8, "stats report builds")
   check(ns.Stats:Window(1).casts > 0, "stats: the last day includes this session")
   check(next(data.zones or {}) ~= nil, "stats: casts are counted per zone")
+
+  local key = ns.Stats:AccountKey()
+  check(key == "Testfin-Silvermoon", "account: identity key built from name and realm")
+  local mirrored = ns.db.characters[key]
+  check(mirrored and mirrored.casts == data.casts and mirrored.catches == data.catches
+    and mirrored.value == data.value, "account: this character's totals mirrored into ns.db.characters")
+  local combined, list = ns.Stats:AccountData()
+  check(combined.count == 1 and combined.casts == data.casts and combined.value == data.value,
+    "account: combined totals match the one known character")
+  check(#list == 1 and list[1].name == "Testfin" and list[1].realm == "Silvermoon",
+    "account: per-character list carries name and realm")
+  local accountLines = ns.Stats:AccountLines()
+  check(#accountLines >= 5, "account: warband report builds")
+  local byCharacter = false
+  for _, line in ipairs(accountLines) do
+    if line.header and line.text == ns.L["By character"] then byCharacter = true end
+  end
+  check(not byCharacter, "account: no per-character breakdown clutter with a single known character")
+
   ns.Stats:Reset()
   check(ns.Stats:Data().casts == 0 and #ns.Stats:Lines() == 1, "stats: reset starts the totals over")
+  check(ns.db.characters[key].casts == 0 and ns.db.characters[key].value == 0,
+    "account: reset zeroes the mirrored account-wide slot too")
 end
 counts[220134] = 3
 check(ns.Gold:SellLines()[1] ~= nil, "gold: sell helper prices the session's fish still in the bags")
