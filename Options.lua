@@ -437,6 +437,7 @@ commands.find = function(rest)
     ns:PrintLines(ns.Journal:Find(rest))
   end
 end
+commands.shopdebug = function() ns.Shopping:Diagnose() end
 commands.journal = function() ns.Menu:Toggle("journal") end
 
 commands.gold = function()

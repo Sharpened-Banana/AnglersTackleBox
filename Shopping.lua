@@ -146,6 +146,7 @@ local function RecipeLines(rows)
     end
     local note = covers > 0 and string.format(L["|cff40ff40fish for %d|r"], covers)
       or "|cffff6060" .. L["short on fish"] .. "|r"
+    if #lines > 1 then lines[#lines + 1] = { text = " " } end -- space between recipes
     lines[#lines + 1] = { text = RecipeText(recipe.use) .. "  " .. note }
     table.sort(recipe.fish, function(a, b) return a.row.name < b.row.name end)
     for _, fish in ipairs(recipe.fish) do
@@ -206,4 +207,17 @@ end
 -- window already open before /tb menu is used still counts.
 function Shopping:Refresh()
   Rebuild()
+end
+
+-- /tb shopdebug
+function Shopping:Diagnose()
+  for _, line in ipairs(Compat.ShoppingDiagnostics()) do ns:Print(line) end
+  local saved, withID = 0, 0
+  for _, uses in pairs(Saved() or {}) do
+    for _, use in ipairs(uses) do
+      saved = saved + 1
+      if use.recipeID or use.link then withID = withID + 1 end
+    end
+  end
+  ns:Print(string.format("Saved list: %d recipe uses, %d with a link or recipe ID.", saved, withID))
 end

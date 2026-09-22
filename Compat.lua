@@ -210,11 +210,20 @@ function Compat.IsCookingWindowOpen()
       local ok, yes = pcall(check or function() end)
       if ok and yes then return false end
     end
-    local ok, info = pcall(ui.GetBaseProfessionInfo)
-    if not ok or type(info) ~= "table" then return false end
-    if info.professionID == COOKING_SKILL_LINE then return true end
+    -- Base or expansion-tier info, by skill line, Enum or name.
     local cooking = Enum and Enum.Profession and Enum.Profession.Cooking
-    return cooking ~= nil and info.profession == cooking
+    local cookingName = PROFESSIONS_COOKING or "Cooking"
+    for _, get in ipairs({ ui.GetBaseProfessionInfo, ui.GetChildProfessionInfo }) do
+      local ok, info = pcall(get or function() end)
+      if ok and type(info) == "table" then
+        if info.professionID == COOKING_SKILL_LINE or info.parentProfessionID == COOKING_SKILL_LINE
+          or (cooking ~= nil and info.profession == cooking)
+          or info.professionName == cookingName or info.parentProfessionName == cookingName then
+          return true
+        end
+      end
+    end
+    return false
   end
   local name = Compat.OpenTradeSkillName()
   return name ~= nil and name == (PROFESSIONS_COOKING or "Cooking")
@@ -237,6 +246,49 @@ function Compat.RecipeLink(recipeID)
   return nil
 end
 
+-- /tb shopdebug: what the client reports at each step of the Cooking scan.
+function Compat.ShoppingDiagnostics()
+  local out = {}
+  local function Add(...) out[#out + 1] = string.format(...) end
+  local ui = C_TradeSkillUI
+  Add("C_TradeSkillUI: %s", tostring(ui ~= nil))
+  if ui then
+    for _, name in ipairs({ "GetBaseProfessionInfo", "GetChildProfessionInfo" }) do
+      local ok, info = pcall(ui[name] or function() end)
+      if ok and type(info) == "table" then
+        Add("%s: id=%s parent=%s name=%s profession=%s", name, tostring(info.professionID),
+          tostring(info.parentProfessionID), tostring(info.professionName), tostring(info.profession))
+      else
+        Add("%s: %s", name, ok and "nil" or "error")
+      end
+    end
+    Add("Cooking window detected: %s", tostring(Compat.IsCookingWindowOpen()))
+    local ok, ids = pcall(ui.GetAllRecipeIDs or function() end)
+    local count, learned, withLink, sample = 0, 0, 0, nil
+    if ok and type(ids) == "table" then
+      for _, id in ipairs(ids) do
+        count = count + 1
+        local okInfo, info = pcall(ui.GetRecipeInfo or function() end, id)
+        if okInfo and type(info) == "table" and info.learned then
+          learned = learned + 1
+          local link = Compat.RecipeLink(id)
+          if link then
+            withLink = withLink + 1
+            sample = sample or link
+          end
+        end
+      end
+    end
+    Add("Recipes: %d, learned: %d, with a link: %d", count, learned, withLink)
+    if sample then Add("Sample link: %s", sample) end
+    Add("GetRecipeItemLink: %s, GetRecipeLink: %s", tostring(ui.GetRecipeItemLink ~= nil), tostring(ui.GetRecipeLink ~= nil))
+  end
+  local uses, reagents = Compat.TradeSkillReagentUses(), 0
+  for _ in pairs(uses) do reagents = reagents + 1 end
+  Add("Scan found %d reagent items.", reagents)
+  return out
+end
+
 function Compat.TradeSkillReagentUses()
   local uses = {}
   local function AddUse(itemID, recipeName, need, link, icon, recipeID)
@@ -257,8 +309,8 @@ function Compat.TradeSkillReagentUses()
         local learned, info = true, nil
         if C_TradeSkillUI.GetRecipeInfo then
           local okInfo, gotInfo = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
-          info = okInfo and gotInfo or nil
-          learned = info and info.learned
+          info = okInfo and type(gotInfo) == "table" and gotInfo or nil
+          learned = not info or info.learned ~= false -- no info is no reason to drop it
         end
         local okSchem, schematic = false, nil
         if learned then okSchem, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false) end

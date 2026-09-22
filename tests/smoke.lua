@@ -375,6 +375,10 @@ byRecipe = table.concat(byRecipe, "|")
 check(byRecipe:find("[Test Fish Feast]|h", 1, true) and byRecipe:find("1 / 4", 1, true)
   and byRecipe:find("short on fish", 1, true) and byRecipe:find("[Test Fish]|h", 1, true),
   "shopping: By recipe lists each recipe, linked, with its fish and have / need")
+printed = {}; SlashCmdList.ANGLERSTACKLEBOX("shopdebug")
+local diag = table.concat(printed, "|")
+check(diag:find("Cooking window detected: true", 1, true) and diag:find("with a link: 1", 1, true)
+  and diag:find("Saved list:", 1, true), "/tb shopdebug reports each step of the Cooking scan")
 check(shopping:find("|TInterface\\Icons\\INV_Misc_Fish_02:20:20:0:0|t", 1, true) ~= nil, "shopping: the fish gets an inline icon")
 check(shopping:find("|Hitem:80618::::::::::::|h[Test Fish Feast]|h", 1, true) ~= nil, "shopping: a recipe links to its crafted dish when the API offers one")
 check(shopping:find("Unlearned Fish Pie", 1, true) == nil
