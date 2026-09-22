@@ -445,7 +445,7 @@ end
 -- holding, and how many more casts closing the gap takes at your rate.
 local function BuildShopping(panel)
   local note = Label(panel, "GameFontDisableSmall",
-    L["Reads your Cooking window's known recipes - open it once to fill this in."])
+    L["Reads your Cooking window's known recipes - open it once and the list is kept."])
   note:SetPoint("TOPLEFT", 0, 0)
   local report = CreateFrame("Frame", nil, panel)
   report:SetPoint("TOPLEFT", 0, -20)

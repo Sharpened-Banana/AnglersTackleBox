@@ -178,13 +178,23 @@ if CLASSIC then
     if i == 1 and r == 1 then return "|Hitem:6358:0|h[Oily Blackmouth]|h" end
   end
 else
+  -- Shaped like the real Retail API: no GetTradeSkillLine since Dragonflight.
+  -- Recipe 2 is unlearned and must not count.
   C_TradeSkillUI = {
-    GetTradeSkillLine = function() return tradeSkillOpen and "Cooking" or nil end,
-    GetAllRecipeIDs = function() return tradeSkillOpen and { 1 } or {} end,
+    GetBaseProfessionInfo = function()
+      if tradeSkillOpen then return { professionID = 185, professionName = "Cooking" } end
+      return { professionID = 0 }
+    end,
+    IsTradeSkillLinked = function() return false end,
+    GetAllRecipeIDs = function() return tradeSkillOpen and { 1, 2 } or {} end,
+    GetRecipeInfo = function(id) return { recipeID = id, learned = id == 1 } end,
     GetRecipeSchematic = function(id)
       if id == 1 then
         return { name = "Test Fish Feast",
           reagentSlotSchematics = { { quantityRequired = 4, reagents = { { itemID = 220134 } } } } }
+      elseif id == 2 then
+        return { name = "Unlearned Fish Pie",
+          reagentSlotSchematics = { { quantityRequired = 9, reagents = { { itemID = 220134 } } } } }
       end
     end,
   }
@@ -352,6 +362,8 @@ local shopping = table.concat(shoppingText, "|")
 check(shopping:find("Test Fish", 1, true) and shopping:find("have 1", 1, true)
   and shopping:find("Test Fish Feast", 1, true), "shopping: cooking window scanned for a fish reagent you've caught")
 check(shopping:find("Need 3 more", 1, true), "shopping: shortfall computed from bag count vs. recipe need")
+check(not shopping:find("Unlearned Fish Pie", 1, true), "shopping: recipes you have not learned are left out")
+check(ns.chardb.cookingReagents and ns.chardb.cookingReagents[220134], "shopping: the recipe list is saved for the next login")
 tradeSkillOpen, counts[220134] = false, nil
 check(ns.chardb.skill.level == 100, "goals: fishing skill tracked")
 check(ns.chardb.attempts.netherEgg.n == 0, "goals: an out-of-scope cast is not an attempt")

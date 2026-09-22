@@ -14,13 +14,23 @@ local L, Compat = ns.L, ns.Compat
 local Shopping = {}
 ns.Shopping = Shopping
 
--- Reagent uses from the last time a trade skill window was open, keyed by
--- itemID. nil until the player has opened one this session.
+-- Reagent uses from the last time the Cooking window was open, keyed by
+-- itemID. Saved per character so the list survives a reload or logout;
+-- nil until the Cooking window has been opened once on this character.
 local cache
+
+local function Saved()
+  if not cache and ns.chardb then cache = ns.chardb.cookingReagents end
+  return cache
+end
 
 local function Rebuild()
   if not Compat.IsCookingWindowOpen() then return end
-  cache = Compat.TradeSkillReagentUses()
+  local uses = Compat.TradeSkillReagentUses()
+  -- The list can arrive empty before the recipes load; keep the last good one.
+  if next(uses) == nil and Saved() then return end
+  cache = uses
+  if ns.chardb then ns.chardb.cookingReagents = uses end
 end
 
 local watcher = CreateFrame("Frame")
@@ -32,7 +42,7 @@ watcher:SetScript("OnEvent", Rebuild)
 -- player has actually caught, worst shortfall first.
 local function Rows()
   local rows = {}
-  if not cache then return rows end
+  if not Saved() then return rows end
 
   local byID = {}
   for _, entry in ipairs(ns.Journal:Fish()) do byID[entry.id] = entry end
@@ -72,7 +82,7 @@ end
 
 function Shopping:Lines()
   local lines = {}
-  if not cache then
+  if not Saved() then
     lines[1] = { text = L["Open your Cooking profession window once and this list fills in."] }
     return lines
   end

@@ -106,6 +106,7 @@ ns.charDefaults = {
   gearSwap = true,
   gearCombatRestore = true,
   fishingSet = nil,     -- equipment set name
+  cookingReagents = nil, -- [itemID] = recipe uses, from the last Cooking window scan (Shopping)
   poleID = nil,
   lureEnabled = true,
   lureID = nil,         -- nil = pick from Data.lures
