@@ -569,7 +569,7 @@ local function BuildGold(panel)
   end)
   nextFish:SetPoint("LEFT", prevFish, "RIGHT", 4, 0)
   local priceGraph = ns.Graph.New(panel, 410, PRICE_HEIGHT, COLOR.trayLifted,
-    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.08 })
+    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.2 })
   priceGraph.frame:SetPoint("TOPLEFT", 0, -208)
 
   local function RefreshPrices()
@@ -577,8 +577,8 @@ local function BuildGold(panel)
     prevFish:SetEnabled(#priced > 1)
     nextFish:SetEnabled(#priced > 1)
     if #priced == 0 then
-      priceTitle:SetText(L["Fish prices over time - none recorded yet"])
-      priceGraph:Clear()
+      priceTitle:SetText(L["Fish prices over time"])
+      priceGraph:Clear(L["No prices recorded yet - they build up one a day"])
       return
     end
     fishIndex = (fishIndex - 1) % #priced + 1
@@ -592,6 +592,7 @@ local function BuildGold(panel)
       Compat.CoinString(values[#values]), #values, fishIndex, #priced))
     priceGraph:SetValues(values, {
       mode = "line",
+      empty = L["No prices recorded yet - they build up one a day"],
       floor = math.floor(low * 0.75), -- so a small move still shows
       tooltip = function(index)
         local point = fish.points[index]
@@ -784,7 +785,7 @@ end
 
 -- Statistics: this session's catch rate in five-minute bars, with the
 -- session average as a flat line, above the lifetime report.
-local RATE_BARS, RATE_HEIGHT = 48, 50
+local RATE_BARS, RATE_HEIGHT, RATE_SESSIONS = 48, 50, 25
 
 local function BuildStats(panel)
   local clear = Button(panel, L["Reset statistics"], 150, function()
@@ -813,14 +814,32 @@ local function BuildStats(panel)
   rateTitle:SetJustifyH("LEFT")
   rateTitle:SetWordWrap(false)
   local rateGraph = ns.Graph.New(panel, 410, RATE_HEIGHT, COLOR.brass,
-    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.08 })
+    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.2 })
   rateGraph.frame:SetPoint("TOPLEFT", 0, -50)
 
   local function RefreshRate()
     local trend = ns.Log:CatchTrend()
     if not trend then
-      rateTitle:SetText(L["Catch rate this session - start fishing to see it"])
-      rateGraph:Clear()
+      -- No live session: the trend across your recent saved sessions.
+      local rates = ns.Log:SessionRates(RATE_SESSIONS)
+      local values, total = {}, 0
+      for index, entry in ipairs(rates) do
+        values[index] = entry.rate
+        total = total + entry.rate
+      end
+      rateTitle:SetText(#rates > 0
+        and string.format(L["Catch rate, last %d sessions (per hour)"], #rates)
+        or L["Catch rate - start fishing to see it"])
+      rateGraph:SetValues(values, {
+        reference = #rates > 0 and total / #rates or nil,
+        empty = L["No saved sessions yet"],
+        tooltip = function(index, value)
+          local session = rates[index] and rates[index].session
+          if not session then return nil end
+          return { date("%Y-%m-%d %H:%M", session.start),
+            string.format(L["%d catches (%d/hr)"], session.catches, math.floor(value + 0.5)) }
+        end,
+      })
       return
     end
     if trend.average then
@@ -835,6 +854,7 @@ local function BuildStats(panel)
     for index = first, #buckets do shown[#shown + 1] = buckets[index] end
     local minutes = trend.width / 60
     rateGraph:SetValues(shown, {
+      empty = L["No catches yet this session"],
       reference = trend.average and trend.average * trend.width / 3600,
       tooltip = function(index, value)
         local bucket = first + index - 1

@@ -273,6 +273,21 @@ function Log.Trend(times, t0, now)
 end
 
 -- The live session's trend, or nil before the first cast.
+-- Catches per hour for the newest saved sessions, oldest first, for the
+-- Statistics graph when no session is running.
+function Log:SessionRates(count)
+  local rates = {}
+  local sessions = ns.chardb.sessions or {}
+  for index = math.max(1, #sessions - count + 1), #sessions do
+    local session = sessions[index]
+    local hours = math.max(0, (session.stop or 0) - (session.start or 0)) / 3600
+    if hours > 0 then
+      rates[#rates + 1] = { rate = session.catches / hours, session = session }
+    end
+  end
+  return rates
+end
+
 function Log:CatchTrend()
   local s = self.session
   if not s or s.casts == 0 then return nil end

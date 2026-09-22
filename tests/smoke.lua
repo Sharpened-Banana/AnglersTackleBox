@@ -423,6 +423,16 @@ do
   local graph = ns.Graph.New(UIParent, 100, 40)
   check(graph:SetValues({ 1, 3, 2 }, { mode = "line", reference = 2 }) == true, "graph: draws a line where the client can")
   check(graph:SetValues({ 1, 3, 2 }) == false and #graph.bars == 3, "graph: bars by default")
+  graph:Clear("Nothing yet")
+  check(graph.empty:IsShown() and graph.empty:GetText() == "Nothing yet", "graph: an empty graph says why")
+  graph:SetValues({ 1, 2 }, { empty = "Nothing yet" })
+  check(not graph.empty:IsShown(), "graph: the empty note hides once there is data")
+  local savedSessions = ns.chardb.sessions
+  ns.chardb.sessions = { { start = 0, stop = 3600, catches = 30, casts = 40, value = 0 },
+    { start = 4000, stop = 5800, catches = 10, casts = 20, value = 0 }, { start = 6000, stop = 6000, catches = 0, casts = 1, value = 0 } }
+  local rates = ns.Log:SessionRates(25)
+  check(#rates == 2 and rates[1].rate == 30 and rates[2].rate == 20, "trend: catch rate per saved session, zero-length ones skipped")
+  ns.chardb.sessions = savedSessions
   ns.Menu:Open("stats"); ns.Menu:Select("gold"); ns.Menu:Select("top"); AnglersTackleBoxMenu:Hide()
   check(ns.Menu.ticker == nil, "graph: statistics and gold compartments draw with a live session")
 end

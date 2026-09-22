@@ -54,8 +54,15 @@ end
 --           a little under its lowest point so the movement shows)
 --   reference = a value to mark with a flat line across the graph
 --   tooltip = function(index, value) returning lines for GameTooltip
+--   empty = text shown in the middle when there is nothing to draw
 function Methods:SetValues(values, opts)
   opts = opts or {}
+  local hasData = false
+  for _, value in ipairs(values) do
+    if value > (opts.floor or 0) then hasData = true break end
+  end
+  self.empty:SetText(opts.empty or "")
+  self.empty:SetShown(not hasData and opts.empty ~= nil)
   self.values, self.tooltip = values, opts.tooltip
   local count, width, height = #values, self.width, self.height
   local floor = opts.floor or 0
@@ -141,8 +148,8 @@ function Methods:SetValues(values, opts)
   return useLine
 end
 
-function Methods:Clear()
-  return self:SetValues({})
+function Methods:Clear(text)
+  return self:SetValues({}, { empty = text })
 end
 
 -- A graph of the given size inside `parent`; place it with graph.frame.
@@ -156,9 +163,17 @@ function Graph.New(parent, width, height, color, background)
   frame:SetSize(width, height)
   graph.frame = frame
   if background then
-    Solid(frame, "BACKGROUND", background, background[4] or 0.08):SetAllPoints()
+    Solid(frame, "BACKGROUND", background, background[4] or 0.2):SetAllPoints()
   end
+  -- A baseline so an empty graph still reads as a graph.
+  local base = Solid(frame, "BORDER", graph.color, 0.6)
+  base:SetPoint("BOTTOMLEFT")
+  base:SetPoint("BOTTOMRIGHT")
+  base:SetHeight(1)
   graph.reference = Solid(frame, "OVERLAY", { 1, 1, 1 }, 0.35)
   graph.reference:Hide()
+  graph.empty = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  graph.empty:SetPoint("CENTER")
+  graph.empty:Hide()
   return graph
 end
