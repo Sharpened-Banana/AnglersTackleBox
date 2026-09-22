@@ -10,7 +10,7 @@ ns.Menu = Menu
 
 local SOLID = "Interface\\Buttons\\WHITE8x8"
 local WIDTH, HEIGHT, LID, TRAY = 660, 560, 48, 156
-local SLOT_HEIGHT = 40
+local SLOT_HEIGHT, MIN_SLOT = 40, 28
 
 -- Moulded-plastic greens, a cream tray, brass fittings.
 local COLOR = {
@@ -958,7 +958,8 @@ local function Compartments()
       build = BuildBobbers },
     { key = "log", name = L["Catch Log"], icon = "Interface\\Icons\\INV_Misc_Book_09", build = BuildLog },
     { key = "journal", name = L["Journal"], icon = "Interface\\Icons\\INV_Misc_Note_01", build = BuildJournal },
-    { key = "shopping", name = L["Shopping"], icon = "Interface\\Icons\\Trade_Cooking", build = BuildShopping },
+    { key = "shopping", name = L["Shopping"], icon = SpellIcon(2550) or "Interface\\Icons\\INV_Misc_Food_15",
+      build = BuildShopping },
     { key = "gold", name = L["Gold"], icon = "Interface\\Icons\\INV_Misc_Coin_01", build = BuildGold },
     { key = "goals", name = L["Goals"], icon = SpellIcon(64731), build = BuildGoals },
     { key = "events", name = L["Events"], icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
@@ -1092,11 +1093,22 @@ local function BuildBox()
   rule:SetPoint("TOPRIGHT", -12, -34)
   rule:SetHeight(1)
 
+  -- Compartments share the tray's height, so a longer list gets shorter
+  -- slots instead of spilling out of the box. Below MIN_SLOT the box grows.
+  local compartments = Compartments()
+  local trayHeight = HEIGHT - LID - 14 - 10
+  local slotHeight = math.min(SLOT_HEIGHT, math.floor(trayHeight / #compartments))
+  if slotHeight < MIN_SLOT then
+    slotHeight = MIN_SLOT
+    frame:SetHeight(HEIGHT + #compartments * MIN_SLOT - trayHeight)
+  end
+  local iconSize = math.min(28, slotHeight - 8)
+
   frame.slots, frame.panels = {}, {}
-  for index, compartment in ipairs(Compartments()) do
+  for index, compartment in ipairs(compartments) do
     local slot = CreateFrame("Button", nil, tray)
-    slot:SetSize(TRAY, SLOT_HEIGHT)
-    slot:SetPoint("TOPLEFT", 0, -(index - 1) * SLOT_HEIGHT)
+    slot:SetSize(TRAY, slotHeight)
+    slot:SetPoint("TOPLEFT", 0, -(index - 1) * slotHeight)
     slot.lift = Fill(slot, "BORDER", COLOR.trayLifted)
     slot.lift:SetAllPoints()
     slot.tab = Fill(slot, "ARTWORK", COLOR.brass)
@@ -1108,7 +1120,7 @@ local function BuildBox()
     ridge:SetPoint("BOTTOMRIGHT")
     ridge:SetHeight(2)
     local slotIcon = slot:CreateTexture(nil, "OVERLAY")
-    slotIcon:SetSize(28, 28)
+    slotIcon:SetSize(iconSize, iconSize)
     slotIcon:SetPoint("LEFT", 14, 0)
     slotIcon:SetTexture(compartment.icon or "Interface\\Icons\\Trade_Fishing")
     local name = Label(slot, "GameFontNormal", compartment.name)

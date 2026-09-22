@@ -2,6 +2,7 @@
 
 ## 1.1.0
 
+- The box's compartment list now fits inside the box however many compartments there are, instead of the last ones spilling out the bottom. Shopping gets its icon.
 - Lure auto-swap, off by default: when your chosen lure runs out and its effect ends, the next press applies the best other lure in your bags. A quiet text alert names it. Restocking your chosen lure switches back.
 - Session goals on the Goals tab: set targets for catches, gold and minutes fished, see live progress, and get one alert per goal per session. Goal alerts have their own toggle.
 - Catch-rate graph on the Statistics tab: catches per 5 minutes this session against your session average, with a rising, falling or steady trend. The fishing window shows the current rate too.
