@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+
+- Lure auto-swap, off by default: when your chosen lure runs out and its effect ends, the next press applies the best other lure in your bags. A quiet text alert names it. Restocking your chosen lure switches back.
+- Session goals on the Goals tab: set targets for catches, gold and minutes fished, see live progress, and get one alert per goal per session. Goal alerts have their own toggle.
+- Catch-rate graph on the Statistics tab: catches per 5 minutes this session against your session average, with a rising, falling or steady trend. The fishing window shows the current rate too.
+- Fish price history, one point a day for up to 14 days, with a price graph on the Gold tab. History starts collecting from this version.
+- The auction house no longer scans prices by itself. When prices are out of date it asks first, once per visit.
+- Export and import your settings as a copyable string, from the Settings tab or with `/tb export settings` and `/tb import`. Catch data is never included.
+- New option to use the same gear, pole, lure and extras settings on all your characters.
+- Choose the alert sound from built-in game sounds, or none, with a Test button. `/tb sound` also sets a sound per kind of alert.
+
 ## 1.0.2
 
 - New "Send feedback..." button on the Settings tab of the box: shows the GitHub issues link ready to copy.
