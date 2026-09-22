@@ -276,6 +276,17 @@ check(ns.Engine.state == "READY" and bindings.F == "CLICK AnglersTackleBoxAction
 local spots = ns.chardb.spots[2395]
 check(spots and #spots == 1 and spots[1].n == 3 and spots[1].items[220134] == 2, "spots: the catch location is remembered")
 WorldMapFrame.shown = true; ns.Spots:RefreshPins()
+check(type(ns.Data.knownPools) == "table", "spots: shipped pool data table loads")
+check(ns.Data.knownPools[2215] == nil or ns.Data.knownPools[2215][1].name == "Royal Ripple",
+  "spots: shipped pool data, when present, has the expected shape")
+local savedGetMapID = WorldMapFrame.GetMapID
+function WorldMapFrame:GetMapID() return 2215 end
+ns.Spots:RefreshPins() -- a zone with shipped pools but no personal spots must not error
+ns.db.mapPins = false
+ns.Spots:RefreshPins() -- the mapPins toggle also hides shipped pins, personal or not
+ns.db.mapPins = true
+WorldMapFrame.GetMapID = savedGetMapID
+ns.Spots:RefreshPins()
 check(ns.Journal:Fish()[1].name == "Test Fish", "journal: fish aggregated from the log")
 local found = ns.Journal:Find("test")
 check(found[1].text == "Test Fish" and found[#found].text:find("Fairbreeze", 1, true), "journal: /tb find says where you catch it")

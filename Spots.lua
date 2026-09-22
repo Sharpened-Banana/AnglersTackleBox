@@ -84,6 +84,12 @@ end
 local function PinTooltip(pin)
   local spot = pin.spot
   GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
+  if pin.shipped then
+    GameTooltip:SetText(spot.name or L["Fishing pool"])
+    GameTooltip:AddLine(L["Shipped location: not yet fished by you"], 1, 1, 1)
+    GameTooltip:Show()
+    return
+  end
   GameTooltip:SetText(Spots.Name(spot))
   GameTooltip:AddLine(string.format(L["%d fish caught here"], spot.n), 1, 1, 1)
   local value, perHour = Spots.Value(spot)
@@ -103,6 +109,46 @@ local function PinTooltip(pin)
   GameTooltip:Show()
 end
 
+local function AcquirePin(index, pinParent)
+  local pin = pins[index]
+  if not pin then
+    pin = CreateFrame("Button", nil, pinParent)
+    pin.icon = pin:CreateTexture(nil, "ARTWORK")
+    pin.icon:SetAllPoints()
+    pin:RegisterForClicks("RightButtonUp")
+    pin:SetScript("OnClick", function(clicked)
+      if not clicked.shipped and IsShiftKeyDown() then Spots:Forget(clicked.mapID, clicked.spot) end
+    end)
+    pin:SetScript("OnEnter", PinTooltip)
+    pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    pins[index] = pin
+  end
+  return pin
+end
+
+-- Places one pin (personal spot or shipped pool) at its map position.
+-- Shipped pools use a different icon and color so they read as "not yours
+-- yet" rather than a place the player has actually fished.
+local function PlacePin(index, pinParent, spot, shipped, mapID, width, height, size)
+  local pin = AcquirePin(index, pinParent)
+  pin.spot, pin.mapID, pin.shipped = spot, mapID, shipped
+  if shipped then
+    pin.icon:SetTexture("Interface\\Icons\\INV_Misc_Map_01")
+    pin.icon:SetVertexColor(0.4, 0.7, 1)
+  else
+    pin.icon:SetTexture("Interface\\Icons\\Trade_Fishing")
+    pin.icon:SetVertexColor(1, 1, 1)
+  end
+  pin:SetSize(size, size)
+  pin:ClearAllPoints()
+  pin:SetPoint("CENTER", pinParent, "TOPLEFT", spot.x * width, -spot.y * height)
+  -- Pools stand out; open-water spots sit back. Shipped pools always look
+  -- like pools (they only ever record named spots).
+  pin:SetAlpha((shipped or spot.pool) and 1 or 0.6)
+  pin:Show()
+  return index + 1
+end
+
 function Spots:RefreshPins()
   local canvas = Canvas()
   if not canvas or not WorldMapFrame:IsShown() then return end
@@ -114,33 +160,25 @@ function Spots:RefreshPins()
   for _, pin in ipairs(pins) do pin:Hide() end
   if not ns.db or not ns.db.mapPins then return end
 
-  local list = ns.chardb.spots[WorldMapFrame:GetMapID() or 0]
-  if not list then return end
+  local mapID = WorldMapFrame:GetMapID() or 0
+  local personal = ns.chardb.spots[mapID]
+  local shipped = ns.Data.knownPools and ns.Data.knownPools[mapID]
+  if not personal and not shipped then return end
+
   local width, height = canvas:GetWidth(), canvas:GetHeight()
   local size = math.max(10, width * 0.016)
-  for index = 1, math.min(MAX_PINS, #list) do
-    local spot = list[index]
-    local pin = pins[index]
-    if not pin then
-      pin = CreateFrame("Button", nil, overlay)
-      pin.icon = pin:CreateTexture(nil, "ARTWORK")
-      pin.icon:SetAllPoints()
-      pin.icon:SetTexture("Interface\\Icons\\Trade_Fishing")
-      pin:RegisterForClicks("RightButtonUp")
-      pin:SetScript("OnClick", function(clicked)
-        if IsShiftKeyDown() then Spots:Forget(clicked.mapID, clicked.spot) end
-      end)
-      pin:SetScript("OnEnter", PinTooltip)
-      pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
-      pins[index] = pin
+  local index = 1
+  if personal then
+    for spotIndex = 1, #personal do
+      if index > MAX_PINS then break end
+      index = PlacePin(index, overlay, personal[spotIndex], false, mapID, width, height, size)
     end
-    pin.spot, pin.mapID = spot, WorldMapFrame:GetMapID()
-    pin:SetSize(size, size)
-    pin:ClearAllPoints()
-    pin:SetPoint("CENTER", overlay, "TOPLEFT", spot.x * width, -spot.y * height)
-    -- Pools stand out; open-water spots sit back.
-    pin:SetAlpha(spot.pool and 1 or 0.6)
-    pin:Show()
+  end
+  if shipped then
+    for poolIndex = 1, #shipped do
+      if index > MAX_PINS then break end
+      index = PlacePin(index, overlay, shipped[poolIndex], true, mapID, width, height, size)
+    end
   end
 end
 

@@ -34,3 +34,10 @@ Data.mounts = {}
 Data.poolWords = {
   "School", "Pool", "Swarm", "Debris", "Wreckage", "Patch", "Slick", "Waters",
 }
+
+-- Shipped pool locations: not researched for Classic yet. Leave empty
+-- rather than guess -- see Data/Retail.lua for why this needs real,
+-- cite-able coordinates rather than invented ones, and why even the
+-- Retail list is thin. A future pass can research Classic zones the same
+-- careful way.
+Data.knownPools = {}

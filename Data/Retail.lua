@@ -104,3 +104,43 @@ Data.poolWords = {
   "School", "Pool", "Swarm", "Surge", "Debris", "Wreckage", "Patch", "Cargo",
   "Treasures", "Bloom", "Ripple", "Shoal", "Spawn", "Slick", "Waters",
 }
+
+---------------------------------------------------------------------------
+-- Shipped pool locations: a handful of known spots so a new player sees a
+-- pin or two before they have fished anywhere themselves. This is kept
+-- deliberately tiny. Fishing pools in modern WoW spawn dynamically rather
+-- than at literal fixed points, and Wowhead does not track spawn locations
+-- for fishing-pool objects at all -- its own object pages (e.g. Blood in
+-- the Water, object=451678, and Royal Ripple, object=451680) say "The
+-- location of this object is unknown," which held true even for Royal
+-- Ripple, a pool that has existed since Hallowfall shipped in The War
+-- Within, over a year before this was written. No fishing guide checked
+-- (wow-professions.com, lorewoven.net, boostmatch.gg, wowsaga.com) gives
+-- numeric coordinates for pool spawns either; they all point players at
+-- in-game tracking tools instead.
+--
+-- The one entry below is a single community-reported sighting, not a
+-- guaranteed respawn point -- it is a starting hint, not a promise the
+-- pool will be there. Source: a Blizzard US forum post, "I also found a
+-- Royal Ripple at 41, 53 in Hallowfall." Thread: "Anyone found Royal Ripple
+-- fishing pool for the Derby yet?" on the Blizzard US forums, General
+-- Discussion (thread id 1928171).
+-- Corroborated in the same thread by a second poster describing their
+-- fishing circuit as the coast "west of Mereldar" (Mereldar sits at
+-- roughly 41.4, 50.3 per Warcraft Tavern's Hallowfall coordinate list),
+-- which is the same stretch of water:
+--   https://us.forums.blizzard.com/en/wow/t/hallowfall-fishing-derby-an-hour-of-my-life-i-wont-get-back/1947546
+--
+-- mapID 2215 = Hallowfall (Khaz Algar), corroborated by a TomTom "/way
+-- #2215" coordinate for "The Undersea" sub-area of the same zone.
+-- Coiled Isle (mapID 2512, confirmed by Method's Coiled Filament guide)
+-- and every other Midnight zone were researched too, but turned up no
+-- citable numeric pool coordinates at all -- see the report for this
+-- change for the full list of sources checked. Broader coverage needs
+-- someone to actually scout pools in-game and log coordinates; it isn't
+-- something web research alone can responsibly produce.
+Data.knownPools = {
+  [2215] = { -- Hallowfall
+    { x = 0.41, y = 0.53, name = "Royal Ripple" },
+  },
+}
