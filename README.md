@@ -38,6 +38,8 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb log` | Catch log, By zone view: per-zone catches, share, value and pools |
 | `/tb journal` | Catch log, By fish view: a page per fish with where you catch it |
 | `/tb export` | The catch log as CSV in a copyable box |
+| `/tb export settings`, `/tb import [string]` | Copy your settings out as a string, or paste one back in |
+| `/tb sound [name\|test] [kind]` | Choose the alert sound, for all alerts or one kind |
 | `/tb sessions [drop N\|clear]` | List or remove saved sessions |
 | `/tb forget spot` | Forget the fishing spot you are standing on |
 | `/tb welcome` | Reopen the first-run welcome |
@@ -50,12 +52,13 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb pins`, `/tb minimap` | Toggle world map pins and the minimap button |
 | `/tb events` | Countdowns to the fishing contests (realm time) |
 | `/tb goals` | Progress on unfinished fishing achievements |
-| `/tb midnight` | Captain Tokka's Crew reputation and Coiled Filament toward the mount |
+| `/tb midnight` | Captain Tokka's Crew reputation and Coiled Filament toward the mount (also on the Events tab) |
 | `/tb options` | Open the settings panel |
+| `/tb shopdebug` | With Cooking open: report each step of the Shopping scan, for bug reports |
 
 ## Leaving the gold module out of a release
 
-Everything gold-related (rankings, value alert, sell helper, history chart) lives in `Gold.lua`, and nothing else depends on it. To keep it private, remove `Gold.lua` from the three TOC files and add it to `ignore:` in `.pkgmeta`. The Gold compartment and `/tb gold` disappear by themselves.
+Everything gold-related (rankings, value alert, sell helper, history chart) lives in `Gold.lua`, and nothing else depends on it. To keep it private, remove `Gold.lua` from both TOC files and add it to `ignore:` in `.pkgmeta`. The Gold compartment and `/tb gold` disappear by themselves.
 
 ## Development
 
