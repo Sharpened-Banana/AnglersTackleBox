@@ -83,6 +83,10 @@ ns.defaults = {
   camera = { enabled = false }, -- zoom preset applied while fishing
   minimap = { hide = false, angle = 215 },
   alertTypes = {},      -- [category] = false turns one kind of alert off
+  alertSound = "raidWarning", -- key into Alerts.sounds; "none" plays nothing
+  alertSounds = {},     -- [category] = sound key, overriding alertSound
+  shareCharSettings = false, -- one set of per-character settings for all characters
+  sharedChar = {},      -- that shared set, saved at logout (see Profiles.lua)
   audio = {
     enabled = true,
     sfxVolume = 1.0,

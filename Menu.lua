@@ -733,17 +733,38 @@ local function BuildSettings(panel)
   checks[#checks + 1] = minimap
   local camera = Check(panel, L["Use my saved fishing camera zoom"], ns.db.camera, "enabled")
   checks[#checks + 1] = camera
+  local cameraRow = #checks
+  checks[#checks + 1] = Check(panel, L["Use the same settings on all my characters"], ns.db, "shareCharSettings",
+    function(value) ns.Profiles:SetShared(value) end)
+  local ROW = 24
   for index, check in ipairs(checks) do
-    check:SetPoint("TOPLEFT", 0, -(index - 1) * 25)
+    check:SetPoint("TOPLEFT", 0, -(index - 1) * ROW)
   end
   local saveCamera = Button(panel, L["Save current zoom"], 140, function() ns.Camera:Save() Menu:Refresh() end)
-  saveCamera:SetPoint("TOPLEFT", 270, -(#checks - 1) * 25)
-  local all = Button(panel, L["All settings..."], 140, function() ns.Options:Open() end)
-  all:SetPoint("TOPLEFT", 0, -#checks * 25 - 8)
-  local feedback = Button(panel, L["Send feedback..."], 140, function() Menu:ShowFeedback() end)
-  feedback:SetPoint("LEFT", all, "RIGHT", 10, 0)
+  saveCamera:SetPoint("TOPLEFT", 270, -(cameraRow - 1) * ROW)
+
+  -- Two rows of buttons in three columns. Left-click the sound button for
+  -- the next sound, right-click for the previous one.
+  local sound = Button(panel, "", 200, function(_, mouse)
+    local chosen = ns.Alerts:CycleSound(mouse == "RightButton" and -1 or 1)
+    ns.Alerts:PlaySound(chosen.key)
+    Menu:Refresh()
+  end)
+  sound:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  sound:SetPoint("TOPLEFT", 0, -#checks * ROW - 8)
+  local test = Button(panel, L["Test"], 62, function() ns.Alerts:PlaySound(ns.Alerts:SoundFor().key) end)
+  test:SetPoint("LEFT", sound, "RIGHT", 6, 0)
+  local all = Button(panel, L["All settings..."], 130, function() ns.Options:Open() end)
+  all:SetPoint("TOPLEFT", 276, -#checks * ROW - 8)
+  local export = Button(panel, L["Export settings..."], 130, function() ns.Profiles:ShowExport() end)
+  export:SetPoint("TOPLEFT", 0, -#checks * ROW - 38)
+  local import = Button(panel, L["Import settings..."], 130, function() ns.Profiles:ShowImport() end)
+  import:SetPoint("LEFT", export, "RIGHT", 8, 0)
+  local feedback = Button(panel, L["Send feedback..."], 130, function() Menu:ShowFeedback() end)
+  feedback:SetPoint("TOPLEFT", 276, -#checks * ROW - 38)
   panel.Refresh = function()
     for _, check in ipairs(checks) do check.Sync() end
+    sound:SetText(string.format(L["Alert sound: %s"], ns.Alerts:SoundFor().label))
   end
 end
 
