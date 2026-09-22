@@ -8,10 +8,26 @@ local Lures = ns:NewModule("Lures")
 Lures.appliedAt = {} -- [itemID] = GetTime() of the last successful use
 Lures.auraSeen = {}  -- [itemID] = true once its buff has been read
 
+-- First known lure in the bags other than skip, best first.
+local function NextOwned(skip)
+  for _, itemID in ipairs(Data.knownLures) do
+    if itemID ~= skip and Compat.GetItemCount(itemID) > 0 then return itemID end
+  end
+end
+
 -- The lure to use: the player's pick, else the best known one in the bags.
 function Lures:Current()
   local picked = ns.chardb.lureID
-  if picked then return picked end
+  if picked then
+    -- Auto-swap only redirects what the next keypress applies; the pick
+    -- itself is kept, so restocking it switches back. Waits for the old
+    -- lure to wear off so a running one is never overwritten.
+    if ns.chardb.lureAutoSwap and Compat.GetItemCount(picked) == 0
+      and (self:Remaining(picked) or 0) <= 0 then
+      return NextOwned(picked) or picked
+    end
+    return picked
+  end
   for _, itemID in ipairs(Data.lures) do
     if Compat.GetItemCount(itemID) > 0 then return itemID end
   end
@@ -61,7 +77,7 @@ function Lures:Action()
 end
 
 function Lures:Enable()
-  self.warned, self.expiredSaid, self.emptySaid = nil, nil, nil
+  self.warned, self.expiredSaid, self.emptySaid, self.swappedTo = nil, nil, nil, nil
 end
 
 function Lures:Tick()
@@ -69,7 +85,24 @@ function Lures:Tick()
   local itemID = self:Current()
   if not itemID then return end
 
+  local picked = ns.chardb.lureID
+  if picked and itemID ~= picked then
+    if self.swappedTo ~= itemID then
+      self.swappedTo = itemID
+      -- The swap message says what the next press does, so the expiry
+      -- warning for the old lure would only repeat it.
+      self.warned, self.expiredSaid = nil, nil
+      local name, link = Compat.GetItemInfo(itemID)
+      ns.Alerts:Fire("lure", string.format(L["Out of your lure. Switched to %s; the next press applies it."],
+        link or name or ("item:" .. itemID)), true)
+    end
+  else
+    self.swappedTo = nil
+  end
+
   if Compat.GetItemCount(itemID) == 0 then
+    -- Auto-swap has a spare waiting for the current lure to wear off.
+    if ns.chardb.lureAutoSwap and NextOwned(itemID) then return end
     if not self.emptySaid then
       self.emptySaid = true
       -- With always-on the mode runs all day, so an empty lure stack is

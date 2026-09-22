@@ -423,6 +423,16 @@ check(ns.Engine.state == "PREP", "lure gone -> prep again")
 ns.Lures.auraSeen[555] = nil
 for _ = 1, 3 do press(); advance(0.5) end
 check(ns.Engine.state == "READY" and btn.attrs.spell == "Fishing", "lure that never lands is set aside after 3 presses")
+-- lure auto-swap: the picked lure is gone, another known one is in the bags
+counts[555], counts[241145] = 0, 2; ns.chardb.lureAutoSwap = true; before = #printed; advance(1)
+check(ns.Lures:Current() == 555 and #printed == before, "lure auto-swap: waits quietly while the old lure is still up")
+local appliedAt = ns.Lures.appliedAt[555]; ns.Lures.appliedAt[555] = nil; advance(1)
+check(btn.attrs.type == "item" and btn.attrs.item == "item:241145" and ns.chardb.lureID == 555,
+  "lure auto-swap: next press applies another owned lure, the pick is kept")
+check(#printed == before + 1 and printed[#printed]:find("Switched to", 1, true), "lure auto-swap: announced once")
+counts[241145] = nil; advance(1)
+check(printed[#printed]:find("Out of lures!", 1, true) ~= nil, "lure auto-swap: nothing else owned -> out of lures")
+counts[555], ns.Lures.appliedAt[555] = 3, appliedAt; ns.chardb.lureAutoSwap = false; advance(1)
 
 -- bobbers
 toys[202207] = true; toys[142529] = true; toys[142530] = true

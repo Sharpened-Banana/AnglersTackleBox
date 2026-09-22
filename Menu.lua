@@ -189,6 +189,9 @@ local LURE_ROWS, EXTRA_ROWS = 7, 5
 local function BuildLures(panel)
   local enabled = Check(panel, L["Keep a lure up with the fishing key"], ns.chardb, "lureEnabled")
   enabled:SetPoint("TOPLEFT", 0, 0)
+  -- Per character, next to the pick it falls back from.
+  local autoSwap = Check(panel, L["Swap lures when out"], ns.chardb, "lureAutoSwap")
+  autoSwap:SetPoint("TOPLEFT", 270, 0)
   local current = Label(panel, "GameFontNormal")
   current:SetPoint("TOPLEFT", 2, -32)
 
@@ -252,7 +255,7 @@ local function BuildLures(panel)
   raft:SetPoint("TOPLEFT", 0, -338)
 
   panel.Refresh = function()
-    enabled.Sync() raft.Sync()
+    enabled.Sync() autoSwap.Sync() raft.Sync()
     local lureID = ns.Lures:Current()
     if lureID then
       local remaining = ns.Lures:Remaining(lureID)

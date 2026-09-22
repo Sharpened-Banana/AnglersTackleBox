@@ -104,6 +104,7 @@ ns.charDefaults = {
   poleID = nil,
   lureEnabled = true,
   lureID = nil,         -- nil = pick from Data.lures
+  lureAutoSwap = false, -- out of the picked lure: fall back to another owned one
   extras = {},          -- item/toy IDs kept up while fishing
   spots = {},           -- [mapID] = list of places fished
   records = {},         -- personal bests
