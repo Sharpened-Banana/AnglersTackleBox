@@ -104,6 +104,8 @@ ns.defaults = {
 
 ns.charDefaults = {
   gearSwap = true,
+  liveSession = nil,    -- the session in progress at the last reload or logout (Log)
+  resumeMode = nil,     -- time() of a logout with fishing mode on, to turn it back on
   gearCombatRestore = true,
   fishingSet = nil,     -- equipment set name
   cookingReagents = nil, -- [itemID] = recipe uses, from the last Cooking window scan (Shopping)
@@ -406,6 +408,14 @@ frame:SetScript("OnEvent", function(_, event, arg1)
       Core.loggedIn = true
       if not ns.db.alwaysOn then frame:UnregisterEvent("PLAYER_ENTERING_WORLD") end
       ns.Welcome:Maybe()
+      -- Back within a few minutes of a reload or logout that had fishing
+      -- mode on: carry on fishing. Always-on starts it by itself below.
+      local resume = ns.chardb.resumeMode
+      ns.chardb.resumeMode = nil
+      if resume and not ns.db.alwaysOn and time() - resume <= ns.Log.RESUME_WINDOW
+        and not InGroupInstance() and not InCombatLockdown() then
+        Core:SetMode(true, true)
+      end
       -- Gear can't be swapped back during logout, so finish that job now.
       if ns.chardb.gearBackup then
         C_Timer.After(2, function()
@@ -426,6 +436,7 @@ frame:SetScript("OnEvent", function(_, event, arg1)
 
   elseif event == "PLAYER_LOGOUT" then
     if Core.mode then
+      ns.chardb.resumeMode = time() -- a quick /reload turns the mode back on
       Core.loggingOut = true -- Gear keeps its backup for the next login
       ForEachModule("Disable", true)
       CVars:RestoreAll()

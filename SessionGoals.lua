@@ -21,10 +21,10 @@ local GOALS = {
 }
 SessionGoals.goals = GOALS
 
--- Fired state belongs to one session table. Log makes a new table for every
--- session (mode on, first always-on cast, Reset session), so comparing
--- against it resets the state without hooking each of those paths.
-local fired, firedFor = {}, nil
+-- Fired state lives on the session itself, so a new session (mode on,
+-- first always-on cast, Reset session) starts clean, and a session resumed
+-- after a /reload remembers which goals already alerted.
+local fired = {}
 
 local function Target(key)
   local targets = ns.db.sessionGoals
@@ -33,9 +33,11 @@ end
 
 local function SyncSession()
   local session = ns.Log.session
-  if session ~= firedFor then
-    wipe(fired)
-    firedFor = session
+  if session then
+    session.goalsFired = session.goalsFired or {}
+    fired = session.goalsFired
+  else
+    fired = {}
   end
 end
 

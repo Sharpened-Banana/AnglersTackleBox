@@ -2,6 +2,7 @@
 
 ## 1.1.0
 
+- A /reload no longer ends your fishing session. Session numbers, goal progress and which goals already alerted carry on, and fishing mode turns itself back on. Back within 10 minutes of a logout works the same way; later than that, the session is filed as finished.
 - Shopping has By fish and By recipe views. By recipe lists each Cooking recipe that uses a fish you've caught, linked to the dish, with have / need for each fish and how many your fish covers. The Cooking window is now rescanned on every list update, so recipe links appear after one visit.
 - New Alarms compartment: session goals moved here from Goals, together with a switch for each kind of alert.
 - Coiled Isle is now a section at the bottom of Events instead of its own compartment. The Window compartment is now called Fishing Companion.

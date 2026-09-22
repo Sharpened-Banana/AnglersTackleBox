@@ -477,6 +477,26 @@ check(goalAlerts() == 1 and ns.SessionGoals:Fired("catches"), "session goals: re
 local goalSession = ns.Log.session
 ns.Log:ResetSession()
 check(not ns.SessionGoals:Fired("catches"), "session goals: reset session clears the fired state")
+-- /reload: the session and its fired goals carry over
+do
+  local live = ns.Log.session
+  live.casts, live.catches = 5, 3
+  live.goalsFired = { catches = true }
+  local sessionsBefore = #ns.chardb.sessions
+  ns.Core.loggingOut = true; ns.Log:Disable(); ns.Core.loggingOut = nil
+  check(ns.Log.session == nil and ns.chardb.liveSession and ns.chardb.liveSession.catches == 3
+    and #ns.chardb.sessions == sessionsBefore, "reload: the live session is saved, not filed")
+  ns.Log:Enable()
+  check(ns.Log.session and ns.Log.session.catches == 3 and ns.chardb.liveSession == nil
+    and ns.SessionGoals:Fired("catches"), "reload: the session resumes and its goal does not alert again")
+  ns.Core.loggingOut = true; ns.Log:Disable(); ns.Core.loggingOut = nil
+  ns.chardb.liveSession.savedAt = time() - ns.Log.RESUME_WINDOW - 5
+  ns.Log:Init()
+  check(ns.chardb.liveSession == nil and #ns.chardb.sessions == sessionsBefore + 1,
+    "reload: a session saved too long ago is filed as finished")
+  table.remove(ns.chardb.sessions) -- keep the later session-count checks honest
+  ns.Log.session = live
+end
 ns.Log.session = goalSession; ns.db.sessionGoals.catches = 0
 fire("PLAYER_STARTED_MOVING")
 check(ns.Log.pool == nil, "pool: forgotten once the player moves")

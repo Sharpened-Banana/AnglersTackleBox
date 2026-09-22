@@ -8,6 +8,9 @@ local Log = ns:NewModule("Log")
 
 local MAX_SESSIONS = 30
 local SESSION_IDLE = 600 -- always-on: a session closes after this long without fishing
+-- A session saved at a reload or logout picks up again if you are back
+-- within this long; otherwise it is filed as a finished session.
+Log.RESUME_WINDOW = 600
 local HOVER_WINDOW = 20 -- seconds a hovered pool stays valid before a cast
 local HookTooltips
 local LOOT_SLOT_ITEM = Enum and Enum.LootSlotType and Enum.LootSlotType.Item or 1
@@ -152,13 +155,87 @@ function UnitValue(itemID)
 end
 
 -- With always-on the session starts at the first cast instead.
+-- The live session as saved data: GetTime() values become offsets, since
+-- the clock they come from is not guaranteed after a logout.
+local function Pack(s)
+  local now = GetTime()
+  local offsets = {}
+  for index, at in ipairs(s.catchTimes or {}) do offsets[index] = at - s.t0 end
+  return {
+    savedAt = time(), start = s.start, sinceT0 = now - s.t0,
+    casts = s.casts, catches = s.catches, value = s.value, sinceRare = s.sinceRare,
+    items = s.items, catchOffsets = offsets, goalsFired = s.goalsFired,
+  }
+end
+
+local function Unpack(saved)
+  local gap = math.max(0, time() - saved.savedAt)
+  local s = NewSession()
+  s.start, s.casts, s.catches, s.value = saved.start, saved.casts, saved.catches, saved.value
+  s.sinceRare, s.items, s.goalsFired = saved.sinceRare or 0, saved.items or {}, saved.goalsFired
+  s.t0 = GetTime() - (saved.sinceT0 or 0) - gap -- the reload counts as time fished
+  for index, offset in ipairs(saved.catchOffsets or {}) do s.catchTimes[index] = s.t0 + offset end
+  return s
+end
+
+-- Files a session into the history. stop defaults to now.
+local function Finish(s, stop)
+  local sessions = ns.chardb.sessions
+  local summary = {
+    start = s.start, stop = stop or time(),
+    casts = s.casts, catches = s.catches, value = s.value,
+    mapID = C_Map and C_Map.GetBestMapForUnit("player") or nil,
+  }
+  table.insert(sessions, summary)
+  Log.lastSession = s -- the sell helper still wants its items
+  ns:Fire("SESSION_END", summary, s)
+
+  -- Old sessions roll up into daily totals so the file stays small.
+  while #sessions > MAX_SESSIONS do
+    local old = table.remove(sessions, 1)
+    local day = date("%Y-%m-%d", old.start)
+    local total = ns.chardb.daily[day] or { casts = 0, catches = 0, value = 0, seconds = 0 }
+    total.casts = total.casts + old.casts
+    total.catches = total.catches + old.catches
+    total.value = total.value + old.value
+    total.seconds = total.seconds + math.max(0, old.stop - old.start)
+    ns.chardb.daily[day] = total
+  end
+end
+
+-- The session saved at the last reload or logout: resumed when recent,
+-- otherwise filed as finished at the moment it was saved.
+function Log:TakeSaved()
+  local saved = ns.chardb.liveSession
+  if not saved then return nil end
+  ns.chardb.liveSession = nil
+  if time() - (saved.savedAt or 0) <= Log.RESUME_WINDOW then return Unpack(saved) end
+  local s = Unpack(saved)
+  Finish(s, saved.savedAt)
+  return nil
+end
+
+-- A stale saved session is filed at load even if fishing mode stays off.
+function Log:Init()
+  local saved = ns.chardb.liveSession
+  if saved and time() - (saved.savedAt or 0) > Log.RESUME_WINDOW then self:TakeSaved() end
+end
+
 function Log:Enable()
-  self.session = not ns.db.alwaysOn and NewSession() or nil
+  self.session = self:TakeSaved() or (not ns.db.alwaysOn and NewSession() or nil)
   self.lootSeen, self.pool, self.hovered = nil, nil, nil
   HookTooltips()
 end
 
+-- A reload or logout keeps the session for the next login instead of
+-- ending it, so its numbers and goal alerts carry on.
 function Log:Disable()
+  local s = self.session
+  if ns.Core.loggingOut and s and s.casts > 0 then
+    ns.chardb.liveSession = Pack(s)
+    self.session = nil
+    return
+  end
   self:EndSession()
 end
 
@@ -174,28 +251,7 @@ function Log:EndSession()
   self.session = nil
   ns.HUD:UpdateVisibility()
   if not s or s.casts == 0 then return end
-
-  local sessions = ns.chardb.sessions
-  local summary = {
-    start = s.start, stop = time(),
-    casts = s.casts, catches = s.catches, value = s.value,
-    mapID = C_Map and C_Map.GetBestMapForUnit("player") or nil,
-  }
-  table.insert(sessions, summary)
-  self.lastSession = s -- the sell helper still wants its items
-  ns:Fire("SESSION_END", summary, s)
-
-  -- Old sessions roll up into daily totals so the file stays small.
-  while #sessions > MAX_SESSIONS do
-    local old = table.remove(sessions, 1)
-    local day = date("%Y-%m-%d", old.start)
-    local total = ns.chardb.daily[day] or { casts = 0, catches = 0, value = 0, seconds = 0 }
-    total.casts = total.casts + old.casts
-    total.catches = total.catches + old.catches
-    total.value = total.value + old.value
-    total.seconds = total.seconds + math.max(0, old.stop - old.start)
-    ns.chardb.daily[day] = total
-  end
+  Finish(s)
 end
 
 function Log:OnCast()
