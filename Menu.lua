@@ -1,7 +1,5 @@
--- The Angler's TackleBox: the addon's main window, laid out like a tackle box. A lid
--- with a handle and a brass latch, a tray of compartments down the left,
--- and the open compartment's contents on the right. Built the first time
--- it is opened (/tb menu); nothing here runs while it is closed.
+-- The main window (/tb menu), drawn as a tackle box: compartment tray left, contents right.
+-- Built on first open; nothing here runs while it is closed.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -92,8 +90,7 @@ local function DropSlot(parent, text, onItem)
   return slot
 end
 
--- A scrolling block of report lines, as produced by the X:Lines() functions.
--- "top" leaves room above it for a compartment's own controls.
+-- Scrolling X:Lines() report; "top" leaves room for a compartment's own controls.
 local function Report(panel, getLines, top)
   local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
   scroll:SetPoint("TOPLEFT", 0, -(top or 0))
@@ -102,8 +99,7 @@ local function Report(panel, getLines, top)
   content:SetSize(410, 10)
   content:EnableMouse(true)
   if content.SetHyperlinksEnabled then content:SetHyperlinksEnabled(true) end -- else the handlers never fire
-  -- Any item/spell link a report line embeds (e.g. Shopping.lua's recipes
-  -- and fish) becomes hoverable and clickable, the same as a chat link.
+  -- Embedded item/spell links (e.g. Shopping's recipes) hover and click like chat links.
   content:SetScript("OnHyperlinkEnter", function(_, link)
     GameTooltip:SetOwner(content, "ANCHOR_CURSOR")
     GameTooltip:SetHyperlink(link)
@@ -222,8 +218,7 @@ local function BuildWindow(panel)
   end
 end
 
--- The Top Tray scrolls: fishing mode and key, then the fishing companion
--- window's settings, then this session's numbers.
+-- Top Tray (scrolls): mode and key, companion window settings, session numbers.
 local function BuildTopTray(host)
   local scroll = CreateFrame("ScrollFrame", nil, host, "UIPanelScrollFrameTemplate")
   scroll:SetPoint("TOPLEFT", 0, 0)
@@ -490,8 +485,7 @@ local function BuildBobbers(panel)
   end
 end
 
--- Journal: every fish you have logged on the left of the search box's list;
--- click one for its page.
+-- Journal: a searchable list of every logged fish; click one for its page.
 local function BuildJournal(panel)
   local search = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
   search:SetSize(200, 20)
@@ -672,8 +666,8 @@ local function BuildGold(panel)
     bars[index] = bar
   end
 
-  -- Price over time for one fish, stepped through with the arrows (most
-  -- caught first). Points come from Log.RememberPrice, one a day.
+  -- One fish's price history; arrows step through fish, most caught first.
+  -- Points come from Log.RememberPrice, one a day.
   local fishIndex = 1
   local priceTitle = Label(panel, "GameFontNormal")
   priceTitle:SetPoint("TOPLEFT", 2, -188)
@@ -756,8 +750,7 @@ local function BuildGoals(panel)
   Report(panel, function() return ns.Goals:Lines() end)
 end
 
--- Alarms: targets that alert you (session goals) and which kinds of alert
--- are on. The sound and flash choices stay on the Settings tab.
+-- Alarms: session goals and which alert kinds are on. Sound and flash live on Settings.
 local function BuildAlarms(panel)
   local header = Label(panel, "GameFontNormal", L["Session goals"])
   header:SetPoint("TOPLEFT", 2, -2)
@@ -843,8 +836,7 @@ local function BuildStats(panel)
   local note = Label(panel, "GameFontDisableSmall", L["Restarts the lifetime totals. Sessions and the log stay."])
   note:SetPoint("LEFT", clear, "RIGHT", 10, 0)
 
-  -- Toggles between this character's lifetime totals and the combined
-  -- warband view built from ns.db.characters.
+  -- This character's lifetime totals, or the warband's from ns.db.characters.
   local scope = "character"
   local toggle
   toggle = Button(panel, "", 170, function()
@@ -923,8 +915,7 @@ local function BuildStats(panel)
   end
 end
 
--- Catch Log: one compartment, two views of the same catches. By zone is
--- the per-zone table; By fish is the journal, a page per fish.
+-- Catch Log: By zone is the per-zone table; By fish is the journal, a page per fish.
 local function BuildLog(panel)
   local zoneView = CreateFrame("Frame", nil, panel)
   zoneView:SetPoint("TOPLEFT", 0, -30)
@@ -992,8 +983,7 @@ local function BuildSettings(panel)
   local saveCamera = Button(panel, L["Save current zoom"], 140, function() ns.Camera:Save() Menu:Refresh() end)
   saveCamera:SetPoint("TOPLEFT", 270, -(cameraRow - 1) * ROW)
 
-  -- Two rows of buttons in three columns. Left-click the sound button for
-  -- the next sound, right-click for the previous one.
+  -- Sound button: left-click for the next sound, right-click for the previous.
   local sound = Button(panel, "", 200, function(_, mouse)
     local chosen = ns.Alerts:CycleSound(mouse == "RightButton" and -1 or 1)
     ns.Alerts:PlaySound(chosen.key)
@@ -1017,8 +1007,7 @@ local function BuildSettings(panel)
   end
 end
 
--- The game cannot open a browser, so the feedback button shows the issues
--- link in a box with the text selected, ready for Ctrl-C.
+-- The game can't open a browser, so feedback shows the link pre-selected for Ctrl-C.
 local FEEDBACK_URL = "https://github.com/Sharpened-Banana/AnglersTackleBox/issues"
 
 function Menu:ShowFeedback()
@@ -1053,8 +1042,8 @@ local function SpellIcon(spellID)
   return getTexture and getTexture(spellID)
 end
 
--- Events, then on Retail the Coiled Isle helpers (Tokka reputation,
--- Coiled Filament), which used to be a compartment of their own.
+-- Events, plus the Retail-only Coiled Isle helpers (Tokka, Coiled Filament),
+-- formerly their own compartment.
 local function EventLines()
   local lines = {}
   for _, line in ipairs(ns.Events:Lines()) do lines[#lines + 1] = line end
@@ -1161,8 +1150,7 @@ local function BuildBox()
   local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", -4, -8)
 
-  -- Brass latch over the seam. It doubles as the fishing-mode switch:
-  -- bright when the mode is on, dull when it is off.
+  -- Brass latch doubles as the fishing-mode switch: bright when on, dull when off.
   local latch = CreateFrame("Button", nil, frame)
   latch:SetSize(46, 22)
   latch:SetPoint("TOP", frame, "TOP", 0, -LID + 8)
@@ -1183,7 +1171,6 @@ local function BuildBox()
   latch:SetScript("OnLeave", function() GameTooltip:Hide() end)
   frame.latch = latch
 
-  -- The tray of compartments.
   local tray = CreateFrame("Frame", nil, frame)
   tray:SetPoint("TOPLEFT", 10, -LID - 14)
   tray:SetPoint("BOTTOMLEFT", 10, 10)
@@ -1202,8 +1189,7 @@ local function BuildBox()
   rule:SetPoint("TOPRIGHT", -12, -34)
   rule:SetHeight(1)
 
-  -- Compartments share the tray's height, so a longer list gets shorter
-  -- slots instead of spilling out of the box. Below MIN_SLOT the box grows.
+  -- Slots share the tray's height so a longer list shrinks them; below MIN_SLOT the box grows.
   local compartments = Compartments()
   local trayHeight = HEIGHT - LID - 14 - 10
   local slotHeight = math.min(SLOT_HEIGHT, math.floor(trayHeight / #compartments))

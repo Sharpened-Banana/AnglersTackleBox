@@ -1,6 +1,5 @@
--- First-run welcome: a new install does nothing visible until fishing mode
--- is on, so the first login shows the three steps to a first cast. Shown
--- once per account; the steps tick themselves off as they happen.
+-- First-run welcome: nothing shows until fishing mode is on, so the first login lists
+-- the three steps to a first cast. Once per account; steps tick off as they happen.
 local _, ns = ...
 local L = ns.L
 
