@@ -52,7 +52,6 @@ local function Counted(tbl)
   return table.concat(out, ", ")
 end
 
--- The page for one fish.
 function Journal:Page(fish)
   local lines = { { text = fish.name, header = true } }
   local function Add(text) lines[#lines + 1] = { text = text } end

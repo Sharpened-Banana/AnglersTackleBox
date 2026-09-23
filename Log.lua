@@ -1,6 +1,5 @@
 -- Catch Log: every catch by zone and subzone, plus live session stats.
--- Reads the loot window (LOOT_READY + GetLootSlotLink) rather than chat,
--- because chat loot messages may be secret inside instances on 12.x.
+-- Reads the loot window, not chat: chat loot messages can be secret in instances on 12.x.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -8,15 +7,14 @@ local Log = ns:NewModule("Log")
 
 local MAX_SESSIONS = 30
 local SESSION_IDLE = 600 -- always-on: a session closes after this long without fishing
--- A session saved at a reload or logout picks up again if you are back
--- within this long; otherwise it is filed as a finished session.
+-- A session saved at reload/logout resumes if you return within this long, else it is filed.
 Log.RESUME_WINDOW = 600
 local HOVER_WINDOW = 20 -- seconds a hovered pool stays valid before a cast
 local HookTooltips
 local LOOT_SLOT_ITEM = Enum and Enum.LootSlotType and Enum.LootSlotType.Item or 1
 local RATE_BUCKET = 300 -- seconds per bar in the catch-rate graph
 local RATE_WINDOW = 900 -- the recent catch rate looks back this far
-local RATE_SWING = 0.15 -- the recent rate must differ this much from the average to count as a trend
+local RATE_SWING = 0.15 -- min recent-vs-average difference that counts as a trend
 local PRICE_POINTS = 14 -- days of price history kept per fish
 Log.RATE_BUCKET, Log.RATE_WINDOW = RATE_BUCKET, RATE_WINDOW
 
@@ -28,23 +26,19 @@ local function NewSession()
   }
 end
 
--- Copper value of one item: auction price when a pricing addon is loaded,
--- vendor price otherwise.
+-- Copper per item: auction price with a pricing addon loaded, else vendor price.
 local UnitValue
 function Log.UnitValue(itemID) return UnitValue(itemID) end
 
--- Grey items have no real auction market, only troll listings, so they are
--- always worth what a vendor pays.
+-- Grey items only draw troll listings on the AH, so they always use vendor price.
 function Log.IsJunk(itemID)
   local _, _, quality = Compat.GetItemInfo(itemID)
   return quality == 0
 end
 
 ---------------------------------------------------------------------------
--- Prices, guarded against troll listings. Junk is vendor-only. For the rest:
--- the lower of Auctionator and TSM when both are loaded; a per-item memory
--- that ignores a price jumping SPIKE-fold unless it is still there on a
--- later day; and an absolute ceiling per single fish.
+-- Prices, guarded against troll listings: the lower of Auctionator and TSM, a
+-- SPIKE-fold jump ignored until it lasts into another day, and a per-fish ceiling.
 ---------------------------------------------------------------------------
 
 local SPIKE = 10
@@ -67,10 +61,8 @@ local function RawAuctionPrice(itemID)
   return lowest
 end
 
--- The price to trust for an item, given what the pricing addons say now.
--- Price history: at most one point a day per fish, the last PRICE_POINTS
--- days, as { "YYYY-MM-DD", copper } pairs oldest first. A later price the
--- same day replaces that day's point.
+-- Price history: { "YYYY-MM-DD", copper } pairs, oldest first, one per day (a later
+-- price that day replaces it), last PRICE_POINTS days.
 function Log.RememberPrice(itemID, price, day)
   local all = ns.db.priceHistory
   local points = all[itemID]
@@ -127,8 +119,7 @@ local function Guarded(itemID, raw)
   return raw
 end
 
--- Auction price (nil without a pricing addon, and for junk) and vendor
--- price, in copper.
+-- Auction price (nil without a pricing addon, or for junk) and vendor price, in copper.
 function Log.Prices(itemID)
   local now = GetTime()
   local cached = priceCache[itemID]
@@ -154,9 +145,7 @@ function UnitValue(itemID)
   return auction or vendor
 end
 
--- With always-on the session starts at the first cast instead.
--- The live session as saved data: GetTime() values become offsets, since
--- the clock they come from is not guaranteed after a logout.
+-- GetTime() values are saved as offsets: that clock is not guaranteed across a logout.
 local function Pack(s)
   local now = GetTime()
   local offsets = {}
@@ -178,7 +167,7 @@ local function Unpack(saved)
   return s
 end
 
--- Files a session into the history. stop defaults to now.
+-- Files a session into the history; stop defaults to now.
 local function Finish(s, stop)
   local sessions = ns.chardb.sessions
   local summary = {
@@ -203,8 +192,7 @@ local function Finish(s, stop)
   end
 end
 
--- The session saved at the last reload or logout: resumed when recent,
--- otherwise filed as finished at the moment it was saved.
+-- Session saved at the last reload/logout: resumed when recent, else filed as of the save.
 function Log:TakeSaved()
   local saved = ns.chardb.liveSession
   if not saved then return nil end
@@ -227,8 +215,7 @@ function Log:Enable()
   HookTooltips()
 end
 
--- A reload or logout keeps the session for the next login instead of
--- ending it, so its numbers and goal alerts carry on.
+-- Reload/logout saves the session instead of ending it, so stats and goal alerts carry on.
 function Log:Disable()
   local s = self.session
   if ns.Core.loggingOut and s and s.casts > 0 then
@@ -301,10 +288,8 @@ function Log.Buckets(times, t0, now, width)
   return out
 end
 
--- Catches per hour from catch times (oldest first): the whole span and the
--- recent window, and "rising", "falling" or "steady" once there is enough
--- fishing before the window to compare against. average is nil for the
--- first minute, when a rate is only noise.
+-- Catches/hour over the whole span and the recent window (times oldest first).
+-- average is nil in the first minute (noise); direction needs fishing before the window.
 function Log.Trend(times, t0, now)
   local elapsed = now - t0
   local trend = { buckets = Log.Buckets(times, t0, now, RATE_BUCKET), width = RATE_BUCKET, elapsed = elapsed }
@@ -328,9 +313,7 @@ function Log.Trend(times, t0, now)
   return trend
 end
 
--- The live session's trend, or nil before the first cast.
--- Catches per hour for the newest saved sessions, oldest first, for the
--- Statistics graph when no session is running.
+-- Catches/hour of the newest saved sessions, oldest first, for the idle Statistics graph.
 function Log:SessionRates(count)
   local rates = {}
   local sessions = ns.chardb.sessions or {}
@@ -396,9 +379,8 @@ local function Record(itemID, name, quantity, quality)
 end
 
 ---------------------------------------------------------------------------
--- Pools: the game never says which pool a cast landed in. The best signal
--- is the pool the player hovered shortly before casting; it sticks until
--- they move. Retail only (object tooltips), and only while fishing mode is on.
+-- Pools: the game never says which pool a cast landed in, so use the one hovered just
+-- before casting (kept until the player moves). Retail only (object tooltips), fishing mode only.
 ---------------------------------------------------------------------------
 
 local tooltipHooked
@@ -499,7 +481,6 @@ function Log:ClearSessions()
   wipe(ns.chardb.daily)
 end
 
--- The whole catch log as CSV text.
 function Log:ExportCSV()
   local rows = { "zone,map_id,item,item_id,count,first_catch,last_catch,subzones,pools" }
   local function Quote(text) return '"' .. tostring(text):gsub('"', '""') .. '"' end

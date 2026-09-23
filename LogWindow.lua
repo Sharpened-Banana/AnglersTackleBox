@@ -1,6 +1,5 @@
--- Catch log view: what you have caught in each zone, with share of the
--- zone's catch, current value and the pools it came from. Lives in the
--- menu's Catch Log compartment (/tb log).
+-- Catch log view (/tb log, the menu's Catch Log compartment): catches per zone
+-- with share of the zone's catch, current value and source pools.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -110,7 +109,7 @@ function Window:Attach(frame)
   export:SetText(L["Export CSV"])
   export:SetScript("OnClick", function() Window:ShowExport() end)
 
-  -- Forgetting asks for a second click instead of a popup.
+  -- Forget confirms with a second click, not a popup.
   local forget = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
   forget:SetSize(110, 20)
   forget:SetPoint("RIGHT", export, "LEFT", -4, 0)
@@ -187,8 +186,7 @@ function Window:Refresh()
     casts, catches, Compat.CoinString(value), ns.FormatTime(seconds)))
 end
 
--- The CSV goes into a selectable text box: addons can't write files, so
--- copying it out is the export.
+-- Addons can't write files, so the CSV export is a selectable text box to copy from.
 function Window:ShowExport()
   local box = self.export
   if not box then
