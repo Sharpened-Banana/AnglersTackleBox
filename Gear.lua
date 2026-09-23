@@ -1,6 +1,5 @@
--- Gear Swap: put fishing gear on when the mode starts and the normal gear
--- back when it ends. Never runs in combat. The snapshot lives in the
--- per-character saved variables so it survives a logout or crash.
+-- Gear swap on mode start/end, never in combat. The snapshot is in per-character
+-- saved variables so it survives a logout or crash.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -44,7 +43,7 @@ local function FishingSetID()
 end
 
 function Gear:Enable()
-  -- Always-on would mean wearing fishing gear all day, so it skips the swap.
+  -- Always-on would mean fishing gear all day, so no swap.
   if ns.db.alwaysOn then return end
   if self.applied or not ns.chardb.gearSwap or InCombatLockdown() then return end
   local setID = FishingSetID()

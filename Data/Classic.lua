@@ -3,8 +3,7 @@ local _, ns = ...
 local Data = {}
 ns.Data = Data
 
--- Angler's Fishing Raft. Where the item doesn't exist it is simply never
--- found, so the raft option does nothing.
+-- Angler's Fishing Raft. On clients without it, the raft option does nothing.
 Data.raft = { item = 85500, spell = 124036 }
 
 -- Lures to pick from automatically, best first.
@@ -35,9 +34,6 @@ Data.poolWords = {
   "School", "Pool", "Swarm", "Debris", "Wreckage", "Patch", "Slick", "Waters",
 }
 
--- Shipped pool locations: not researched for Classic yet. Leave empty
--- rather than guess -- see Data/Retail.lua for why this needs real,
--- cite-able coordinates rather than invented ones, and why even the
--- Retail list is thin. A future pass can research Classic zones the same
--- careful way.
+-- Shipped pools: not researched for Classic. Leave empty rather than guess;
+-- see Data/Retail.lua for why entries need citable coordinates.
 Data.knownPools = {}

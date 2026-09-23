@@ -1,5 +1,4 @@
--- Lure & Buff Manager: keeps a lure up through the one-key queue, warns
--- before it expires and says so when the bag runs dry.
+-- Lure manager: keeps a lure up via the one-key queue; warns on expiry or empty bags.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -19,9 +18,8 @@ end
 function Lures:Current()
   local picked = ns.chardb.lureID
   if picked then
-    -- Auto-swap only redirects what the next keypress applies; the pick
-    -- itself is kept, so restocking it switches back. Waits for the old
-    -- lure to wear off so a running one is never overwritten.
+    -- Auto-swap keeps the saved pick (restocking switches back) and waits for
+    -- the running lure to wear off rather than overwrite it.
     if ns.chardb.lureAutoSwap and Compat.GetItemCount(picked) == 0
       and (self:Remaining(picked) or 0) <= 0 then
       return NextOwned(picked) or picked
@@ -53,8 +51,8 @@ function Lures:Remaining(itemID)
     return remaining
   end
 
-  -- Last resort, for lures whose buff can't be read: time since we saw the
-  -- use spell succeed. A readable buff that is gone is simply gone.
+  -- Unreadable buffs fall back to time since the use spell succeeded.
+  -- A readable buff that is gone is simply gone.
   local appliedAt = self.appliedAt[itemID]
   if appliedAt and not self.auraSeen[itemID] then
     local left = appliedAt + Data.lureDuration - GetTime()
@@ -89,8 +87,7 @@ function Lures:Tick()
   if picked and itemID ~= picked then
     if self.swappedTo ~= itemID then
       self.swappedTo = itemID
-      -- The swap message says what the next press does, so the expiry
-      -- warning for the old lure would only repeat it.
+      -- The swap message already says it; skip the old lure's expiry warning.
       self.warned, self.expiredSaid = nil, nil
       local name, link = Compat.GetItemInfo(itemID)
       ns.Alerts:Fire("lure", string.format(L["Out of your lure. Switched to %s; the next press applies it."],
@@ -105,8 +102,7 @@ function Lures:Tick()
     if ns.chardb.lureAutoSwap and NextOwned(itemID) then return end
     if not self.emptySaid then
       self.emptySaid = true
-      -- With always-on the mode runs all day, so an empty lure stack is
-      -- ordinary news: a text popup, not the raid warning sound.
+      -- Always-on runs all day, so running out gets a silent popup, not a raid warning.
       ns.Alerts:Fire("lure", L["Out of lures!"], ns.db.alwaysOn)
     end
     return

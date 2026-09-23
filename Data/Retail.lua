@@ -10,7 +10,7 @@ Data.raft = { item = 85500, spell = 124036 }
 -- Reusable Oversized Bobber: toy and the "Oversized Bobbers" buff.
 Data.oversizedBobber = { item = 202207, spell = 397827 }
 
--- Crate of Bobbers toys. Only the ones the player owns are ever offered.
+-- Crate of Bobbers toys; only owned ones are offered.
 Data.bobberToys = {
   142528, -- Can of Worms
   142529, -- Cat Head
@@ -27,11 +27,11 @@ Data.bobberToys = {
 }
 Data.bobberDuration = 3600
 
--- Lures to pick from automatically, best first. Empty on Retail: Midnight
--- lures each target one fish, so the player picks one with /tb lure.
+-- Auto-pick lures, best first. Empty: Midnight lures each target one fish,
+-- so the player picks with /tb lure.
 Data.lures = {}
 
--- Lures Angler's TackleBox can name and list.
+-- Lures the addon can name and list.
 Data.knownLures = {
   241145, -- Lucky Loa Lure
   241147, -- Blood Hunter Lure
@@ -61,7 +61,7 @@ Data.npcs = {
 }
 
 Data.spells = {
-  derbyDasher = 456024, -- Hallowfall Fishing Derby: one hour to catch the trophy fish
+  derbyDasher = 456024, -- Hallowfall Fishing Derby one-hour buff
 }
 
 -- 12.1 Coiled Isle. The faction is found by enUS name at runtime.
@@ -72,7 +72,7 @@ Data.midnight = {
   mountCost = 2500, -- Sea-Dwelling Isle Serpent
 }
 
--- Mounts that come from fishing, by summon spell or by the item that teaches them.
+-- Fishing mounts, by summon spell or teaching item.
 Data.mounts = {
   { spell = 64731 },  -- Sea Turtle
   { spell = 118089 }, -- Azure Water Strider
@@ -85,9 +85,8 @@ Data.mounts = {
   { item = 275653 },  -- Sea-Dwelling Isle Serpent
 }
 
--- Rare drops worth counting attempts for. A cast counts when it is in scope:
--- on the given continent (pools only, where noted), or when it brought up a
--- fish from the given item ID range. "chance" is a community estimate.
+-- Rare drops to count attempts for. A cast counts if on the continent (pools
+-- only where noted) or if it caught a fish in fishRange. chance is a community estimate.
 Data.rareDrops = {
   { key = "seaTurtle", name = "Sea Turtle", item = 46109, mountSpell = 64731,
     continent = 113, poolOnly = true, chance = 0.002 },
@@ -98,47 +97,25 @@ Data.rareDrops = {
 -- Hallowfall Fishing Derby quest variants.
 Data.derbyQuests = { 82778, 83529, 83530, 83531, 83532 }
 
--- A hovered world object counts as a fishing pool when its name has one of
--- these words (enUS). Other locales accept any hovered object.
+-- A hovered object is a pool if its name has one of these enUS words.
+-- Other locales accept any hovered object.
 Data.poolWords = {
   "School", "Pool", "Swarm", "Surge", "Debris", "Wreckage", "Patch", "Cargo",
   "Treasures", "Bloom", "Ripple", "Shoal", "Spawn", "Slick", "Waters",
 }
 
 ---------------------------------------------------------------------------
--- Shipped pool locations: a handful of known spots so a new player sees a
--- pin or two before they have fished anywhere themselves. This is kept
--- deliberately tiny. Fishing pools in modern WoW spawn dynamically rather
--- than at literal fixed points, and Wowhead does not track spawn locations
--- for fishing-pool objects at all -- its own object pages (e.g. Blood in
--- the Water, object=451678, and Royal Ripple, object=451680) say "The
--- location of this object is unknown," which held true even for Royal
--- Ripple, a pool that has existed since Hallowfall shipped in The War
--- Within, over a year before this was written. No fishing guide checked
--- (wow-professions.com, lorewoven.net, boostmatch.gg, wowsaga.com) gives
--- numeric coordinates for pool spawns either; they all point players at
--- in-game tracking tools instead.
+-- Shipped pool locations: a starter pin or two for new players. Kept tiny on
+-- purpose: modern pools spawn dynamically, and neither Wowhead ("location of
+-- this object is unknown") nor fishing guides publish pool coordinates.
+-- Add only citable, in-game-scouted coordinates; never invent them.
 --
--- The one entry below is a single community-reported sighting, not a
--- guaranteed respawn point -- it is a starting hint, not a promise the
--- pool will be there. Source: a Blizzard US forum post, "I also found a
--- Royal Ripple at 41, 53 in Hallowfall." Thread: "Anyone found Royal Ripple
--- fishing pool for the Derby yet?" on the Blizzard US forums, General
--- Discussion (thread id 1928171).
--- Corroborated in the same thread by a second poster describing their
--- fishing circuit as the coast "west of Mereldar" (Mereldar sits at
--- roughly 41.4, 50.3 per Warcraft Tavern's Hallowfall coordinate list),
--- which is the same stretch of water:
+-- Royal Ripple at 41, 53 is one community sighting, a hint not a respawn
+-- point: Blizzard US forums General Discussion thread 1928171, corroborated
+-- by "west of Mereldar" (~41.4, 50.3) in:
 --   https://us.forums.blizzard.com/en/wow/t/hallowfall-fishing-derby-an-hour-of-my-life-i-wont-get-back/1947546
---
--- mapID 2215 = Hallowfall (Khaz Algar), corroborated by a TomTom "/way
--- #2215" coordinate for "The Undersea" sub-area of the same zone.
--- Coiled Isle (mapID 2512, confirmed by Method's Coiled Filament guide)
--- and every other Midnight zone were researched too, but turned up no
--- citable numeric pool coordinates at all -- see the report for this
--- change for the full list of sources checked. Broader coverage needs
--- someone to actually scout pools in-game and log coordinates; it isn't
--- something web research alone can responsibly produce.
+-- mapID 2215 = Hallowfall. Coiled Isle (mapID 2512) and other Midnight zones
+-- turned up no citable coordinates.
 Data.knownPools = {
   [2215] = { -- Hallowfall
     { x = 0.41, y = 0.53, name = "Royal Ripple" },

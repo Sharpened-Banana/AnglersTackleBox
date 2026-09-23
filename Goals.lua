@@ -1,6 +1,5 @@
--- Collections Tracker: progress on every unfinished achievement in the
--- game's own Fishing category (read live, so no ID list can go stale), plus
--- the fishing mounts. Runs only when asked (/tb goals).
+-- Collections Tracker (/tb goals): unfinished Fishing-category achievements,
+-- read live so no ID list goes stale, plus the fishing mounts.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -22,8 +21,7 @@ local function FishingCategory()
   end
 end
 
--- "412/1000" for a counted goal, "3/7" parts done for a checklist. The
--- third return lists the parts still missing.
+-- "412/1000" for a counted goal, "3/7" for a checklist; third return is the missing parts.
 local function Progress(achievementID)
   local total = GetAchievementNumCriteria(achievementID) or 0
   local done, missing = 0, {}
@@ -172,8 +170,7 @@ local function SkillLines(lines)
   lines[#lines + 1] = { text = text, header = true }
 end
 
--- Hallowfall derby: the trophy fish still needed, and where your own log
--- says you have caught each one.
+-- Hallowfall derby: trophy fish still needed and where your log saw each.
 function Goals:DerbyLines(lines)
   if not C_QuestLog or not C_QuestLog.IsOnQuest then return end
   for _, questID in ipairs(Data.derbyQuests) do
@@ -253,7 +250,6 @@ function Goals:Lines()
     end
   end
 
-  -- Closest to done first.
   table.sort(rows, function(a, b)
     if a.fraction ~= b.fraction then return a.fraction > b.fraction end
     return a.name < b.name
@@ -265,7 +261,6 @@ function Goals:Lines()
     local row = rows[i]
     local link = GetAchievementLink and GetAchievementLink(row.id) or row.name
     lines[#lines + 1] = { text = string.format("%s  |cffffd100%s|r", link, row.text) }
-    -- For the ones closest to done, name what is still missing.
     if i <= DETAILED and #row.missing > 0 then
       local parts = {}
       for index = 1, math.min(MAX_MISSING, #row.missing) do parts[index] = row.missing[index] end

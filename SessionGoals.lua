@@ -1,5 +1,4 @@
--- Session goals: targets for catches, gold and minutes fished that the
--- player sets in the box. Each one alerts once per session when reached.
+-- Session goals (catches, gold, minutes): each alerts once per session when reached.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -21,9 +20,8 @@ local GOALS = {
 }
 SessionGoals.goals = GOALS
 
--- Fired state lives on the session itself, so a new session (mode on,
--- first always-on cast, Reset session) starts clean, and a session resumed
--- after a /reload remembers which goals already alerted.
+-- Fired state lives on the session, so a new session starts clean and a
+-- /reload remembers which goals already alerted.
 local fired = {}
 
 local function Target(key)
@@ -74,8 +72,7 @@ function SessionGoals:Progress()
   return rows
 end
 
--- "Catches 34 / 50", green once reached; bare drops the label for rows
--- that already show one.
+-- "Catches 34 / 50", green once reached; bare omits the label.
 function SessionGoals:Text(key, bare)
   local target = Target(key)
   if target == 0 then return "|cff808080" .. L["off"] .. "|r" end

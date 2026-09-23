@@ -1,6 +1,5 @@
--- Bobbers: keeps the Reusable Oversized Bobber and a chosen bobber toy up.
--- When a buff is missing, the toy goes into the one-key queue, so the next
--- press applies it and the press after that casts.
+-- Keeps the Oversized Bobber and a chosen bobber toy up via the one-key queue:
+-- one press applies a missing buff, the next casts.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -10,8 +9,7 @@ ns.Bobbers = Bobbers
 local castAt = {}   -- [spellID] = GetTime() of the last successful cast
 local auraSeen = {} -- [itemID] = true once its buff has been read
 
--- Seconds left on a toy's buff. Buffs that can't be read fall back to the
--- time since the toy's spell last succeeded.
+-- Unreadable buffs fall back to time since the toy's spell last succeeded.
 local function Remaining(itemID, knownSpell)
   local spellName, spellID = Compat.GetItemSpell(itemID)
   local remaining = Compat.AuraRemaining(knownSpell or spellID, spellName)
@@ -30,7 +28,6 @@ ns:OnModeEvent("UNIT_SPELLCAST_SUCCEEDED", function(_, _, spellID)
   if not Compat.IsSecret(spellID) and spellID then castAt[spellID] = GetTime() end
 end)
 
--- Bobber toys the player owns, in list order.
 function Bobbers:Owned()
   local owned = {}
   for _, itemID in ipairs(Data.bobberToys) do

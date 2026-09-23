@@ -1,8 +1,5 @@
--- Midnight Helpers (Retail): Captain Tokka's Crew reputation and Coiled
--- Filament progress. The faction and currency IDs aren't published
--- anywhere reliable yet, so they are found by name in the player's own
--- reputation and currency lists and then remembered. Runs only when asked
--- (/tb midnight).
+-- Midnight helpers (Retail, /tb midnight): Tokka's Crew rep and Coiled Filament.
+-- IDs aren't reliably published, so they're found by name and remembered.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -68,7 +65,7 @@ function Midnight:FilamentCount()
     local info = C_CurrencyInfo.GetCurrencyInfo(currencyID)
     if info then return info.quantity end
   end
-  -- In case it turns out to be a bag item rather than a currency.
+  -- In case it's a bag item rather than a currency.
   local count = Compat.GetItemCount(Data.midnight.currencyName)
   if count and count > 0 then return count end
 end

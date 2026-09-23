@@ -1,11 +1,9 @@
--- Small comforts: a camera zoom preset while fishing, and a warning before
--- the game flags you as away.
+-- Camera zoom preset while fishing, and a warning before the AFK flag.
 local _, ns = ...
 local L = ns.L
 
 ---------------------------------------------------------------------------
--- Camera: zoom to a saved distance when you start fishing, and back when
--- you stop. Only zoom can be read and set by addons, so that is the preset.
+-- Camera zoom preset. Zoom is the only camera setting addons can read and set.
 ---------------------------------------------------------------------------
 
 local Camera = ns:NewModule("Camera")
@@ -39,8 +37,7 @@ function Camera:Unfocus()
 end
 
 ---------------------------------------------------------------------------
--- Away warning: the game flags you away after five minutes without input
--- and logs you out some time after that.
+-- Away warning: the game flags AFK after five minutes without input, then logs out.
 ---------------------------------------------------------------------------
 
 local Away = ns:NewModule("Away")
