@@ -1,6 +1,5 @@
--- Focus Audio: the game fires no event for the bobber splash, so the splash
--- sound is the bite cue. Boost it while the player is actually fishing; Core
--- restores every CVar when that ends, on mode off, on combat and on logout.
+-- Focus Audio: no event fires for the bobber splash, so its sound is the bite cue; boost it
+-- while fishing. Core restores every CVar when fishing ends, on mode off, combat and logout.
 local _, ns = ...
 
 local Audio = ns:NewModule("Audio")
