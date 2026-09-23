@@ -1,10 +1,5 @@
--- "Where should I fish now?" A ranked list of the player's own zones, built
--- entirely from data the other modules already keep: timed spots (Spots.lua)
--- for gold/hour, the catch log (Log.lua) for raw totals, and the lifetime
--- per-zone casts and catches (Stats.lua) for a catch rate. Gold/hour is the
--- best signal but needs several minutes of timed spots before it means
--- anything, so thinner zones fall back to catch rate, then to a plain catch
--- count, rather than pretend to a confidence the data doesn't support.
+-- "Where should I fish now?": ranks the player's zones by gold/hour (Spots),
+-- falling back to catch rate (Stats) then catch count (Log) when data is thin.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -21,9 +16,8 @@ local function ZoneName(mapID)
   return info and info.name or L["Unknown zone"]
 end
 
--- Time and value fished at a zone's remembered spots. Spots.Value always
--- returns a value even for untimed spots, so this counts every catch even
--- when none of them add up to the 5-minute threshold on their own.
+-- Spots.Value returns a value even untimed, so every catch counts toward
+-- the 5-minute threshold.
 local function SpotTotals(mapID)
   local seconds, value = 0, 0
   for _, spot in ipairs(ns.chardb.spots[mapID] or {}) do
@@ -34,8 +28,7 @@ local function SpotTotals(mapID)
   return seconds, value
 end
 
--- Total catches logged in a zone. Read from the catch log rather than
--- session stats alone, since the log outlives a Stats:Reset().
+-- Read from the catch log because it outlives Stats:Reset().
 local function LoggedCatches(mapID)
   local total = 0
   for _, entry in pairs(ns.chardb.log[mapID] or {}) do
@@ -44,8 +37,7 @@ local function LoggedCatches(mapID)
   return total
 end
 
--- One row per zone the player has any data for at all, from any of the
--- three sources.
+-- One row per zone with data in any of the three sources.
 local function ZoneRows()
   local mapIDs, seen = {}, {}
   local function Note(mapID)
@@ -82,8 +74,6 @@ local function ZoneRows()
   return rows
 end
 
--- The metric a row is judged on: gold/hour once there's enough timed data,
--- catch rate next, a plain catch count as the last resort.
 local function Metric(row)
   if row.perHour then return "perHour", row.perHour end
   if row.rate then return "rate", row.rate end
@@ -92,9 +82,8 @@ end
 
 local METRIC_RANK = { perHour = 3, rate = 2, catches = 1 }
 
--- Rows are never compared across metrics: a zone with a measured gold/hour
--- always outranks one that only has a catch rate, even a good one, because
--- the two numbers aren't measuring the same confidence.
+-- Metrics are never compared across tiers: any gold/hour row outranks any
+-- catch-rate row, since the numbers carry different confidence.
 local function CompareRows(a, b)
   local metricA, valueA = Metric(a)
   local metricB, valueB = Metric(b)
@@ -123,8 +112,7 @@ local function RowText(row, rank)
   end
 end
 
--- The best remembered spot inside a zone, by gold/hour where timed, else by
--- raw value.
+-- Best spot in a zone: by gold/hour where timed, else raw value.
 local function BestSpotIn(mapID)
   local best, bestScore, bestPerHour
   for _, spot in ipairs(ns.chardb.spots[mapID] or {}) do
@@ -165,8 +153,7 @@ function Recommend:Lines()
       Compat.CoinString(bestSpotPerHour)))
   end
 
-  -- Live context: say so if the current spot is running well below the
-  -- best known rate, but only once there's a confident best to compare to.
+  -- Warn about a slow current spot only once there's a confident best rate.
   local session = ns.Log and ns.Log.session
   local stats = session and ns.Log:Stats()
   if best.perHour and stats and stats.perHour > 0 then

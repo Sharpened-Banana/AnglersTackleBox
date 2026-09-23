@@ -1,7 +1,5 @@
--- Pool route memory: remembers where you have fished and pins those spots
--- on the world map, so a few sessions build your own route for each zone.
--- Each spot keeps its catches and the time spent there, which is what the
--- gold rankings work from.
+-- Pool route memory: pins fished spots on the world map. Each spot keeps its
+-- catches and time spent, which the gold rankings use.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -54,8 +52,7 @@ ns:On("CAST_LOOTED", function(looted, pool)
   Spots:RefreshPins()
 end)
 
--- Current value of everything caught at a spot, and its hourly rate once
--- there are a few minutes of data behind it.
+-- Value caught at a spot, plus gold/hour once there are a few minutes of data.
 function Spots.Value(spot)
   local value = 0
   for itemID, quantity in pairs(spot.items) do
@@ -70,8 +67,7 @@ function Spots.Name(spot)
 end
 
 ---------------------------------------------------------------------------
--- World map pins: plain buttons on the map canvas, drawn only while the
--- map is open.
+-- World map pins: plain buttons on the map canvas, drawn only while it is open.
 ---------------------------------------------------------------------------
 
 local overlay, pins = nil, {}
@@ -126,9 +122,7 @@ local function AcquirePin(index, pinParent)
   return pin
 end
 
--- Places one pin (personal spot or shipped pool) at its map position.
--- Shipped pools use a different icon and color so they read as "not yours
--- yet" rather than a place the player has actually fished.
+-- Shipped pools get their own icon and color so they read as "not fished yet".
 local function PlacePin(index, pinParent, spot, shipped, mapID, width, height, size)
   local pin = AcquirePin(index, pinParent)
   pin.spot, pin.mapID, pin.shipped = spot, mapID, shipped
@@ -142,8 +136,7 @@ local function PlacePin(index, pinParent, spot, shipped, mapID, width, height, s
   pin:SetSize(size, size)
   pin:ClearAllPoints()
   pin:SetPoint("CENTER", pinParent, "TOPLEFT", spot.x * width, -spot.y * height)
-  -- Pools stand out; open-water spots sit back. Shipped pools always look
-  -- like pools (they only ever record named spots).
+  -- Pools stand out; open water sits back. Shipped entries are always pools.
   pin:SetAlpha((shipped or spot.pool) and 1 or 0.6)
   pin:Show()
   return index + 1
@@ -204,7 +197,6 @@ function Spots:Forget(mapID, spot)
   return false
 end
 
--- Forgets the spot the player is standing on.
 function Spots:ForgetHere()
   local mapID, x, y = PlayerPosition()
   if not mapID then return false end

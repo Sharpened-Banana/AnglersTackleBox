@@ -1,5 +1,4 @@
--- Alerts: one place for every screen, sound and flash alert, with a toggle
--- per category. The chat line always prints; the rest can be turned off.
+-- Screen, sound and flash alerts with a per-category toggle. The chat line always prints.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -19,9 +18,8 @@ Alerts.categories = {
   { key = "goal", label = L["Session goals"] },
 }
 
--- Alert sounds: only the game's own sound kits, played with PlaySound. Each
--- entry has its SOUNDKIT name and the numeric kit ID, so a client whose
--- SOUNDKIT table lacks the name still plays the same sound.
+-- Game sound kits only. The numeric ID is a fallback for clients whose
+-- SOUNDKIT table lacks the name.
 Alerts.sounds = {
   { key = "raidWarning", label = L["Raid warning"], kit = "RAID_WARNING", id = 8959 },
   { key = "readyCheck", label = L["Ready check"], kit = "READY_CHECK", id = 8960 },

@@ -25,8 +25,7 @@ local function GoldText(copper)
 end
 Records.GoldText = GoldText
 
--- Replaces a record when beaten. The first value ever set is not a "new
--- record", so a first session doesn't spray toasts.
+-- The first value ever set isn't announced, so a first session doesn't spray toasts.
 local function Beat(key, value, detail, announce)
   local records = ns.chardb.records
   local old = records[key]
@@ -102,8 +101,8 @@ function Records:Lines()
 end
 
 ---------------------------------------------------------------------------
--- Share: post the session to chat. Always from a click or slash command,
--- which is what the game requires for sending chat.
+-- Share: post the session to chat. Must run from a click or slash command;
+-- the game requires that for sending chat.
 ---------------------------------------------------------------------------
 
 function Records:Summary()

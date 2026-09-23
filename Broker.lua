@@ -1,6 +1,5 @@
--- Minimap button and data broker feed. Uses LibDataBroker and LibDBIcon
--- when another addon has already loaded them; otherwise falls back to a
--- plain minimap button of its own. No library is bundled.
+-- Minimap button and LDB feed. Uses LibDataBroker/LibDBIcon only if another
+-- addon loaded them (none are bundled); else a plain minimap button.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 

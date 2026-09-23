@@ -1,6 +1,5 @@
--- Decides what the next keypress should do. It only ever describes one
--- action; the Engine points the key at it and the player's press does it.
--- Combat, death and mounts are handled by the Engine before this is asked.
+-- Picks the one action the next keypress performs; the Engine binds it and
+-- handles combat, death and mounts before asking.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -20,8 +19,7 @@ local function Snoozed(id)
   return untilTime ~= nil and GetTime() < untilTime
 end
 
--- A prep action that keeps being pressed without taking effect would block
--- casting forever, so it gets set aside for a while instead.
+-- Snooze a prep action that keeps failing, or it would block casting forever.
 function Planner:NoteAttempt(action)
   if not action or action.id == "cast" then return end
   local id = action.id
@@ -56,8 +54,8 @@ local function RaftAction()
   local raft = Data.raft
   local actionType, value = UseAction(raft.item)
   if not actionType or not Compat.ItemReady(raft.item) then return nil end
-  -- Start the raft when swimming; otherwise only keep a running raft alive,
-  -- so fishing from the shore never burns it.
+  -- Start the raft only when swimming (else just keep it alive), so shore
+  -- fishing never burns it.
   local remaining = Compat.AuraRemaining(raft.spell)
   if IsSwimming() or (remaining and remaining < RAFT_REFRESH) then
     return { id = "raft", type = actionType, value = value, label = L["Fishing raft"] }

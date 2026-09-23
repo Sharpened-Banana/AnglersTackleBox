@@ -1,6 +1,5 @@
--- Events Clock: countdowns to the fishing contests, the Derby Dasher timer
--- and, on Classic Era, the time-of-day and seasonal fish. All times are realm time. Nothing here runs
--- unless fishing mode is on or the player asks with /tb events.
+-- Events Clock: contest countdowns, the Derby Dasher timer and Classic Era's
+-- time-of-day and seasonal fish. All times are realm time. Runs only in fishing mode or /tb events.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -66,8 +65,8 @@ local function DasherRemaining()
   if remaining and remaining ~= math.huge then return remaining end
 end
 
--- The event worth showing: a running derby timer first, then whatever is
--- on, else whatever starts next. The session window asks for short names.
+-- Priority: running derby timer, then an active event, then the next one.
+-- The session window asks for short names.
 function Events:Headline(short)
   local dasher = DasherRemaining()
   if dasher then
