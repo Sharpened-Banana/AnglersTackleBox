@@ -167,8 +167,8 @@ local ach = { { 1, "Done One", true }, { 2, "1000 Fish", false }, { 3, "Checklis
 GetAchievementInfo = function(_, i) return ach[i][1], ach[i][2], 10, ach[i][3] end
 GetAchievementNumCriteria = function(id) return id == 2 and 1 or 4 end
 GetAchievementCriteriaInfo = function(id, i) if id == 2 then return "fish", 0, false, 412, 1000 end return "part", 0, i <= 1, 0, 1 end
--- Cooking window: one recipe using a fish already in the catch log, so
--- Shopping.lua has something real to cross-reference against.
+-- Cooking window: one recipe using a logged fish,
+-- so Shopping.lua has something to cross-reference.
 local tradeSkillOpen = false
 if CLASSIC then
   GetTradeSkillLine = function() return tradeSkillOpen and "Cooking" or nil end
@@ -180,7 +180,7 @@ if CLASSIC then
     if i == 1 and r == 1 then return "|Hitem:6358:0|h[Oily Blackmouth]|h" end
   end
 else
-  -- Shaped like the real Retail API: no GetTradeSkillLine since Dragonflight.
+  -- Retail API shape: no GetTradeSkillLine since Dragonflight.
   -- Recipe 2 is unlearned and must not count.
   C_TradeSkillUI = {
     -- Like Midnight: profession info is blank even with the window open,
@@ -313,7 +313,7 @@ check(ns.Engine.state == "CHANNELING" and bindings.F == "CLICK AnglersTackleBoxA
 keydown = false; advance(0.06)
 check(bindings.F == "INTERACTTARGET", "key released -> armed to reel in")
 
--- a key that reads as down forever (focus lost mid-press) must not freeze the binding
+-- a key stuck down (focus lost mid-press) must not freeze the binding
 keydown = true
 fire("UNIT_SPELLCAST_CHANNEL_STOP", "player", "guid", 131476)
 advance(0.06)
