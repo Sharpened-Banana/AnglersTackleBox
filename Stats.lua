@@ -107,13 +107,11 @@ function Stats:Reset()
 end
 
 ---------------------------------------------------------------------------
--- Account-wide (warband) totals: this character's lifetime Stats mirrored
--- into ns.db (account-wide), keyed by name-realm, so every character that
--- has played this addon on the account shows up in one place.
+-- Warband totals: each character's lifetime stats mirrored into the
+-- account-wide ns.db, keyed by name-realm.
 ---------------------------------------------------------------------------
 
--- Stable across sessions and realms; nil while the player unit isn't ready
--- yet (should not happen once ADDON_LOADED / PLAYER_ENTERING_WORLD fired).
+-- "Name-Realm"; nil while the player unit isn't ready yet.
 function Stats:AccountKey()
   local name = UnitName and UnitName("player")
   if not name or name == "" then return nil end
@@ -122,8 +120,7 @@ function Stats:AccountKey()
   return name .. "-" .. realm
 end
 
--- Called after every lifetime-affecting event, and on reset, so the
--- account-wide slot never drifts from this character's own totals.
+-- Runs after every lifetime change and on reset so the account copy never drifts.
 function Stats:SyncAccount()
   local key = self:AccountKey()
   if not key then return end
@@ -137,8 +134,7 @@ function Stats:SyncAccount()
   }
 end
 
--- Combined totals across every known character, plus the list they were
--- built from (sorted by gold value, richest first).
+-- Combined totals across all characters, plus the per-character list, richest first.
 function Stats:AccountData()
   local characters = ns.db.characters or {}
   local combined = { casts = 0, catches = 0, items = 0, value = 0, seconds = 0, count = 0 }
@@ -156,8 +152,7 @@ function Stats:AccountData()
   return combined, list
 end
 
--- Casts, catches, value and time over the last `days` days, from the saved
--- sessions, the daily roll-ups and the session in progress.
+-- Totals for the last `days` days: saved sessions, daily roll-ups and the live session.
 function Stats:Window(days)
   local cutoff = time() - days * 86400
   local total = { casts = 0, catches = 0, value = 0, seconds = 0 }
@@ -193,9 +188,8 @@ Stats.Duration = Duration
 
 local DIRECTION = { rising = L["rising"], falling = L["falling"], steady = L["steady"] }
 
--- One line for a catch-rate trend from ns.Log.Trend: "Rate: 42/hr, falling".
--- The recent rate, since that is what the direction describes. nil while
--- the session is too young for a rate.
+-- "Rate: 42/hr, falling" from ns.Log.Trend. Shows the recent rate, since that is what
+-- the direction describes; nil while the session is too young.
 function Stats.RateText(trend)
   if not trend or not trend.recent then return nil end
   if trend.direction then
@@ -311,9 +305,8 @@ function Stats:Lines()
   return lines
 end
 
--- The warband report: combined totals across every character on the
--- account, and a per-character breakdown. With only one character known,
--- the breakdown is skipped - it would just repeat the totals above it.
+-- Warband report. The per-character breakdown is skipped with one character: it would
+-- only repeat the totals.
 function Stats:AccountLines()
   local combined, list = self:AccountData()
   local lines = {}
