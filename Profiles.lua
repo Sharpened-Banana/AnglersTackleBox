@@ -1,9 +1,5 @@
--- Settings profiles: settings exported to and imported from a text string,
--- and one set of per-character settings shared by all characters.
--- Only the settings named in the allow-lists below ever travel. Catch logs,
--- sessions, spots, records, prices and the rest of the saved data never
--- leave the saved variables. Strings are read by a small parser below;
--- nothing imported is ever run as code.
+-- Settings export/import as text, and per-character settings shared by all characters.
+-- Only allow-listed settings travel (never logs, records or prices); imports are parsed, never run as code.
 local _, ns = ...
 local L = ns.L
 
@@ -16,10 +12,9 @@ local MAX_ENTRIES = 200   -- entries in any one table
 local MAX_STRING = 200    -- characters in any one string
 
 ---------------------------------------------------------------------------
--- Allow-lists: a path into ns.db or ns.chardb and, where the default is
--- nil or a table, the kind of value it holds. Otherwise the kind is the
--- default's type. Kinds: boolean, number, string, "string|number",
--- "list:<type>" and "map:<type>" (string keys).
+-- Allow-lists: a path into ns.db / ns.chardb, plus a kind when the default is nil or a
+-- table (else the default's type). Kinds: boolean, number, string, "string|number",
+-- "list:<type>", "map:<type>" (string keys).
 ---------------------------------------------------------------------------
 
 local function ValidSound(value)
@@ -68,8 +63,7 @@ local function Copy(value)
   return out
 end
 
--- Tables are refilled in place: the settings panel and LibDBIcon hold on
--- to the saved tables themselves.
+-- Refill tables in place: the settings panel and LibDBIcon hold references to them.
 local function Set(root, path, value)
   local parts = {}
   for part in path:gmatch("[^.]+") do parts[#parts + 1] = part end
@@ -137,7 +131,7 @@ local function Valid(entry, value)
   return not entry.check or entry.check(value)
 end
 
--- The allow-listed settings of one saved table, flat: { ["audio.enabled"] = true, ... }
+-- Allow-listed settings of one saved table, flat: { ["audio.enabled"] = true, ... }
 local function Collect(root, list)
   local out = {}
   for _, entry in ipairs(list) do
@@ -409,9 +403,8 @@ function Profiles:ShowImport()
 end
 
 ---------------------------------------------------------------------------
--- Same settings on all characters. The per-character settings still live
--- in ns.chardb, so nothing else in the addon changes: at login the shared
--- copy is written into chardb, and at logout chardb is copied back.
+-- Shared character settings still live in ns.chardb: the shared copy is written
+-- into chardb at login and copied back at logout, so no other module changes.
 ---------------------------------------------------------------------------
 
 local logout = CreateFrame("Frame")

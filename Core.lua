@@ -1,8 +1,5 @@
--- Addon table, saved variables, the fishing-mode toggle and event plumbing.
--- Design rule: with fishing mode off, Angler's TackleBox is inert. Nothing below
--- registers a gameplay event, runs a timer or touches a CVar until the
--- player turns the mode on. Even with the mode on, CVars only change while
--- the player is actually fishing ("focus"), so the mode can stay on all day.
+-- Addon table, saved variables, fishing-mode toggle and event plumbing. With the mode off
+-- nothing registers gameplay events, runs timers or touches CVars; CVars change only while fishing ("focus").
 local ADDON, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -10,8 +7,7 @@ local Core = {}
 ns.Core = Core
 ns.modules = {}
 
--- Modules enable in load order and disable in reverse, so the Engine
--- (loaded last) arms the key after gear and lures are ready.
+-- Enable in load order, disable in reverse: the Engine (loaded last) arms the key after gear and lures.
 function ns:NewModule(name)
   local module = { name = name }
   self[name] = module
@@ -23,9 +19,7 @@ function ns:Print(msg)
   print("|cff4fc3f7TackleBox|r: " .. tostring(msg))
 end
 
--- Internal messages, so optional modules can react to catches and sessions
--- without the log knowing about them: CAST_LOOTED, CATCH, SESSION_START,
--- SESSION_END.
+-- Internal messages (CAST_LOOTED, CATCH, SESSION_START, SESSION_END), so the log needn't know optional modules.
 local listeners = {}
 
 function ns:On(message, handler)
@@ -39,8 +33,7 @@ function ns:Fire(message, ...)
   for i = 1, #handlers do handlers[i](...) end
 end
 
--- Reports are lists of { text = ..., header = bool } so chat and the menu
--- window can show the same thing.
+-- Reports are lists of { text = ..., header = bool }, shared by chat and the menu window.
 function ns:PrintLines(lines)
   for _, line in ipairs(lines) do
     if line.header then self:Print(line.text) else print("   " .. line.text) end
@@ -58,16 +51,16 @@ end
 
 ns.defaults = {
   key = nil,            -- the one fishing key, e.g. "F" or "SHIFT-BUTTON4"
-  welcomed = false,     -- the first-run welcome has been seen
-  alwaysOn = false,     -- fishing mode turns itself on at login and after instances
-  softInteract = true,  -- raise the soft-interact CVars while fishing
-  classicSoftInteract = false, -- WoW Forever: reel with soft interact instead of mouseover
+  welcomed = false,     -- first-run welcome seen
+  alwaysOn = false,     -- mode starts at login and after instances
+  softInteract = true,  -- raise soft-interact CVars while fishing
+  classicSoftInteract = false, -- WoW Forever: reel via soft interact, not mouseover
   autoLoot = true,
   useRaft = false,
   doubleClick = false,  -- double right-click performs the armed action
-  oversizedBobber = true, -- keep the Reusable Oversized Bobber up, when owned
+  oversizedBobber = true, -- keep the Reusable Oversized Bobber up, if owned
   bobber = nil,         -- bobber toy to keep up: an item ID, "random" or nil
-  eventAlerts = true,   -- fishing event reminders while fishing
+  eventAlerts = true,   -- fishing event reminders
   autoPole = false,     -- Classic: fishing mode follows the equipped pole
   lureWarn = 60,        -- seconds before expiry
   alerts = true,
@@ -76,19 +69,19 @@ ns.defaults = {
   valueAlert = 0,       -- gold; alert on a single catch worth at least this (0 = off)
   priceCap = 2000,      -- gold; a single fish listed above this is ignored (0 = no ceiling)
   prices = {},          -- [itemID] = last trusted auction price, for spike detection
-  priceHistory = {},    -- [itemID] = up to 14 { day, price } points, one a day, for the price graph
-  ahScan = true,        -- offer to refresh stale fish prices when the auction house opens
+  priceHistory = {},    -- [itemID] = up to 14 daily { day, price } points (price graph)
+  ahScan = true,        -- offer a stale-price refresh at the auction house
   ahScanDays = 1,       -- prices at least this old count as stale
-  mapPins = true,       -- show fished spots on the world map
+  mapPins = true,       -- fished spots on the world map
   afkWarning = true,
-  camera = { enabled = false }, -- zoom preset applied while fishing
+  camera = { enabled = false }, -- zoom preset while fishing
   minimap = { hide = false, angle = 215 },
   alertTypes = {},      -- [category] = false turns one kind of alert off
   sessionGoals = { catches = 0, gold = 0, minutes = 0 }, -- per-session targets (0 = off)
   alertSound = "raidWarning", -- key into Alerts.sounds; "none" plays nothing
   alertSounds = {},     -- [category] = sound key, overriding alertSound
   shareCharSettings = false, -- one set of per-character settings for all characters
-  sharedChar = {},      -- that shared set, saved at logout (see Profiles.lua)
+  sharedChar = {},      -- the shared set, saved at logout (Profiles.lua)
   audio = {
     enabled = true,
     sfxVolume = 1.0,
@@ -97,22 +90,22 @@ ns.defaults = {
     backgroundSound = true,
   },
   hud = { shown = true, scale = 1.0, tab = "session", tabs = { "lures", "log" } },
-  ids = {},             -- game IDs discovered at runtime (faction, currency)
+  ids = {},             -- game IDs found at runtime (faction, currency)
   cvarBackup = {},
-  characters = {},      -- [name-realm] = mirrored lifetime Stats totals, for the warband view
+  characters = {},      -- [name-realm] = lifetime Stats totals (warband view)
 }
 
 ns.charDefaults = {
   gearSwap = true,
-  liveSession = nil,    -- the session in progress at the last reload or logout (Log)
-  resumeMode = nil,     -- time() of a logout with fishing mode on, to turn it back on
+  liveSession = nil,    -- session in progress at last reload/logout (Log)
+  resumeMode = nil,     -- time() of a logout with the mode on, to resume it
   gearCombatRestore = true,
   fishingSet = nil,     -- equipment set name
-  cookingReagents = nil, -- [itemID] = recipe uses, from the last Cooking window scan (Shopping)
+  cookingReagents = nil, -- [itemID] = recipe uses from the last Cooking scan (Shopping)
   poleID = nil,
   lureEnabled = true,
   lureID = nil,         -- nil = pick from Data.lures
-  lureAutoSwap = false, -- out of the picked lure: fall back to another owned one
+  lureAutoSwap = false, -- when out of the picked lure, use another owned one
   extras = {},          -- item/toy IDs kept up while fishing
   spots = {},           -- [mapID] = list of places fished
   records = {},         -- personal bests
@@ -135,8 +128,7 @@ local function ApplyDefaults(target, defaults)
 end
 
 ---------------------------------------------------------------------------
--- CVars: every change is backed up in the saved variables first, so a
--- crash or disconnect can still be undone at the next login.
+-- CVars: backed up in saved variables before any change, so a crash can be undone next login.
 ---------------------------------------------------------------------------
 
 local CVars = {}
@@ -144,7 +136,7 @@ ns.CVars = CVars
 
 function CVars:Set(name, value)
   local current = Compat.GetCVar(name)
-  if current == nil then return end -- CVar doesn't exist on this client
+  if current == nil then return end -- not on this client
   value = tostring(value)
   local backup = ns.db.cvarBackup
   if backup[name] == nil then backup[name] = current end
@@ -160,8 +152,7 @@ function CVars:RestoreAll()
 end
 
 ---------------------------------------------------------------------------
--- Mode events: registered when fishing mode turns on, dropped when it
--- turns off.
+-- Mode events: registered only while fishing mode is on.
 ---------------------------------------------------------------------------
 
 local modeFrame = CreateFrame("Frame")
@@ -172,9 +163,8 @@ function ns:OnModeEvent(event, handler)
   table.insert(modeHandlers[event], handler)
 end
 
--- While combat has the mode suspended, handlers see nothing but the events
--- that end the suspension. Midnight makes some event payloads "secret" in
--- combat, where even testing them is an error; not running is the safe side.
+-- While suspended for combat, only these events get through: Midnight makes some
+-- payloads "secret" in combat, where even testing them is an error.
 local ALWAYS_DELIVERED = {
   PLAYER_REGEN_ENABLED = true, PLAYER_REGEN_DISABLED = true, PLAYER_ENTERING_WORLD = true,
 }
@@ -204,7 +194,7 @@ Core.mode = false
 Core.suspended = false
 Core.focused = false
 
-local FOCUS_IDLE = 30 -- seconds without fishing before CVars go back
+local FOCUS_IDLE = 30 -- seconds idle before CVars are restored
 
 local function ForEachModule(method, reverse)
   local first, last, step = 1, #ns.modules, 1
@@ -262,15 +252,13 @@ function Core:SetMode(on, quiet)
   end
 end
 
--- A manual "off" holds until the player turns the mode back on, even when
--- always-on would otherwise restart it at the next loading screen.
+-- A manual "off" sticks until the player turns the mode on, even with always-on.
 function Core:ToggleMode()
   self.manualOff = self.mode and ns.db.alwaysOn or nil
   self:SetMode(not self.mode)
 end
 
--- Focus: the player is actually fishing. Starts at a cast, ends after a
--- short idle. Sound and interact CVars are only changed inside it.
+-- Focus = actually fishing: starts at a cast, ends after FOCUS_IDLE. Sound and interact CVars change only inside it.
 function Core:Focus()
   self.lastActivity = GetTime()
   if self.focused or not self.mode or self.suspended then return end
@@ -294,7 +282,7 @@ function Core:Tick()
   ForEachModule("Tick")
 end
 
--- Always-on: start the mode whenever that is possible and wanted.
+-- Always-on: start the mode when allowed.
 function Core:AutoStart()
   if not ns.db.alwaysOn or self.mode or self.manualOff or InGroupInstance() then return end
   if InCombatLockdown() then
@@ -311,8 +299,7 @@ function Core:SetAlwaysOn(on)
   self:AutoStart()
 end
 
--- Combat: PLAYER_REGEN_DISABLED fires just before lockdown begins, which is
--- the last moment bindings, CVars and gear can still be put back.
+-- PLAYER_REGEN_DISABLED fires just before lockdown: the last chance to restore bindings, CVars and gear.
 function Core:Suspend()
   if not self.mode or self.suspended then return end
   self.suspended = true
@@ -343,14 +330,14 @@ ns:OnModeEvent("PLAYER_ENTERING_WORLD", function()
 end)
 
 ---------------------------------------------------------------------------
--- Always-on events: load, login, logout. Nothing here fires in combat.
+-- Always-on events: load, login, logout. None fire in combat.
 ---------------------------------------------------------------------------
 
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGOUT")
 
--- Classic option: fishing mode follows the pole in the main hand.
+-- Classic: fishing mode follows the pole in the main hand.
 local function OnEquipmentChanged(slot)
   if slot ~= Compat.MAINHAND or Core.suspended then return end
   if ns.Gear.lastSwap and GetTime() - ns.Gear.lastSwap < 2 then return end
@@ -364,8 +351,7 @@ local function OnEquipmentChanged(slot)
   end
 end
 
--- Always-on needs two cheap, non-combat events to restart the mode after a
--- loading screen or a fight. They are only registered while it is enabled.
+-- Always-on restarts the mode after a loading screen or fight; these events are registered only while it's enabled.
 function Core:UpdateAlwaysOn()
   if ns.db.alwaysOn then
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -395,7 +381,7 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     ApplyDefaults(AnglersTackleBoxCharDB, ns.charDefaults)
     ns.db, ns.chardb = AnglersTackleBoxDB, AnglersTackleBoxCharDB
 
-    -- Leftovers from a session that never got to clean up.
+    -- Undo CVars from a session that never cleaned up.
     CVars:RestoreAll()
 
     ForEachModule("Init")
@@ -408,15 +394,14 @@ frame:SetScript("OnEvent", function(_, event, arg1)
       Core.loggedIn = true
       if not ns.db.alwaysOn then frame:UnregisterEvent("PLAYER_ENTERING_WORLD") end
       ns.Welcome:Maybe()
-      -- Back within a few minutes of a reload or logout that had fishing
-      -- mode on: carry on fishing. Always-on starts it by itself below.
+      -- Resume a mode left on at a recent reload/logout; always-on starts itself below.
       local resume = ns.chardb.resumeMode
       ns.chardb.resumeMode = nil
       if resume and not ns.db.alwaysOn and time() - resume <= ns.Log.RESUME_WINDOW
         and not InGroupInstance() and not InCombatLockdown() then
         Core:SetMode(true, true)
       end
-      -- Gear can't be swapped back during logout, so finish that job now.
+      -- Gear can't be swapped during logout, so restore it now.
       if ns.chardb.gearBackup then
         C_Timer.After(2, function()
           if (not Core.mode or ns.db.alwaysOn) and not InCombatLockdown() then ns.Gear:Restore() end
