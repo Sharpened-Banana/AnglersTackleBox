@@ -1,7 +1,5 @@
--- Session window. Session is always the first tab; the rest come from a
--- catalogue and are the player's choice (default: Lures and Log). The frame
--- is built the first time it is needed, so a character that never fishes
--- never pays for it.
+-- Session window: Session tab first, then the player's picks from HUD.catalog.
+-- Built on first use, so a character that never fishes never pays for it.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -59,8 +57,7 @@ local function Build()
   frame.state = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   frame.state:SetPoint("TOPRIGHT", -10, -10)
 
-  -- Tabs: plain text buttons with a brass underline on the open one. The
-  -- buttons are a pool; Refresh lays out however many tabs are chosen.
+  -- Tab button pool; Refresh lays out however many tabs are chosen.
   frame.tabs = {}
   for index = 1, MAX_TABS do
     local button = CreateFrame("Button", nil, frame)
@@ -125,7 +122,6 @@ local ROW_COLORS = { gold = { 1, 0.82, 0 }, green = { 0.25, 1, 0.25 }, white = {
 local function SetRow(row, left, right, onClick, style)
   row.left:SetText(left or "")
   row.right:SetText(right or "")
-  -- A row with nothing on the right may use the full width.
   row.left:SetWidth((right == nil or right == "") and (WIDTH - 20) or (WIDTH - 90))
   row.onClick = onClick
   row:EnableMouse(onClick ~= nil)
@@ -168,7 +164,7 @@ function fill.session(frame)
   else
     SetRow(rows[6], L["Next press"], ns.Engine.nextLabel or "")
   end
-  -- The footer carries the event headline; with none, the catch-rate trend.
+  -- Footer: the event headline, else the catch-rate trend.
   return ns.Events:Headline(true) or ns.Stats.RateText(ns.Log:CatchTrend()) or "", nil
 end
 
@@ -235,7 +231,7 @@ function fill.log(frame)
   return L["Full catch log..."], "log"
 end
 
--- Tabs built from a report: the first rows of its lines.
+-- A tab showing the first rows of a report's lines.
 local function FromLines(getLines, skipFirstHeader)
   return function(frame)
     local shown = 0
@@ -266,7 +262,7 @@ function fill.bobbers(frame)
     if entry and #choices > 1 then
       local chosen = ns.db.bobber == entry.choice
       SetRow(rows[index], entry.name, chosen and L["chosen"] or "", function()
-        ns.db.bobber = (not chosen) and entry.choice or nil -- click again to turn it off
+        ns.db.bobber = (not chosen) and entry.choice or nil -- click again to clear
         ns.Bobbers.randomPick = nil
       end, chosen and "green" or "white")
     elseif index == 2 then
@@ -415,8 +411,7 @@ function HUD:Refresh()
   end
 end
 
--- Shown while there is a session to show: the whole time in normal mode,
--- from the first cast until the idle timeout with always-on.
+-- Shown while a session exists: all mode long normally, first cast to idle timeout with always-on.
 function HUD:UpdateVisibility()
   local show = ns.Core.mode and ns.db.hud.shown and ns.Log.session ~= nil
   if show and not self.frame then self.frame = Build() end

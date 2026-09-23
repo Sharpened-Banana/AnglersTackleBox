@@ -1,8 +1,5 @@
--- Graph: a small chart drawn with plain textures, for the Statistics and
--- Gold compartments. Bars, or a line through the points where the client
--- can draw lines (Texture lines via CreateLine); without them a line graph
--- falls back to bars. An optional flat reference line (an average, say)
--- runs across the whole width. No libraries.
+-- Small texture-drawn chart (bars or line) for the Statistics and Gold compartments. No libraries.
+-- Line mode needs CreateLine; clients without it fall back to bars.
 local _, ns = ...
 
 local Graph = {}
@@ -50,8 +47,7 @@ end
 
 -- Draws `values` (numbers, left to right). opts:
 --   mode = "bars" (default) or "line"
---   floor = the value at the bottom edge (default 0; a price graph uses
---           a little under its lowest point so the movement shows)
+--   floor = value at the bottom edge (default 0; price graphs sit just under the low)
 --   reference = a value to mark with a flat line across the graph
 --   tooltip = function(index, value) returning lines for GameTooltip
 --   empty = text shown in the middle when there is nothing to draw
@@ -74,7 +70,7 @@ function Methods:SetValues(values, opts)
     return math.max(1, math.min(height - 1, (value - floor) / span * (height - 2) + 1))
   end
 
-  -- Lines where the client has them; otherwise the line graph is bars.
+  -- Probe CreateLine once; a working probe becomes lines[1].
   if self.canLine == nil then
     local probe = NewLine(self.frame, self.color)
     self.canLine = probe ~= nil
@@ -153,7 +149,7 @@ function Methods:Clear(text)
 end
 
 -- A graph of the given size inside `parent`; place it with graph.frame.
--- color is the bar and line colour, background an optional { r, g, b, a }.
+-- color is the bar/line colour, background an optional { r, g, b, a }.
 function Graph.New(parent, width, height, color, background)
   local graph = setmetatable({
     width = width, height = height, color = color or { 0.85, 0.66, 0.22 },
