@@ -1,22 +1,14 @@
--- Shopping List: fish you've caught that a Cooking recipe wants as a
--- reagent, how many you're holding, and roughly how many more casts it
--- takes to fill the gap at your own catch rate.
---
--- Scope: Cooking only for v1. Other professions (Alchemy, Enchanting) do
--- occasionally take a fish, but which ones varies by expansion and we have
--- no reliable static list to cross-check against, so guessing IDs would be
--- worse than saying nothing. The trade skill window itself is scanned
--- instead of a hard-coded recipe/reagent table, so this stays correct as
--- recipes come and go - it just needs the Cooking window opened once.
+-- Shopping List: caught fish that Cooking recipes use, how many you hold, and casts to fill the gap.
+-- Cooking only: other professions' fish vary by expansion with no reliable list, and guessed
+-- IDs are worse than nothing. Recipes come from the open window, not a hard-coded table.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
 local Shopping = {}
 ns.Shopping = Shopping
 
--- Reagent uses from the last time the Cooking window was open, keyed by
--- itemID. Saved per character so the list survives a reload or logout;
--- nil until the Cooking window has been opened once on this character.
+-- Reagent uses by itemID from the last Cooking scan, saved per character so it survives
+-- a reload; nil until the Cooking window has been opened once.
 local cache
 
 local function Saved()
@@ -33,9 +25,8 @@ local function Rebuild()
   if ns.chardb then ns.chardb.cookingReagents = uses end
 end
 
--- Retail fills the recipe list a moment after the window shows, so scan on
--- every list update and once more shortly after opening. Events a client
--- does not know are skipped rather than erroring.
+-- Retail fills the recipe list a moment after the window shows: scan on every list
+-- update and once more after opening. Events a client doesn't know are skipped via pcall.
 local watcher = CreateFrame("Frame")
 for _, event in ipairs({ "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE", "TRADE_SKILL_DATA_SOURCE_CHANGED" }) do
   pcall(watcher.RegisterEvent, watcher, event)
@@ -45,8 +36,7 @@ watcher:SetScript("OnEvent", function(_, event)
   if event == "TRADE_SKILL_SHOW" and C_Timer then C_Timer.After(1, Rebuild) end
 end)
 
--- Rows: one per fish that is both a known Cooking reagent and something the
--- player has actually caught, worst shortfall first.
+-- One row per caught fish that a known recipe uses, worst shortfall first.
 local function Rows()
   local rows = {}
   if not Saved() then return rows end
@@ -74,9 +64,7 @@ local function Rows()
   return rows
 end
 
--- Casts still needed to close the gap, from lifetime casts vs. lifetime
--- catches of this fish (Stats/Journal). nil when there isn't enough data
--- to estimate a rate.
+-- Casts to close the gap, from lifetime casts vs catches of this fish; nil without enough data.
 local function CastsNeeded(row)
   if row.short <= 0 or row.caught <= 0 then return nil end
   local stats = ns.Stats and ns.Stats:Data()
@@ -87,23 +75,19 @@ local function CastsNeeded(row)
   return math.ceil(row.short / perCast)
 end
 
--- Inline icon markup, WoW's own "|T<path>:<size>|t" escape sequence. Blank
--- when there is no icon, so a missing texture never leaves a gap of spaces.
+-- "|T<path>:<size>|t" icon markup; empty without a texture so no gap is left.
 local function Icon(texture, size)
   return texture and ("|T" .. texture .. ":" .. (size or 16) .. ":" .. (size or 16) .. ":0:0|t ") or ""
 end
 
--- A plain item hyperlink built from what we already know (id and name),
--- rather than through GetItemInfo, so it doesn't depend on that item's
--- info being cached yet. Clickable and tooltip-able like any other link.
+-- The cached item link, or one built from id and name when the item info isn't loaded yet.
 local function FishLink(itemID, name)
   local link = select(2, Compat.GetItemInfo(itemID))
   if type(link) == "string" and link:find("|Hitem:", 1, true) then return link end
   return string.format("|cffffffff|Hitem:%d|h[%s]|h|r", itemID, name)
 end
 
--- One recipe's name, as a clickable link to the crafted dish when the API
--- hands one over, or plain text otherwise.
+-- Recipe name as a clickable link when the API gives one, else plain text.
 local function RecipeText(use)
   if not use.link and use.recipeID then use.link = Compat.RecipeLink(use.recipeID, use.recipe) end
   return Icon(use.icon) .. (use.link or use.recipe)
@@ -184,8 +168,7 @@ function Shopping:Lines(view)
   for _, row in ipairs(rows) do
     lines[#lines + 1] = { text = string.format(L["%s%s - have %d:"],
       Icon(Compat.ItemIcon(row.id), 20), FishLink(row.id, row.name), row.held) }
-    -- One recipe per line, each with its own amount, rather than a single
-    -- comma-packed line - easier to read when a fish is used several ways.
+    -- One recipe per line: easier to read than a comma list when a fish has several uses.
     for _, use in ipairs(row.uses) do
       lines[#lines + 1] = { text = "      " .. RecipeText(use) .. string.format(L[" - needs %d"], use.need) }
     end
@@ -203,8 +186,7 @@ function Shopping:Lines(view)
   return lines
 end
 
--- Menu.lua calls this once, when the compartment is first built, so a
--- window already open before /tb menu is used still counts.
+-- Menu.lua calls this once when the compartment is built, so a window opened before /tb menu counts.
 function Shopping:Refresh()
   Rebuild()
 end

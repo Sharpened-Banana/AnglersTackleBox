@@ -1,9 +1,6 @@
--- One-Key Engine. The addon decides what the next keypress does; it never
--- presses the key. Every protected action below happens inside Blizzard's
--- secure button, triggered by the player's own hardware event.
---
--- States: OFF, READY, PREP (ready, but the next press is a prep action),
--- CHANNELING, LOOTING, PAUSED. Transitions come from game events.
+-- One-Key Engine: decides what the next keypress does but never presses the key. Every
+-- protected action runs in Blizzard's secure button on the player's own hardware event.
+-- States: OFF, READY, PREP (next press is a prep action), CHANNELING, LOOTING, PAUSED.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -48,16 +45,14 @@ local function SetState(state)
   ns.HUD:Refresh()
 end
 
--- Point the key at the next action. Safe to call as often as needed: it
--- does nothing when the right action is already armed.
+-- Point the key at the next action; a no-op when it's already armed.
 function Engine:Rearm()
   if self.state == "OFF" or self.state == "PAUSED" then return end
   if InCombatLockdown() then return end -- Core re-arms after combat
   local key = ns.db.key -- may be nil for double-click-only players
 
-  -- Never rebind mid-press. This timer only rebinds; it never acts. When
-  -- the window loses focus mid-press the game never sees the key come up
-  -- and IsKeyDown can stay true, so a hold past STUCK_KEY is not a press.
+  -- Never rebind mid-press; this timer only rebinds, never acts. If the window loses
+  -- focus mid-press IsKeyDown can stay true, so a hold past STUCK_KEY isn't a press.
   if key and KeyHeld(key) then
     self.heldSince = self.heldSince or GetTime()
   else
@@ -126,7 +121,6 @@ function Engine:Evaluate()
   end
 end
 
--- The player picked a new key while fishing mode is on.
 function Engine:KeyChanged()
   if self.state == "OFF" or InCombatLockdown() then return end
   Release()
@@ -181,9 +175,8 @@ function Engine:Tick()
 end
 
 ---------------------------------------------------------------------------
--- Prep actions that don't take effect get counted so they can't block
--- casting forever. PostClick runs after the secure action; it does nothing
--- protected itself.
+-- Prep actions that don't take effect are counted so they can't block casting
+-- forever. PostClick runs after the secure action and does nothing protected.
 ---------------------------------------------------------------------------
 
 local lastClick = 0
@@ -200,11 +193,9 @@ btn:SetScript("PostClick", function()
 end)
 
 ---------------------------------------------------------------------------
--- Double right-click: a short right-click lends the right mouse button to
--- the action button for a moment, so a second click performs the armed
--- action. Camera drags are long presses and never trigger it. The hook is
--- only installed once the option is used, and does nothing outside
--- fishing mode.
+-- Double right-click: a short right-click briefly binds the right button to the
+-- action button, so a second click performs the armed action. Camera drags are long
+-- presses and never trigger it. Hooked only once the option is used; inert outside fishing mode.
 ---------------------------------------------------------------------------
 
 local SHORT_CLICK = 0.25

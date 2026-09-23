@@ -1,6 +1,5 @@
--- Every difference between Retail and WoW Forever (the Classic-style client,
--- TOC suffix _Camelot) lives here. The rest of the addon calls
--- Compat.* and never checks the game version itself.
+-- Every Retail vs WoW Forever (Classic-style client, TOC suffix _Camelot) difference
+-- lives here; the rest of the addon calls Compat.* and never checks the game version.
 local _, ns = ...
 
 local Compat = {}
@@ -9,12 +8,10 @@ ns.Compat = Compat
 Compat.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 Compat.isClassicEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 
--- Retail poles sit in the profession tool slot and are used automatically.
--- Everywhere else the pole has to be in the main hand.
+-- Retail poles sit in the profession tool slot; elsewhere the pole must be in the main hand.
 Compat.needsPole = not Compat.isRetail
 
--- Soft interact is reliable on Retail. WoW Forever reels through mouseover
--- unless the player opts into soft interact there too.
+-- Soft interact is reliable on Retail; WoW Forever reels via mouseover unless the player opts in.
 function Compat.Interact()
   if Compat.isRetail or (ns.db and ns.db.classicSoftInteract) then return "INTERACTTARGET" end
   return "INTERACTMOUSEOVER"
@@ -121,11 +118,9 @@ end
 -- Auras
 ---------------------------------------------------------------------------
 
--- Seconds left on a player buff, math.huge for a buff with no timer,
--- nil when the buff is missing (or unreadable).
+-- Seconds left on a player buff, math.huge with no timer, nil when missing or unreadable.
 function Compat.AuraRemaining(spellID, spellName)
-  -- Aura fields can be secret in combat, where even testing them errors.
-  -- Nothing here needs buffs in combat, so don't look.
+  -- Aura fields can be secret in combat, where even testing them errors; nothing needs them then.
   if InCombatLockdown() then return nil end
   local expiration
   if spellID and C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
@@ -145,8 +140,7 @@ end
 -- Loot, CVars, money
 ---------------------------------------------------------------------------
 
--- IsFishingLoot is missing from the 12.x docs, so fall back to "a fishing
--- channel ended a moment ago" when it isn't there.
+-- IsFishingLoot is missing from the 12.x docs; fall back to "a fishing channel just ended".
 function Compat.IsFishingLoot(recentlyFished)
   if IsFishingLoot then
     return IsFishingLoot() and true or false
@@ -172,7 +166,7 @@ function Compat.CoinString(copper)
   return GetCoinTextureString(copper)
 end
 
--- An item's icon texture, for inline |T..|t markup in a report line.
+-- Icon texture for inline |T..|t markup.
 function Compat.ItemIcon(itemID)
   local getIcon = C_Item and C_Item.GetItemIconByID or GetItemIcon
   local ok, icon = pcall(getIcon, itemID)
@@ -180,9 +174,8 @@ function Compat.ItemIcon(itemID)
 end
 
 ---------------------------------------------------------------------------
--- Cooking reagents (Shopping.lua). Retail's trade skill window is read
--- through C_TradeSkillUI; WoW Forever still uses the classic global API.
--- Both only expose the currently open profession's recipes.
+-- Cooking reagents (Shopping.lua): C_TradeSkillUI on Retail, the classic globals on
+-- WoW Forever. Both only expose the currently open profession's recipes.
 ---------------------------------------------------------------------------
 
 function Compat.OpenTradeSkillName()
@@ -199,10 +192,9 @@ end
 
 local COOKING_SKILL_LINE = 185
 
--- Retail (Dragonflight on) dropped GetTradeSkillLine; the open profession
--- comes from GetBaseProfessionInfo, matched by skill line so it works in
--- every client language. Another player's linked book, a guild view or an
--- NPC crafting order is not the player's own recipe list, so it is skipped.
+-- Retail (Dragonflight on) has no GetTradeSkillLine: match GetBaseProfessionInfo by skill
+-- line so any client language works. Skip linked books, guild views and NPC crafting
+-- orders: they aren't the player's own recipes.
 function Compat.IsCookingWindowOpen()
   local ui = C_TradeSkillUI
   if ui and ui.GetBaseProfessionInfo then
@@ -238,16 +230,9 @@ function Compat.IsCookingWindowOpen()
   return name ~= nil and name == (PROFESSIONS_COOKING or "Cooking")
 end
 
--- Every reagent item used by the open trade skill window's known recipes,
--- as { [itemID] = { { recipe = name, need = count, link = ?, icon = ? }, ... } }.
--- link/icon point at the recipe's own crafted item, when the API offers one,
--- so the shopping list can show a picture and a clickable link instead of
--- plain text. Empty (not nil) when nothing is open or the API misbehaves.
--- A clickable link for a Retail recipe: the crafted item's link, which
--- hovers to the food's tooltip. nil when the client has neither function.
--- The recipe's own link comes first; the dish's item link is the fallback.
--- A link whose item isn't loaded yet arrives as "[]", so the recipe name
--- is written into the brackets.
+-- Clickable link for a Retail recipe: the recipe's own link, else the dish's item link.
+-- A link whose item isn't loaded yet arrives as "[]", so the recipe name is written in.
+-- nil when the client has neither function.
 function Compat.RecipeLink(recipeID, name)
   local ui = C_TradeSkillUI
   if not ui or not recipeID then return nil end
@@ -311,6 +296,9 @@ function Compat.ShoppingDiagnostics()
   return out
 end
 
+-- Reagents of the open window's known recipes, as
+-- { [itemID] = { { recipe, need, link, icon, recipeID }, ... } }; link/icon are the crafted dish's.
+-- Empty (not nil) when nothing is open or the API misbehaves.
 function Compat.TradeSkillReagentUses()
   local uses = {}
   local function AddUse(itemID, recipeName, need, link, icon, recipeID)

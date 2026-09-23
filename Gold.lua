@@ -1,10 +1,5 @@
--- Gold: everything that turns the catch log into money decisions. Best
--- zones and spots by gold per hour, a value-based catch alert, a sell
--- helper at vendors and the auction house, and the session history chart.
---
--- Self-contained on purpose: nothing else depends on this file, so it can
--- be left out of a release by adding it to the ignore list in .pkgmeta and
--- removing it from the TOC files.
+-- Gold: gold-per-hour rankings, value alert, sell helper and session history chart.
+-- Nothing depends on this file; drop it from a release via .pkgmeta ignore and the TOC files.
 local _, ns = ...
 local L, Compat = ns.L, ns.Compat
 
@@ -165,8 +160,8 @@ ns:On("CATCH", function(_, name, quantity, _, unit)
 end)
 
 ---------------------------------------------------------------------------
--- Sell helper: when a vendor or the auction house opens, say what the
--- session's fish are worth and which are better vendored than listed.
+-- Sell helper: at a vendor or the auction house, what the session's fish
+-- are worth and which are better vendored than listed.
 ---------------------------------------------------------------------------
 
 function Gold:SellLines()
@@ -200,8 +195,7 @@ end
 
 ---------------------------------------------------------------------------
 -- Price refresh: the game only answers auction queries while the auction
--- house is open, so that is when fish prices get refreshed. Auctionator does
--- the searching and keeps the prices; Angler's TackleBox just hands it the fish list.
+-- house is open. Auctionator searches and keeps the prices; we pass it the fish list.
 ---------------------------------------------------------------------------
 
 local SCAN_LIMIT = 80 -- fish names per search, most caught first
@@ -215,8 +209,7 @@ local function AuctionHouseOpen()
     or (AuctionFrame and AuctionFrame:IsShown()) or false
 end
 
--- Days since each logged fish was last priced: newest, oldest, and how many
--- have never been seen. nil without Auctionator.
+-- Price age in days (newest, oldest) and how many fish were never priced. nil without Auctionator.
 function Gold:PriceAge()
   local api = AuctionatorAPI()
   if not api or not api.GetAuctionAgeByItemID then return nil end
@@ -242,8 +235,7 @@ function Gold:PricesStale()
   return age.unseen > 0 or (age.oldest or 0) >= (ns.db.ahScanDays or 1)
 end
 
--- Searches the auction house for every logged fish. Returns false and a
--- reason when it can't.
+-- Searches for every logged fish; false plus a reason when it can't.
 function Gold:Scan()
   local api = AuctionatorAPI()
   if not api or not api.MultiSearchExact then
@@ -306,8 +298,8 @@ local function OnShopOpened(_, event)
   ns:PrintLines(Gold:SellLines())
 end
 
--- Opening the auction house never happens in combat, so these two events
--- are safe to keep registered. The vendor event waits for a session.
+-- The auction house never opens in combat, so these can stay registered.
+-- MERCHANT_SHOW waits for a session.
 function Gold:Init()
   frame = CreateFrame("Frame")
   frame:SetScript("OnEvent", OnShopOpened)
