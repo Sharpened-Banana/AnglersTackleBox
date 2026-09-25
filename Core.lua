@@ -78,8 +78,16 @@ ns.defaults = {
   minimap = { hide = false, angle = 215 },
   alertTypes = {},      -- [category] = false turns one kind of alert off
   sessionGoals = { catches = 0, gold = 0, minutes = 0 }, -- per-session targets (0 = off)
+  briny = { enabled = false }, -- The Briny Best tracker (Briny.lua, Retail)
   alertSound = "raidWarning", -- key into Alerts.sounds; "none" plays nothing
   alertSounds = {},     -- [category] = sound key, overriding alertSound
+  cues = {              -- cast, catch and miss cues (Cues.lua)
+    castSound = "none", catchSound = "none", missSound = "none", -- keys into Alerts:Choices()
+    glow = false,       -- screen-edge glow while the line is out
+    color = "blue",     -- key into Cues.colors, for the glow
+    flashCatch = false, -- green flash on a catch
+    flashMiss = false,  -- red flash on a miss
+  },
   shareCharSettings = false, -- one set of per-character settings for all characters
   sharedChar = {},      -- the shared set, saved at logout (Profiles.lua)
   audio = {

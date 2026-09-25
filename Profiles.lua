@@ -17,8 +17,13 @@ local MAX_STRING = 200    -- characters in any one string
 -- "list:<type>", "map:<type>" (string keys).
 ---------------------------------------------------------------------------
 
+-- A shared-media sound can't be checked when its addon isn't loaded here, so any "lsm:" name passes.
 local function ValidSound(value)
-  return ns.Alerts:Sound(value) ~= nil
+  return ns.Alerts:Sound(value) ~= nil or (type(value) == "string" and value:match("^lsm:.") ~= nil)
+end
+
+local function ValidColor(value)
+  return ns.Cues:Color(value).key == value
 end
 
 Profiles.account = {
@@ -33,8 +38,11 @@ Profiles.account = {
   { "alertSound", check = ValidSound }, { "alertSounds", "map:string", check = ValidSound },
   { "audio.enabled" }, { "audio.sfxVolume" }, { "audio.muteMusic" }, { "audio.muteAmbience" },
   { "audio.backgroundSound" },
+  { "cues.castSound", check = ValidSound }, { "cues.catchSound", check = ValidSound },
+  { "cues.missSound", check = ValidSound }, { "cues.glow" },
+  { "cues.color", check = ValidColor }, { "cues.flashCatch" }, { "cues.flashMiss" },
   { "hud.shown" }, { "hud.scale" }, { "hud.tabs", "list:string" },
-  { "sessionGoals.catches" }, { "sessionGoals.gold" }, { "sessionGoals.minutes" },
+  { "briny.enabled" }, { "sessionGoals.catches" }, { "sessionGoals.gold" }, { "sessionGoals.minutes" },
 }
 
 Profiles.char = {

@@ -120,6 +120,7 @@ GetBindingAction = function() return "" end
 GetBindingName = function(a) return a end
 played = {}
 PlaySound = function(id) played[#played + 1] = id end
+PlaySoundFile = function(file) played[#played + 1] = file end
 StaticPopupDialogs, CLOSE, CANCEL = {}, "Close", "Cancel"
 shownPopup = nil
 StaticPopup_Show = function(name) shownPopup = name end
@@ -220,7 +221,7 @@ if CLASSIC then
   TooltipDataProcessor = nil
 
   for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
-    "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
+    "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "Cues.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
     "Spots.lua", "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
     "Recommend.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
     assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
@@ -286,9 +287,9 @@ if CLASSIC then
   os.exit(0)
 end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
-  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
+  "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "Cues.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
   "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
-  "Midnight.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
+  "Midnight.lua", "Briny.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
 end
 local btn = AnglersTackleBoxActionButton
@@ -926,6 +927,120 @@ SlashCmdList.ANGLERSTACKLEBOX("sound"); SlashCmdList.ANGLERSTACKLEBOX("sound tes
 check(ns.Alerts:CycleSound(1).key == "readyCheck" and ns.Alerts:CycleSound(-1).key == "raidWarning"
   and ns.Alerts:CycleSound(-1).key == "none", "sound: the settings button cycles both ways")
 ns.db.alertSound = "raidWarning"
+
+-- the session window's X: hidden until the next cast
+if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+check(AnglersTackleBoxHUD:IsShown(), "window: shown while fishing")
+AnglersTackleBoxHUD.close.scripts.OnClick()
+check(not AnglersTackleBoxHUD:IsShown() and ns.Log.session ~= nil, "window: the X hides it, the session carries on")
+ns.HUD:Tick(); advance(5)
+check(not AnglersTackleBoxHUD:IsShown(), "window: stays hidden until a cast")
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+check(AnglersTackleBoxHUD:IsShown(), "window: the next cast brings it back")
+advance(2)
+
+-- The Briny Best tracker
+local brinyText = { [1225270] = "Catch Rank: Minnow\nAnglin' Score: |cffffffff78.3|r points.\nAreas you can find:\n- Eversong Woods",
+  [1225279] = "Anglin' Score: 100.0 points" }
+local brinyName = { [1225270] = "Item220134", [1225279] = "Warping Wise" }
+local brinyRequested = 0
+C_Spell.GetSpellDescription = function(id) return brinyText[id] end
+C_Spell.GetSpellName = (function(original) return function(id) return brinyName[id] or original(id) end end)(C_Spell.GetSpellName)
+C_Spell.RequestLoadSpellData = function() brinyRequested = brinyRequested + 1 end
+local achievementInfo = GetAchievementInfo
+GetAchievementInfo = function(a, b) if a == 63510 then return 63510, "The Briny Best", 10, false end return achievementInfo(a, b) end
+if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
+local hud = AnglersTackleBoxHUD
+check(ns.HUD:CatalogEntry("briny") == nil, "briny: off by default, no tab")
+ns.Briny:SetEnabled(true)
+check(ns.db.hud.tab == "briny" and ns.HUD:CatalogEntry("briny") ~= nil, "briny: the checkbox adds the Briny tab and opens it")
+check(brinyRequested > 0 and ns.Briny:Scan().pending == 26, "briny: fish not loaded yet are asked for")
+check(hud.rows[1].right:GetText() == "178 / 2500", "briny: score adds up the fish until the achievement counts")
+check(hud.rows[3].left:GetText() == "Item220134" and hud.rows[3].right:GetText():find("Minnow|r 78.3", 1, true),
+  "briny: a fish's rank and score in the window, Trophy fish left out")
+loot = { { id = 220134, name = "Item220134", qty = 1, quality = 1 } }
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
+fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
+brinyText[1225270] = "Anglin' Score: 81.0 points"
+advance(2)
+check(printed[#printed]:find("Item220134 reached Pike rank", 1, true), "briny: a rank-up alerts")
+ns.HUD:Refresh()
+check(hud.rows[2].left:GetText() == "Item220134" and hud.rows[2].right:GetText():find("+2.7", 1, true),
+  "briny: the last catch shows its new rank and the points gained")
+local goals = {}
+for _, line in ipairs(ns.Goals:Lines()) do goals[#goals + 1] = line.text end
+goals = table.concat(goals, "|")
+check(goals:find("The Briny Best", 1, true) and goals:find("1 of 2 fish at Trophy", 1, true), "briny: Goals lists every fish")
+SlashCmdList.ANGLERSTACKLEBOX("menu"); ns.Menu:Select("goals"); SlashCmdList.ANGLERSTACKLEBOX("menu")
+ns.Briny:SetEnabled(false)
+local brinyTabs = {}
+for _, key in ipairs(ns.db.hud.tabs) do brinyTabs[key] = true end
+check(ns.HUD:CatalogEntry("briny") == nil and not brinyTabs.briny, "briny: off removes the tab")
+check(not ns.Goals:Lines()[1].text:find("Briny", 1, true), "briny: off leaves Goals as it was")
+GetAchievementInfo = achievementInfo
+
+-- cast, catch and miss cues
+if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
+local cues = ns.db.cues
+local function cast() fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06) end
+local function stop() fire("UNIT_SPELLCAST_CHANNEL_STOP", "player") end
+played = {}; cast()
+check(#played == 0 and ns.Cues.lineOut, "cues: quiet by default")
+stop(); advance(2)
+check(#played == 0 and not ns.Cues.lineOut, "cues: a miss is quiet by default")
+cues.castSound, cues.catchSound, cues.missSound = "plink", "chime", "fallingTone"
+played = {}; cast()
+check(played[1] and played[1]:find("Sounds\\plink.ogg", 1, true), "cues: cast sound plays a bundled file")
+loot = { { id = 220134, name = "Test Fish", qty = 1, quality = 1 } }
+played = {}; fire("LOOT_READY"); fire("LOOT_OPENED"); stop(); fire("LOOT_CLOSED"); advance(2)
+local files = {}
+for _, sound in ipairs(played) do if type(sound) == "string" then files[#files + 1] = sound end end
+check(#files == 1 and files[1]:find("chime.ogg", 1, true), "cues: a catch plays the catch sound once, and no miss")
+played = {}; cast(); stop(); advance(1)
+check(#played == 1, "cues: a miss waits for late loot")
+advance(1)
+check(#played == 2 and played[2]:find("drop.ogg", 1, true), "cues: then a cast with no loot plays the miss sound")
+played = {}; cast(); stop(); advance(0.5); cast(); advance(2)
+check(#played == 2, "cues: recasting straight away drops the earlier cast's miss")
+stop(); advance(2)
+cues.glow, cues.flashMiss = true, true
+cast()
+check(ns.Cues.lineOut, "cues: glow on while the line is out")
+fire("PLAYER_REGEN_DISABLED")
+check(not ns.Cues.lineOut, "cues: combat hides the glow")
+fire("PLAYER_REGEN_ENABLED"); stop(); advance(2)
+cues.glow, cues.flashMiss = false, false
+cues.castSound = "lsm:Gone"; played = {}; cast()
+check(#played == 0, "cues: a shared sound whose addon is gone stays quiet, no raid warning")
+stop(); advance(2)
+local registered = {}
+LibStub = function(name) if name == "LibSharedMedia-3.0" then return {
+  Register = function(_, _, label, file) registered[label] = file end,
+  List = function() return { "None", "Bell", "TackleBox: Chime" } end,
+  IsValid = function(_, _, name2) return name2 == "Bell" end,
+  Fetch = function(_, _, name2) return name2 == "Bell" and "Sound\\Bell.ogg" or nil end,
+} end end
+local choices = ns.Alerts:Choices()
+check(choices[#choices].key == "none" and choices[#choices - 1].key == "lsm:Bell" and #choices == #ns.Alerts.sounds + 1,
+  "shared media: other addons' sounds listed, ours not twice, None last")
+check(registered["TackleBox: Chime"] ~= nil, "shared media: our sounds offered to other addons")
+cues.castSound = "lsm:Bell"; played = {}; cast()
+check(played[1] == "Sound\\Bell.ogg", "shared media: a shared sound plays by file")
+stop(); advance(2); LibStub = nil
+SlashCmdList.ANGLERSTACKLEBOX("sound water catch")
+check(cues.catchSound == "water", "/tb sound sets a cue sound")
+SlashCmdList.ANGLERSTACKLEBOX("sound default miss")
+check(cues.missSound == "none", "/tb sound default clears a cue")
+check(ns.Cues:CycleColor(1).key == "green" and ns.Cues:CycleColor(-1).key == "blue", "cues: color cycles both ways")
+cues.castSound, cues.color, cues.glow = "lsm:Bell", "purple", true
+local cueExport = ns.Profiles:Export()
+cues.castSound, cues.color, cues.glow = "none", "blue", false
+check(ns.Profiles:Import(cueExport) and cues.castSound == "lsm:Bell" and cues.color == "purple" and cues.glow == true,
+  "profiles: cue settings round trip, shared sound kept")
+cues.castSound, cues.catchSound, cues.color, cues.glow = "none", "none", "blue", false
+SlashCmdList.ANGLERSTACKLEBOX("menu"); ns.Menu:Select("alarms"); SlashCmdList.ANGLERSTACKLEBOX("menu")
+check(true, "menu: alarms compartment builds with the cue controls")
 SlashCmdList.ANGLERSTACKLEBOX("menu"); ns.Menu:Select("settings")
 check(ns.Menu.selected == "settings", "menu: settings compartment builds with the new controls")
 SlashCmdList.ANGLERSTACKLEBOX("menu")

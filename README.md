@@ -39,7 +39,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb journal` | Catch log, By fish view: a page per fish with where you catch it |
 | `/tb export` | The catch log as CSV in a copyable box |
 | `/tb export settings`, `/tb import [string]` | Copy your settings out as a string, or paste one back in |
-| `/tb sound [name\|test] [kind]` | Choose the alert sound, for all alerts or one kind |
+| `/tb sound [name\|test] [kind]` | Choose the alert sound, for all alerts or one kind; `cast`, `catch` or `miss` as the kind sets a fishing cue |
 | `/tb sessions [drop N\|clear]` | List or remove saved sessions |
 | `/tb forget spot` | Forget the fishing spot you are standing on |
 | `/tb welcome` | Reopen the first-run welcome |
@@ -67,6 +67,10 @@ Everything gold-related (rankings, value alert, sell helper, history chart) live
     TB_FLAVOR=classic lua tests/smoke.lua
 
 `tests/smoke.lua` stubs the WoW API and drives a fishing session through every module; `TB_FLAVOR=classic` runs the WoW Forever configuration (pole, enchant lures, mouseover reel) instead. It checks the wiring, not the game: in-game testing is still needed for anything the stubs assume.
+
+## Credits
+
+The Briny Best tracker builds on [BrinyBest](https://github.com/nerolabs/BrinyBest) by Andrew Edmond: its way of reading the Fishing Journal, fish IDs, score labels and rank cutoffs. BrinyBest is MIT licensed; its license ships in `Licenses/BrinyBest.txt`.
 
 ## License
 

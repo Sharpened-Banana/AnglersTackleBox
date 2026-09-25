@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- Cast, catch and miss cues, in the Alarms compartment: a sound for each moment of a cast, an optional screen glow while the line is out, and green or red flashes on a catch or a miss. All sounds are off by default. The game gives addons no signal for the bite itself, so the splash is still your cue to reel in.
+- Five sounds ship with the addon (Plink, Reel click, Chime, Falling tone, Water) for alerts and cues. With SharedMedia or another addon that loads LibSharedMedia, its sounds are listed too, and TackleBox's sounds are offered back to those addons.
+- `/tb sound <name> cast|catch|miss` sets a cue sound from chat.
+- The Briny Best tracker (Retail): tick "Track The Briny Best" in Goals or the settings. A Briny tab on the session window shows your Anglin' Score out of 2,500, the rank and points gained for the last Midnight fish you caught, and the fish in this zone with the most points left to earn. Goals lists every fish, lowest score first, and a rank-up gets its own alert. Built on BrinyBest by Andrew Edmond (MIT).
+- The session window has an X in its corner. It hides the window until your next cast; your session carries on underneath. `/tb hud` still hides it for good.
+
 ## 1.1.0
 
 - A /reload no longer ends your fishing session. Session numbers, goal progress and which goals already alerted carry on, and fishing mode turns itself back on. Back within 10 minutes of a logout works the same way; later than that, the session is filed as finished.

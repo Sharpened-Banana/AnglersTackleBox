@@ -179,12 +179,50 @@ local function BuildPanel()
       function() ns.Alerts:PlaySound(ns.Alerts:SoundFor().key) end,
       L["Plays the chosen alert sound."], true))
   end
+  local cues, cueDefaults = db.cues, defaults.cues
+  local function Restyle() ns.Cues:Restyle() end
+  if Settings.CreateDropdown and Settings.CreateControlTextContainer then
+    local function SoundChoices()
+      local container = Settings.CreateControlTextContainer()
+      for _, choice in ipairs(ns.Alerts:Choices()) do container:Add(choice.key, choice.label) end
+      return container:GetData()
+    end
+    for _, moment in ipairs(ns.Cues.moments) do
+      local key = moment.key .. "Sound"
+      local setting = Settings.RegisterAddOnSetting(category, "AnglersTackleBox_cue_" .. key, key, cues,
+        "string", string.format(L["%s sound"], moment.label), cueDefaults[key])
+      Settings.CreateDropdown(category, setting, SoundChoices, L["Played at this moment of every cast. None is quiet."])
+      setting:SetValueChangedCallback(function() ns.Cues:Play(moment.key) end)
+    end
+  end
+  Checkbox(cues, cueDefaults, "glow", L["Glow while the line is out"],
+    L["A soft glow around the screen edges from cast to catch."], Restyle)
+  if Settings.CreateDropdown and Settings.CreateControlTextContainer then
+    local color = Settings.RegisterAddOnSetting(category, "AnglersTackleBox_cue_color", "color", cues,
+      "string", L["Glow color"], cueDefaults.color)
+    Settings.CreateDropdown(category, color, function()
+      local container = Settings.CreateControlTextContainer()
+      for _, choice in ipairs(ns.Cues.colors) do container:Add(choice.key, choice.label) end
+      return container:GetData()
+    end, L["Color of the glow while the line is out."])
+    color:SetValueChangedCallback(Restyle)
+  end
+  Checkbox(cues, cueDefaults, "flashCatch", L["Flash green on a catch"],
+    L["A quick green flash around the screen edges when a fish lands."])
+  Checkbox(cues, cueDefaults, "flashMiss", L["Flash red on a miss"],
+    L["A quick red flash when a cast ends with nothing caught."])
+
   local alertDefaults = {}
   for _, kind in ipairs(ns.Alerts.categories) do
     alertDefaults[kind.key] = true
     if db.alertTypes[kind.key] == nil then db.alertTypes[kind.key] = true end
     Checkbox(db.alertTypes, alertDefaults, kind.key, string.format(L["Alert: %s"], kind.label),
       L["Screen and sound alert for this kind of event."])
+  end
+  if ns.Briny then
+    Checkbox(db.briny, defaults.briny, "enabled", L["Track The Briny Best"],
+      L["Anglin' Score and each Midnight fish's catch rank, in a Briny tab on the session window and in Goals."],
+      function(_, value) ns.Briny:SetEnabled(value) end)
   end
   Checkbox(db, defaults, "eventAlerts", L["Fishing event reminders"],
     L["While fishing, reminds you shortly before a fishing contest and when it starts."])
@@ -472,30 +510,47 @@ local function CategoryLabel(key)
   end
 end
 
+local function CueLabel(key)
+  for _, moment in ipairs(ns.Cues.moments) do
+    if moment.key == key then return moment.label end
+  end
+end
+
 commands.sound = function(rest)
   local Alerts = ns.Alerts
   local choice, kind = rest:match("^(%S*)%s*(%S*)$")
   choice, kind = (choice or ""):lower(), (kind or ""):lower()
   if choice == "" then
     ns:Print(string.format(L["Alert sound: %s"], Alerts:SoundFor().label))
-    for _, sound in ipairs(Alerts.sounds) do
-      print(string.format("   /tb sound %s  -  %s", sound.key:lower(), sound.label))
+    for _, sound in ipairs(Alerts:Choices()) do
+      if not sound.key:find(" ", 1, true) then
+        print(string.format("   /tb sound %s  -  %s", sound.key:lower(), sound.label))
+      end
     end
+    print("   " .. L["Add cast, catch or miss to set a fishing cue: /tb sound plink cast"])
     return
   end
   if choice == "test" then
+    if CueLabel(kind) then ns.Cues:Play(kind) return end
     Alerts:PlaySound(Alerts:SoundFor(kind ~= "" and kind or nil).key)
     return
   end
   local sound
-  for _, entry in ipairs(Alerts.sounds) do
+  for _, entry in ipairs(Alerts:Choices()) do
     if entry.key:lower() == choice then sound = entry end
   end
   if not sound and choice ~= "default" then
     ns:Print(L["No such sound. /tb sound lists them."])
     return
   end
-  if kind == "" then
+  if CueLabel(kind) then
+    ns.db.cues[kind .. "Sound"] = sound and sound.key or "none"
+    local cue = ns.Cues:Sound(kind)
+    ns:Print(string.format(L["%s cue: %s"], CueLabel(kind), cue and cue.label or L["None"]))
+    ns.Cues:Play(kind)
+    if ns.Menu then ns.Menu:Refresh() end
+    return
+  elseif kind == "" then
     if not sound then sound = Alerts.sounds[1] end
     ns.db.alertSound = sound.key
     ns:Print(string.format(L["Alert sound: %s"], sound.label))

@@ -35,7 +35,7 @@ Pick any key. While fishing mode is on, each press does the next right thing: eq
 - **Records** and a one-click session summary for chat.
 
 ### Alarms
-Set session goals for catches, gold or minutes fished and get one alert when you reach each. Choose which kinds of event alert you, and pick the alert sound from the game's own sounds, or none.
+Set session goals for catches, gold or minutes fished and get one alert when you reach each. Choose which kinds of event alert you, and pick the alert sound from the game's own sounds, TackleBox's own, any SharedMedia sound, or none. Cast, catch and miss can each have their own sound, with a screen glow while the line is out, and a flash on a catch or a miss.
 
 ### The box
 `/tb menu` opens a tackle-box styled window with a compartment for everything above. While you fish, a small Fishing Companion window shows your session, with tabs you choose in the Top Tray.

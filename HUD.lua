@@ -54,8 +54,20 @@ local function Build()
   frame.title:SetPoint("TOPLEFT", 10, -8)
   frame.title:SetText("Angler's TackleBox")
 
+  -- The X hides the window until the next cast; /tb hud hides it for good.
+  frame.close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+  frame.close:SetSize(22, 22)
+  frame.close:SetPoint("TOPRIGHT", -1, -1)
+  frame.close:SetScript("OnClick", function() HUD:Dismiss() end)
+  frame.close:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText(L["Hide until your next cast"])
+    GameTooltip:Show()
+  end)
+  frame.close:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
   frame.state = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  frame.state:SetPoint("TOPRIGHT", -10, -10)
+  frame.state:SetPoint("TOPRIGHT", -24, -10)
 
   -- Tab button pool; Refresh lays out however many tabs are chosen.
   frame.tabs = {}
@@ -297,6 +309,29 @@ function fill.gold(frame)
   SetRow(rows[6], L["Your record"], record and (Compat.CoinString(record.value) .. L["/hr"]) or "-")
 end
 
+-- The Briny Best: warband score, the last journal fish caught, then the fish with the
+-- most to gain that you've caught in this zone (any zone when none).
+function fill.briny(frame)
+  local rows, Briny = frame.rows, ns.Briny
+  SetRow(rows[1], L["Anglin' Score"], Briny:ScoreText())
+  local name, text = Briny:LastText()
+  if name then
+    SetRow(rows[2], name, text, nil, "green")
+  else
+    SetRow(rows[2], "|cff808080" .. L["Catch a Midnight fish to see its rank"] .. "|r")
+  end
+  local lowest = Briny:Lowest(C_Map.GetBestMapForUnit("player"))
+  if #lowest == 0 then lowest = Briny:Lowest() end
+  for index = 3, ROW_COUNT do
+    local fish = lowest[index - 2]
+    if fish then
+      SetRow(rows[index], fish.name, Briny:RankText(fish), nil, "white")
+    else
+      SetRow(rows[index])
+    end
+  end
+end
+
 -- Every tab the window can show. Session is fixed in first place.
 HUD.catalog = {
   { key = "session", name = L["Session"], fill = fill.session, fixed = true },
@@ -314,6 +349,8 @@ HUD.catalog = {
     footer = L["Records and sharing..."], compartment = "records" },
   { key = "midnight", name = L["Coiled Isle"], fill = FromLines(function() return ns.Midnight:Lines() end),
     footer = L["Coiled Isle..."], compartment = "midnight", available = function() return ns.Midnight ~= nil end },
+  { key = "briny", name = L["Briny"], fill = fill.briny, footer = L["Every fish's rank..."], compartment = "goals",
+    available = function() return ns.Briny ~= nil and ns.db.briny.enabled end },
 }
 
 function HUD:CatalogEntry(key)
@@ -413,7 +450,7 @@ end
 
 -- Shown while a session exists: all mode long normally, first cast to idle timeout with always-on.
 function HUD:UpdateVisibility()
-  local show = ns.Core.mode and ns.db.hud.shown and ns.Log.session ~= nil
+  local show = ns.Core.mode and ns.db.hud.shown and ns.Log.session ~= nil and not self.dismissed
   if show and not self.frame then self.frame = Build() end
   if not self.frame then return end
   self.frame:SetScale(ns.db.hud.scale)
@@ -426,10 +463,23 @@ function HUD:Enable()
 end
 
 function HUD:Disable()
+  self.dismissed = nil
   if self.frame then self.frame:Hide() end
 end
 
+function HUD:Dismiss()
+  self.dismissed = true
+  self:UpdateVisibility()
+end
+
+ns:On("CAST_START", function()
+  if not HUD.dismissed then return end
+  HUD.dismissed = nil
+  HUD:UpdateVisibility()
+end)
+
 function HUD:Toggle()
+  HUD.dismissed = nil
   ns.db.hud.shown = not ns.db.hud.shown
   if ns.Core.mode then self:Enable() end
 end

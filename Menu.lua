@@ -747,7 +747,20 @@ end
 
 -- Goals: this session's targets up top, the long-term tracker below.
 local function BuildGoals(panel)
-  Report(panel, function() return ns.Goals:Lines() end)
+  if not ns.Briny then
+    Report(panel, function() return ns.Goals:Lines() end)
+    return
+  end
+  local briny = Check(panel, L["Track The Briny Best"], ns.db.briny, "enabled",
+    function(value) ns.Briny:SetEnabled(value) end)
+  briny:SetPoint("TOPLEFT", 0, 0)
+  local note = Label(panel, "GameFontDisableSmall", L["Adds a Briny tab to the session window."])
+  note:SetPoint("LEFT", briny.label, "RIGHT", 10, 0)
+  local refreshReport = Report(panel, function() return ns.Goals:Lines() end, 30)
+  panel.Refresh = function()
+    briny.Sync()
+    refreshReport()
+  end
 end
 
 -- Alarms: session goals and which alert kinds are on. Sound and flash live on Settings.
@@ -793,12 +806,51 @@ local function BuildAlarms(panel)
     checks[#checks + 1] = check
   end
 
+  -- Cast, catch and miss cues. Sound buttons: left-click for the next sound, right-click for the previous.
+  local cuesTop = -136 - math.ceil(#ns.Alerts.categories / 2) * 24 - 12
+  local cuesHeader = Label(panel, "GameFontNormal", L["Cast and catch cues"])
+  cuesHeader:SetPoint("TOPLEFT", 2, cuesTop)
+  local cuesNote = Label(panel, "GameFontDisableSmall", L["No signal for the bite - listen for the splash."])
+  cuesNote:SetPoint("LEFT", cuesHeader, "RIGHT", 10, 0)
+  local soundButtons = {}
+  for index, moment in ipairs(ns.Cues.moments) do
+    local button = Button(panel, "", 145, function(_, mouse)
+      ns.Cues:CycleSound(moment.key, mouse == "RightButton" and -1 or 1)
+      Menu:Refresh()
+    end)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:SetPoint("TOPLEFT", (index - 1) * 150, cuesTop - 20)
+    button.moment = moment
+    soundButtons[index] = button
+  end
+  local cueChecks = {
+    Check(panel, L["Glow while the line is out"], ns.db.cues, "glow", function() ns.Cues:Restyle() end),
+    Check(panel, L["Flash green on a catch"], ns.db.cues, "flashCatch"),
+    Check(panel, L["Flash red on a miss"], ns.db.cues, "flashMiss"),
+  }
+  for index, check in ipairs(cueChecks) do
+    local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
+    check:SetPoint("TOPLEFT", column * 205, cuesTop - 48 - row * 24)
+    checks[#checks + 1] = check
+  end
+  local color = Button(panel, "", 140, function(_, mouse)
+    ns.Cues:CycleColor(mouse == "RightButton" and -1 or 1)
+    Menu:Refresh()
+  end)
+  color:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  color:SetPoint("TOPLEFT", 0, cuesTop - 74)
+
   panel.Refresh = function()
     for _, row in ipairs(rows) do
       if not row.box:HasFocus() then row.box:SetText(tostring(ns.db.sessionGoals[row.key] or 0)) end
       row.progress:SetText(ns.SessionGoals:Text(row.key, true))
     end
     for _, check in ipairs(checks) do check.Sync() end
+    for _, button in ipairs(soundButtons) do
+      local sound = ns.Cues:Sound(button.moment.key)
+      button:SetText(string.format("%s: %s", button.moment.label, sound and sound.label or L["None"]))
+    end
+    color:SetText(string.format(L["Color: %s"], ns.Cues:Color(ns.db.cues.color).label))
   end
 end
 

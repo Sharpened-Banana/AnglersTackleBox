@@ -24,6 +24,7 @@ Bobbers.lua
 Log.lua
 HUD.lua
 Alerts.lua
+Cues.lua
 SessionGoals.lua
 LogWindow.lua
 Events.lua

@@ -72,6 +72,44 @@ Data.midnight = {
   mountCost = 2500, -- Sea-Dwelling Isle Serpent
 }
 
+-- The Briny Best (12.1): 2,500 Midnight Anglin' Score in the Fishing Journal. Each journal fish is a
+-- dummy recipe spell whose description carries its live score (0-100) and catch rank. IDs from
+-- BrinyBest by Andrew Edmond (MIT). The six Cursed Oddities carry no score and are left out.
+Data.briny = {
+  achievement = 63510,
+  target = 2500,
+  fish = {
+    1225282, -- Arcane Wyrmfish
+    1295409, -- Dirty Darter
+    1225275, -- Gore Guppy
+    1225270, -- Lynxfish
+    1225269, -- Root Crab
+    1225245, -- Sin'dorei Swarmer
+    1295404, -- Spotted Killifish
+    1295405, -- Toxic Tlhapi
+    1225266, -- Bloomtail Minnow
+    1225276, -- Fungalskin Pike
+    1225267, -- Hollow Grouper
+    1295410, -- Polluted Puffer
+    1225277, -- Restored Songfish
+    1225272, -- Shimmer Spinefish
+    1225271, -- Shimmersiren
+    1295407, -- Sulfurous Sludgefish
+    1225278, -- Sunwell Fish
+    1225281, -- Tender Lumifin
+    1295411, -- Blightswarmer
+    1225274, -- Blood Hunter
+    1295408, -- Coiled Stargorger
+    1225283, -- Eversong Trout
+    1225284, -- Lucky Loa
+    1225268, -- Null Voidfish
+    1225273, -- Ominous Octopus
+    1225280, -- Twisted Tetra
+    1295406, -- Ula'tek Snakehead
+    1225279, -- Warping Wise
+  },
+}
+
 -- Fishing mounts, by summon spell or teaching item.
 Data.mounts = {
   { spell = 64731 },  -- Sea Turtle

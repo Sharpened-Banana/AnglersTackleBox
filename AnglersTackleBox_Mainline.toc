@@ -24,6 +24,7 @@ Bobbers.lua
 Log.lua
 HUD.lua
 Alerts.lua
+Cues.lua
 SessionGoals.lua
 LogWindow.lua
 Events.lua
@@ -38,6 +39,7 @@ Records.lua
 Stats.lua
 Recommend.lua
 Midnight.lua
+Briny.lua
 Planner.lua
 Engine.lua
 Graph.lua

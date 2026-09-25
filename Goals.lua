@@ -226,6 +226,10 @@ end
 
 function Goals:Lines()
   local lines = {}
+  if ns.Briny and ns.db.briny.enabled then
+    for _, line in ipairs(ns.Briny:Lines()) do lines[#lines + 1] = line end
+    lines[#lines + 1] = { text = " " }
+  end
   self:DerbyLines(lines)
   SkillLines(lines)
   AttemptLines(lines)

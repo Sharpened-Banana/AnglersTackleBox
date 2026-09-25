@@ -16,7 +16,7 @@ read_globals = {
   "wipe", "date", "time",
   -- Frames and UI
   "CreateFrame", "UIParent", "RaidNotice_AddMessage", "RaidWarningFrame", "ChatTypeInfo",
-  "PlaySound", "SOUNDKIT", "Settings", "CreateSettingsButtonInitializer",
+  "PlaySound", "PlaySoundFile", "LibStub", "SOUNDKIT", "Settings", "CreateSettingsButtonInitializer",
   "MinimalSliderWithSteppersMixin",
   -- Bindings and input
   "SetOverrideBinding", "SetOverrideBindingClick", "ClearOverrideBindings",
