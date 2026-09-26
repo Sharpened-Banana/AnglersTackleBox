@@ -89,8 +89,9 @@ end
 local function BuildPanel()
   local category, layout = Settings.RegisterVerticalLayoutCategory("Angler's TackleBox")
 
-  local function Checkbox(tbl, defaults, key, name, tooltip, onChange)
-    local setting = Settings.RegisterAddOnSetting(category, "AnglersTackleBox_" .. key, key, tbl,
+  -- "id" names the setting when "key" alone isn't unique (audio.enabled, briny.enabled).
+  local function Checkbox(tbl, defaults, key, name, tooltip, onChange, id)
+    local setting = Settings.RegisterAddOnSetting(category, "AnglersTackleBox_" .. (id or key), key, tbl,
       "boolean", name, defaults[key] and true or false)
     Settings.CreateCheckbox(category, setting, tooltip)
     if onChange then setting:SetValueChangedCallback(onChange) end
@@ -119,6 +120,8 @@ local function BuildPanel()
       true))
   end
 
+  Checkbox(db, defaults, "loginMessage", L["Welcome message at login"],
+    L["A line in chat at every login and reload with the version and how to open the interface."])
   Checkbox(db, defaults, "alwaysOn", L["Fishing mode always on"],
     L["Turns fishing mode on by itself at login and after instances, so the key is always ready."]
       .. " " .. L["Sound and interact settings still only change while you are actually fishing."],
@@ -154,7 +157,8 @@ local function BuildPanel()
   Checkbox(chardb, charDefaults, "lureAutoSwap", L["Swap lures when out"],
     L["When your chosen lure runs out, the next press of the fishing key applies another lure from your bags."])
   Checkbox(db, defaults, "shareCharSettings", L["Use the same settings on all my characters"],
-    L["Gear swap, fishing set, pole, lure and extras are shared. Turning this on copies this character's choices to the others."],
+    L["Gear swap, fishing set, pole, lure and extras are shared. "
+      .. "Turning this on copies this character's choices to the others."],
     function(_, value) ns.Profiles:SetShared(value) end)
   Slider(db, defaults, "lureWarn", L["Lure warning"],
     L["Warn this long before the lure runs out."], 0, 300, 10, Seconds)
@@ -171,7 +175,8 @@ local function BuildPanel()
       for _, choice in ipairs(ns.Alerts.sounds) do container:Add(choice.key, choice.label) end
       return container:GetData()
     end
-    Settings.CreateDropdown(category, sound, Choices, L["The game sound played with each alert. None keeps alerts quiet."])
+    Settings.CreateDropdown(category, sound, Choices,
+      L["The game sound played with each alert. None keeps alerts quiet."])
     sound:SetValueChangedCallback(function(_, value) ns.Alerts:PlaySound(value) end)
   end
   if CreateSettingsButtonInitializer then
@@ -221,15 +226,15 @@ local function BuildPanel()
   end
   if ns.Briny then
     Checkbox(db.briny, defaults.briny, "enabled", L["Track The Briny Best"],
-      L["Anglin' Score and each Midnight fish's catch rank, in a Briny tab on the session window and in Goals."],
-      function(_, value) ns.Briny:SetEnabled(value) end)
+      L["Anglin' Score and each Midnight fish's catch rank, in a Briny tab on the Fishing Companion and in Goals."],
+      function(_, value) ns.Briny:SetEnabled(value) end, "briny_enabled")
   end
   Checkbox(db, defaults, "eventAlerts", L["Fishing event reminders"],
     L["While fishing, reminds you shortly before a fishing contest and when it starts."])
-  Checkbox(db.hud, defaults.hud, "shown", L["Show session window"],
+  Checkbox(db.hud, defaults.hud, "shown", L["Show the Fishing Companion"],
     L["Casts, catches, value per hour and lure timer while fishing."], UpdateHUD)
-  Slider(db.hud, defaults.hud, "scale", L["Session window scale"],
-    L["Size of the session window."], 0.6, 2, 0.05, Percent, UpdateHUD)
+  Slider(db.hud, defaults.hud, "scale", L["Fishing Companion scale"],
+    L["Size of the Fishing Companion window."], 0.6, 2, 0.05, Percent, UpdateHUD)
 
   if Compat.needsPole then
     Checkbox(db, defaults, "classicSoftInteract", L["Reel in without aiming (soft interact)"],
@@ -307,10 +312,11 @@ commands.help = function()
     L["/tb bobber [random|off|item link or ID] - bobber toy to keep up (no argument opens the list)"],
     L["/tb doubleclick [on|off] - double right-click does the same as the key"],
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
-    L["/tb hud - show or hide the session window;  /tb tabs - choose its tabs"],
+    L["/tb hud - show or hide the Fishing Companion;  /tb tabs - choose its tabs"],
     L["/tb log - open the catch log window;  /tb export - the catch log as CSV"],
     L["/tb export settings - your settings as a string;  /tb import - paste one back in"],
     L["/tb sound [name|test] [alert kind] - the alert sound (no argument lists them)"],
+    L["/tb casts [reset] - fishing casts learned from new places, like an Oceanic Vortex"],
     L["/tb sessions [drop <number>|clear] - list or remove saved sessions"],
     L["/tb forget spot - forget the fishing spot you are standing on"],
     L["/tb find <fish> - where you catch it, from your own log"],
@@ -477,6 +483,30 @@ commands.find = function(rest)
 end
 commands.shopdebug = function() ns.Shopping:Diagnose() end
 commands.journal = function() ns.Menu:Toggle("journal") end
+
+-- Ways of fishing learned from fishing loot (Engine.lua); "reset" forgets them.
+commands.casts = function(rest)
+  local learned = ns.db.ids.fishingSpells
+  if rest:lower() == "reset" then
+    ns.db.ids.fishingSpells = nil
+    ns:Print(L["Learned fishing casts forgotten. Normal fishing still works."])
+    return
+  end
+  if not learned or next(learned) == nil then
+    ns:Print(L["No extra fishing casts learned. Fishing into something new, like an Oceanic Vortex, teaches one."])
+    return
+  end
+  ns:Print(L["Learned fishing casts (/tb casts reset forgets them):"])
+  for spellID, name in pairs(learned) do print(string.format("   %s (%d)", tostring(name), spellID)) end
+end
+
+commands.briny = function()
+  if ns.Briny then
+    ns.Briny:Diagnose()
+  else
+    ns:Print(L["The Briny Best is Retail only."])
+  end
+end
 
 commands.gold = function()
   if ns.Gold then

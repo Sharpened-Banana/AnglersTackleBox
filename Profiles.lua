@@ -27,7 +27,7 @@ local function ValidColor(value)
 end
 
 Profiles.account = {
-  { "key", "string" }, { "alwaysOn" }, { "softInteract" }, { "classicSoftInteract" },
+  { "key", "string" }, { "loginMessage" }, { "alwaysOn" }, { "softInteract" }, { "classicSoftInteract" },
   { "autoLoot" }, { "useRaft" }, { "doubleClick" }, { "oversizedBobber" },
   { "bobber", "string|number" }, { "eventAlerts" }, { "autoPole" }, { "lureWarn" },
   { "alerts" }, { "alertQuality" }, { "alertFlash" }, { "valueAlert" }, { "priceCap" },
@@ -386,7 +386,8 @@ end
 function Profiles:ShowImport()
   if not StaticPopupDialogs["ANGLERS_TACKLEBOX_IMPORT_SETTINGS"] then
     StaticPopupDialogs["ANGLERS_TACKLEBOX_IMPORT_SETTINGS"] = {
-      text = L["Paste a settings string (Ctrl-V). Only settings are changed; your catch log and other records are kept."],
+      text = L["Paste a settings string (Ctrl-V). Only settings are changed; "
+        .. "your catch log and other records are kept."],
       button1 = L["Import"],
       button2 = CANCEL,
       hasEditBox = true,

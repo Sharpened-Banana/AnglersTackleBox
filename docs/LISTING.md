@@ -1,6 +1,6 @@
 # Store listing text (CurseForge and Wago)
 
-**Summary (one line):** One-key fishing that remembers what you caught: catch log, gold per hour, trend graphs, session goals, a cooking shopping list and a tackle-box window. Retail and WoW Forever.
+**Summary (one line):** One-key fishing that remembers what you caught: catch log, gold per hour, a Briny Best tracker, session goals, a cooking shopping list and a tackle-box window. Retail and WoW Forever.
 
 **Project image:** `art/logo-512.png` (square; `art/logo-1024.png` if the site wants larger, `art/logo.svg` is the source).
 
@@ -31,6 +31,7 @@ Pick any key. While fishing mode is on, each press does the next right thing: eq
 - **Best Spot**: your zones ranked by gold per hour or catch rate.
 - **Shopping list**: open Cooking once and see which recipes need fish you've caught, by fish or by recipe, with clickable links and how many casts you still need.
 - **Goals**: fishing achievements with their missing parts, fishing mounts, rare-drop attempt counters (Sea Turtle, Nether-Warped Egg), and skill-ups per catch.
+- **The Briny Best** (Retail): your Anglin' Score out of 2,500, this zone's total against its maximum, and each Midnight fish's catch rank, with the points every catch adds. Hover a fish for what's left to the next rank and whether it bites best in open water or pools. Also tracks **Toxic Trophies** and your **Coiled Huntress venom**, and alerts on every rank-up and Trophy.
 - **Events**: fishing contest countdowns, plus Midnight's Captain Tokka's Crew reputation, Coiled Filament progress, Derby Dasher timer and Master Grenadier Birdie alerts.
 - **Records** and a one-click session summary for chat.
 
@@ -38,12 +39,13 @@ Pick any key. While fishing mode is on, each press does the next right thing: eq
 Set session goals for catches, gold or minutes fished and get one alert when you reach each. Choose which kinds of event alert you, and pick the alert sound from the game's own sounds, TackleBox's own, any SharedMedia sound, or none. Cast, catch and miss can each have their own sound, with a screen glow while the line is out, and a flash on a catch or a miss.
 
 ### The box
-`/tb menu` opens a tackle-box styled window with a compartment for everything above. While you fish, a small Fishing Companion window shows your session, with tabs you choose in the Top Tray.
+`/tb menu` opens a tackle-box styled window with a compartment for everything above. While you fish, the **Fishing Companion**, a small window, shows your session, with tabs you choose in the Top Tray. Its X hides it until your next cast.
 
 ### Settings travel with you
 Export your settings as a string and import them anywhere, or use one set of gear, pole and lure settings on all your characters.
 
 ### Getting started
+A short tour opens the first time you log in: what TackleBox does, picking your key, your first cast, and what's in the box. `/tb welcome` opens it again any time. The short version:
 1. `/tb bind` and press the key you want to fish with.
 2. `/tb` to turn fishing mode on (or make it always on in the box).
 3. Face some water and press your key. Press it again on the splash.
@@ -51,6 +53,7 @@ Export your settings as a string and import them anywhere, or use one set of gea
 `/atb` works wherever `/tb` does. Found a bug or have an idea? Settings > Send feedback.
 
 ### Notes
-- No libraries bundled. LibDataBroker and LibDBIcon are used if another addon provides them.
+- No libraries bundled. LibDataBroker, LibDBIcon and LibSharedMedia are used if another addon provides them.
+- The Briny Best tracker builds on BrinyBest by Andrew Edmond (MIT).
 - Optional: Auctionator or TradeSkillMaster for auction prices.
 - Not related to the addon "Tacklebox" by earl_parvisjam. The two can be installed side by side.

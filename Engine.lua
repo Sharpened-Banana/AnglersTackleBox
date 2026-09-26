@@ -234,7 +234,12 @@ end
 ---------------------------------------------------------------------------
 
 ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_START", function(_, _, spellID)
-  if Engine.state == "PAUSED" or not Compat.IsFishingSpell(spellID) then return end
+  if Engine.state == "PAUSED" then return end
+  if not Compat.IsFishingSpell(spellID) then
+    -- Maybe a way of fishing the addon doesn't know yet; fishing loot after it decides (LOOT_OPENED).
+    Engine.otherChannel = { id = spellID }
+    return
+  end
   ns.Core:Focus()
   SetState("CHANNELING")
   ns.Log:OnCast()
@@ -244,7 +249,10 @@ end)
 
 -- Catch, miss or out-of-range cast: re-arm at once so the next press casts.
 ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_STOP", function()
-  if Engine.state ~= "CHANNELING" then return end
+  if Engine.state ~= "CHANNELING" then
+    if Engine.otherChannel then Engine.otherChannel.stopped = GetTime() end
+    return
+  end
   Engine.lastFishEnd = GetTime()
   ns.Core.lastActivity = Engine.lastFishEnd
   ns:Fire("CAST_END")
@@ -252,7 +260,24 @@ ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_STOP", function()
   Engine:Rearm()
 end)
 
+-- Fishing loot right after a channel the addon didn't know (casting into an Oceanic Vortex, say):
+-- that channel is a way of fishing too, from the next cast on. Retail only, where the game itself
+-- says which loot is fishing loot, so gathering or opening a chest can't be learned by mistake.
+local LEARN_WINDOW = 3
+local function LearnChannel()
+  local other = Engine.otherChannel
+  Engine.otherChannel = nil
+  if not other or not IsFishingLoot or Compat.IsSecret(other.id) or not other.id then return end
+  if other.stopped and GetTime() - other.stopped > LEARN_WINDOW then return end
+  if not IsFishingLoot() then return end
+  local name = Compat.GetSpellName(other.id) or ("spell " .. other.id)
+  ns.db.ids.fishingSpells = ns.db.ids.fishingSpells or {}
+  ns.db.ids.fishingSpells[other.id] = name
+  ns:Print(string.format(L["Learned a new way to fish: %s. From your next cast it counts like any other."], name))
+end
+
 ns:OnModeEvent("LOOT_OPENED", function()
+  LearnChannel()
   if Engine.state ~= "READY" and Engine.state ~= "PREP" and Engine.state ~= "CHANNELING" then return end
   local recentlyFished = Engine.state == "CHANNELING"
     or (Engine.lastFishEnd ~= nil and GetTime() - Engine.lastFishEnd < 3)

@@ -86,14 +86,16 @@ Angleur 2.9.616 (Sept 7, 2026, by Legolando) supports Retail 12.1 and the Classi
 | [Fishing Mode](https://www.curseforge.com/wow/addons/fishing-mode) | 12.0.1 (MIT) | Toggle mode with an overlay of controls | Small feature set |
 | [Interactive Fishing Bobber](https://github.com/Smef/InteractiveFishingBobber) | 12.0.0 (MIT) | Only sets the soft-interact CVars during the cast | Minimal by design |
 | [MidnightFishCounter](https://www.curseforge.com/wow/addons/midnightfishcounter) | Yes | Session catches, drop %, gold/hour | No casting |
-| [BrinyBest](https://www.curseforge.com/wow/addons/brinybest) | Yes (MIT) | Tracker for "The Briny Best" achievement | Single purpose |
+| [BrinyBest](https://www.curseforge.com/wow/addons/brinybest) | Yes (MIT) | Tracker for "The Briny Best" achievement; 13K+ downloads | Single purpose. Tacklebox's Briny tracker builds on it (credited) |
+| [Avid Angler](https://github.com/Earthenmist/avid-angler) | Yes (All Rights Reserved) | Closest rival: one-key or double right-click, gear swap, audio focus, catch history, prices, guides, Anglin' Score tools, venom alerts, setup wizard | Newer; no catch log by pool, no Classic |
+| [Midnight Fish Score](https://www.curseforge.com/wow/addons/midnight-fish-score) | Yes (All Rights Reserved) | Anglin' Score checklists, Toxic Trophies preset, Huntress venom | Single purpose; 273 downloads |
 | [FishingKit](https://www.curseforge.com/wow/addons/fishingkit-classic) | Classic only | Richest feature set: timers, routes, bite analysis | No Retail version |
 
 ### Requested but missing
 
 - Faster recast after a catch or a miss (Angleur #24).
 - A queue or alert when lures run out (Angleur #35).
-- An audio or visual bite cue beyond just making the splash louder (Angleur #41).
+- An audio or visual bite cue beyond just making the splash louder (Angleur #41). Not possible: the game gives addons no bite signal. 1.2 added cast, catch and miss cues instead.
 - Gold per hour and catch stats in the same addon that does the casting.
 - Helpers for Midnight systems: Cursed Surge timers, Tokka rep, Derby Dasher timer.
 
@@ -135,13 +137,13 @@ Tacklebox is built as separate modules around one core. v1.0 ships the one-key e
 | **Core: Fishing Mode** | A toggle (key, slash command or compartment click) that turns everything on or off. With it off, the addon is inert. Optional auto-on when a pole is equipped or you are standing near a known pool. | MVP | All |
 | **One-Key Engine** | One user key does the right thing each press: equip pole, apply lure, refresh raft or bobber toy, cast, or reel. Optional double-right-click mode for mouse users. | MVP | All |
 | **Snappy Recast** | Re-arms the key the instant the channel ends: after a catch, a miss, or an out-of-range cast. Aim: the next press always casts. | MVP | All |
-| **Focus Audio** | While fishing, raises SFX, mutes music and ambience, keeps sound on when the game is in the background, then restores your originals. The game fires no event for the splash, so the splash sound is the bite cue. A separate visual cue is an open question. | MVP | All |
+| **Focus Audio** | While fishing, raises SFX, mutes music and ambience, keeps sound on when the game is in the background, then restores your originals. The game fires no event for the splash, so the splash sound is the bite cue. There is no bite signal for a visual cue; 1.2's cues mark the cast, catch and miss instead. | MVP | All |
 | **Gear Swap** | Swaps in your fishing rod, hat and line when fishing mode starts, and puts your normal gear back when it ends. Uses an equipment set if you have one. Never runs in combat. | MVP | All (Classic has no line slot) |
 | **Lure & Buff Manager** | Picks the lure for the fish you are after, warns 60 s before it expires, and puts "apply lure" into the one-key queue. Covers tea, phials and rafts too. | MVP | All (item lists per flavor) |
 | **Catch Log** | Records every catch by zone, subzone, pool and time, with a session HUD: casts, catches, catch rate, gold/hour, and a streak since the last rare. | MVP | All |
 | **Alerts** | Screen and sound alerts for rares, mount eggs, treasure pools, Patient Treasure, Blood Hunter spirits and Master Grenadier Birdie. Warns before a Warping Wise teleport. | v1.1 | Retail |
 | **Midnight Helpers** | Cursed Surge rotation timer and the 30-minute node window, Tokka rep progress, Coiled Filament and Venom stacks, Derby Dasher countdown. | v1.2 | Retail |
-| **Collections Tracker** | Progress toward fishing mounts, pets and achievements: Salty, The Derby Dash, Limnologist, The Briny Best, Sea Turtle attempts (in the style of Rarity). | v1.3 | All |
+| **Collections Tracker** | Progress toward fishing mounts, pets and achievements: Salty, The Derby Dash, Limnologist, Sea Turtle attempts (in the style of Rarity). The Briny Best tracker, with Toxic Trophies and Huntress venom, shipped in 1.2 (Retail). | v1.3 | All |
 | **Events Clock** | Countdowns to the Stranglethorn Extravaganza (Sun 2 pm), the Hallowfall Derby (Sat), and Classic time-of-day fish windows. | v1.3 | All |
 | **Bobber Finder** | Fallback when soft-interact misses: a marker or glow on the bobber, plus a camera-scan option on Classic. | Later | Classic first |
 
@@ -293,8 +295,8 @@ Build the engine on Retail first, prove it is fast and taint-free, then add Clas
 - [ ] Which spell ID does the channel event report on 12.1: 131474 or 131476?
 - [ ] Does `IsFishingLoot()` still exist on 12.1 and on each Classic flavor?
 - [ ] What is the Midnight fishing skill-line ID, needed for the skill display?
-- [ ] Is there any usable bite signal besides the sound, for a visual cue?
-- [ ] What does the Coiled Huntress cost? Wowhead pages disagree: 0, 500 or 6,000 Voidlight Marl.
+- [x] Is there any usable bite signal besides the sound, for a visual cue? No: the API exposes nothing for the bite. Only the sound, or pixel/audio watchers outside the game, which break the rules.
+- [x] What does the Coiled Huntress cost? 6,000, from Second Mate Sluggs at Bloodsworn Crew with Captain Tokka.
 - [ ] Should Tacklebox offer an optional Angleur-style camera scan on Retail, or keep it Classic-only?
 
 ## Sources

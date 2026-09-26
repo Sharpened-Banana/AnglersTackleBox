@@ -66,7 +66,7 @@ local function DasherRemaining()
 end
 
 -- Priority: running derby timer, then an active event, then the next one.
--- The session window asks for short names.
+-- The Fishing Companion asks for short names.
 function Events:Headline(short)
   local dasher = DasherRemaining()
   if dasher then

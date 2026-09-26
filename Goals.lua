@@ -214,7 +214,7 @@ local function MountLines(lines)
   for _, name in ipairs(missing) do lines[#lines + 1] = { text = name } end
 end
 
--- The parts that change while you fish, for the session window's tab.
+-- The parts that change while you fish, for the Fishing Companion's tab.
 function Goals:ShortLines()
   local lines = {}
   self:DerbyLines(lines)

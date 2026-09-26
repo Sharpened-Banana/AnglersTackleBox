@@ -40,6 +40,14 @@ function ns:PrintLines(lines)
   end
 end
 
+-- The TOC version without its "v", or "dev" when run from the repo, where the packager hasn't filled it in.
+function ns.Version()
+  local get = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+  local version = get and get(ADDON, "Version")
+  if type(version) ~= "string" or version:find("@", 1, true) then return "dev" end
+  return (version:gsub("^v", ""))
+end
+
 function ns.FormatTime(seconds)
   seconds = math.max(0, math.floor(seconds or 0))
   return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
@@ -52,6 +60,7 @@ end
 ns.defaults = {
   key = nil,            -- the one fishing key, e.g. "F" or "SHIFT-BUTTON4"
   welcomed = false,     -- first-run welcome seen
+  loginMessage = true,  -- a welcome line in chat at every login and reload
   alwaysOn = false,     -- mode starts at login and after instances
   softInteract = true,  -- raise soft-interact CVars while fishing
   classicSoftInteract = false, -- WoW Forever: reel via soft interact, not mouseover
@@ -401,6 +410,11 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     if not Core.loggedIn then
       Core.loggedIn = true
       if not ns.db.alwaysOn then frame:UnregisterEvent("PLAYER_ENTERING_WORLD") end
+      if ns.db.loginMessage then
+        ns:Print(string.format(
+          L["Welcome to Angler's TackleBox version %s. Type /tb menu to open the interface, or /tb to start fishing."],
+          ns.Version()))
+      end
       ns.Welcome:Maybe()
       -- Resume a mode left on at a recent reload/logout; always-on starts itself below.
       local resume = ns.chardb.resumeMode

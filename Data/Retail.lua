@@ -108,6 +108,13 @@ Data.briny = {
     1295406, -- Ula'tek Snakehead
     1225279, -- Warping Wise
   },
+  -- Toxic Trophies: Trophy rank with these eight.
+  toxic = {
+    achievement = 63632,
+    fish = { 1295409, 1295404, 1295405, 1295410, 1295407, 1295411, 1295408, 1295406 },
+  },
+  -- The Coiled Huntress stores venom from Coiled Isle catches. No API reports it; its tooltip does.
+  huntress = { itemID = 244790, slot = 28, venomWord = "venom" },
 }
 
 -- Fishing mounts, by summon spell or teaching item.

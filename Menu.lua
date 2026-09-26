@@ -171,7 +171,7 @@ local function BuildWindow(panel)
     row.right:SetPoint("LEFT", row.left, "RIGHT", 4, 0)
     row.check:SetScript("OnClick", function(self)
       if not ns.HUD:SetTab(row.key, self:GetChecked() and true or false) then
-        ns:Print(string.format(L["The window holds %d tabs. Untick one first."], ns.HUD.MAX_TABS))
+        ns:Print(string.format(L["The Fishing Companion holds %d tabs. Untick one first."], ns.HUD.MAX_TABS))
       end
       Menu:Refresh()
     end)
@@ -754,7 +754,7 @@ local function BuildGoals(panel)
   local briny = Check(panel, L["Track The Briny Best"], ns.db.briny, "enabled",
     function(value) ns.Briny:SetEnabled(value) end)
   briny:SetPoint("TOPLEFT", 0, 0)
-  local note = Label(panel, "GameFontDisableSmall", L["Adds a Briny tab to the session window."])
+  local note = Label(panel, "GameFontDisableSmall", L["Adds a Briny tab to the Fishing Companion."])
   note:SetPoint("LEFT", briny.label, "RIGHT", 10, 0)
   local refreshReport = Report(panel, function() return ns.Goals:Lines() end, 30)
   panel.Refresh = function()
@@ -1069,20 +1069,20 @@ function Menu:ShowFeedback()
       button1 = CLOSE,
       hasEditBox = true,
       editBoxWidth = 320,
-      OnShow = function(self)
-        local box = self.editBox or self.EditBox
+      OnShow = function(popup)
+        local box = popup.editBox or popup.EditBox
         box:SetText(FEEDBACK_URL)
         box:HighlightText()
         box:SetFocus()
       end,
-      EditBoxOnTextChanged = function(self)
-        if self:GetText() ~= FEEDBACK_URL then
-          self:SetText(FEEDBACK_URL)
-          self:HighlightText()
+      EditBoxOnTextChanged = function(box)
+        if box:GetText() ~= FEEDBACK_URL then
+          box:SetText(FEEDBACK_URL)
+          box:HighlightText()
         end
       end,
-      EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
-      EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
+      EditBoxOnEscapePressed = function(box) box:GetParent():Hide() end,
+      EditBoxOnEnterPressed = function(box) box:GetParent():Hide() end,
       timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
     }
   end

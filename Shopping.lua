@@ -162,7 +162,8 @@ function Shopping:Lines(view)
     lines[#lines + 1] = { text = L["Cooking reagents you've fished up before:"], header = true }
   end
   if MissingLinks() then
-    table.insert(lines, 2, { text = "|cff808080" .. L["Open your Cooking window again to turn these recipes into links."] .. "|r" })
+    local hint = L["Open your Cooking window again to turn these recipes into links."]
+    table.insert(lines, 2, { text = "|cff808080" .. hint .. "|r" })
   end
   if view == "recipe" then return lines end
   for _, row in ipairs(rows) do

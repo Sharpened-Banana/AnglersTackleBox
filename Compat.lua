@@ -58,17 +58,26 @@ function Compat.FishingName()
   return fishingName
 end
 
+-- Channels learned at runtime to end in fishing loot, such as casting into an Oceanic Vortex:
+-- [spellID] = name, kept in ns.db.ids (Engine.lua learns them).
+local function Learned()
+  return ns.db and ns.db.ids and ns.db.ids.fishingSpells
+end
+
 function Compat.IsFishingSpell(spellID)
   if Compat.IsSecret(spellID) or not spellID then return false end
   if FISHING_IDS[spellID] then return true end
+  local learned = Learned()
+  if learned and learned[spellID] then return true end
   local name = Compat.GetSpellName(spellID)
   return name ~= nil and name == Compat.FishingName()
 end
 
 function Compat.IsFishingChannelActive()
-  local name = UnitChannelInfo and UnitChannelInfo("player")
+  if not UnitChannelInfo then return false end
+  local name, _, _, _, _, _, _, spellID = UnitChannelInfo("player")
   if not name or Compat.IsSecret(name) then return false end
-  return name == Compat.FishingName()
+  return name == Compat.FishingName() or Compat.IsFishingSpell(spellID)
 end
 
 ---------------------------------------------------------------------------
@@ -127,9 +136,16 @@ function Compat.AuraRemaining(spellID, spellName)
     local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
     if aura then expiration = aura.expirationTime end
   end
-  if expiration == nil and spellName and AuraUtil and AuraUtil.FindAuraByName then
-    local name, _, _, _, _, expires = AuraUtil.FindAuraByName(spellName, "player", "HELPFUL")
-    if name then expiration = expires end
+  -- By name: C_UnitAuras where it exists. AuraUtil.FindAuraByName is the Classic fallback, guarded
+  -- because on 12.x Retail it calls a Blizzard helper that no longer exists and errors.
+  if expiration == nil and spellName then
+    if C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName then
+      local aura = C_UnitAuras.GetAuraDataBySpellName("player", spellName, "HELPFUL")
+      if aura then expiration = aura.expirationTime end
+    elseif AuraUtil and AuraUtil.FindAuraByName then
+      local ok, name, _, _, _, _, expires = pcall(AuraUtil.FindAuraByName, spellName, "player", "HELPFUL")
+      if ok and name then expiration = expires end
+    end
   end
   if expiration == nil or Compat.IsSecret(expiration) then return nil end
   if expiration == 0 then return math.huge end
@@ -288,7 +304,8 @@ function Compat.ShoppingDiagnostics()
     end
     Add("Recipes: %d, learned: %d, with a link: %d", count, learned, withLink)
     if sample then Add("Sample link: %s", sample) end
-    Add("GetRecipeItemLink: %s, GetRecipeLink: %s", tostring(ui.GetRecipeItemLink ~= nil), tostring(ui.GetRecipeLink ~= nil))
+    Add("GetRecipeItemLink: %s, GetRecipeLink: %s",
+      tostring(ui.GetRecipeItemLink ~= nil), tostring(ui.GetRecipeLink ~= nil))
   end
   local uses, reagents = Compat.TradeSkillReagentUses(), 0
   for _ in pairs(uses) do reagents = reagents + 1 end

@@ -208,6 +208,23 @@ local printed = {}
 print_real = print
 print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 
+-- Blizzard's Settings API, strict like the game: a variable registered twice is an error.
+settingIDs = {}
+local function settingObject() return { SetValueChangedCallback = function() end } end
+Settings = {
+  RegisterVerticalLayoutCategory = function() return { GetID = function() return 1 end }, { AddInitializer = function() end } end,
+  RegisterAddOnSetting = function(_, variable)
+    assert(not settingIDs[variable], "Setting variable '" .. variable .. "' was previously registered.")
+    settingIDs[variable] = true
+    return settingObject()
+  end,
+  CreateCheckbox = function() end, CreateSlider = function() end, CreateDropdown = function() end,
+  CreateSliderOptions = function() return { SetLabelFormatter = function() end } end,
+  CreateControlTextContainer = function() return { Add = function() end, GetData = function() return {} end } end,
+  RegisterAddOnCategory = function() end, OpenToCategory = function() end,
+}
+MinimalSliderWithSteppersMixin = { Label = { Right = 1 } }
+CreateSettingsButtonInitializer = function() return {} end
 local ns = {}
 if CLASSIC then
   local equipped, bagPole, enchantMS = nil, 6256, nil
@@ -229,6 +246,7 @@ if CLASSIC then
   local btn = AnglersTackleBoxActionButton
   local function check(cond, msg) if not cond then print_real("FAIL: " .. msg); os.exit(1) end print_real("ok   " .. msg) end
   fire("ADDON_LOADED", "AnglersTackleBox")
+  check(ns.Options.category and not ns.Options.panelError, "classic: settings panel builds: " .. tostring(ns.Options.panelError))
   SlashCmdList.ANGLERSTACKLEBOX("key f")
   ns.chardb.gearSwap = false -- first prove the one-key fallback
   SlashCmdList.ANGLERSTACKLEBOX("")
@@ -289,7 +307,7 @@ end
 for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "Cues.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
   "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
-  "Midnight.lua", "Briny.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
+  "Midnight.lua", "BrinyJournal.lua", "Briny.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
   assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
 end
 local btn = AnglersTackleBoxActionButton
@@ -298,7 +316,22 @@ local function press() if btn.scripts.PostClick and bindings.F == "CLICK Anglers
 
 fire("ADDON_LOADED", "AnglersTackleBox")
 check(ns.db and ns.chardb, "saved variables initialised")
+check(ns.Options.category and not ns.Options.panelError and settingIDs.AnglersTackleBox_briny_enabled,
+  "settings panel builds to the end, every setting named once: " .. tostring(ns.Options.panelError))
 check(next(bindings) == nil and #timers == 0, "inert after load: no bindings, no timers")
+C_AddOns = { GetAddOnMetadata = function() return "@project-version@" end }
+fire("PLAYER_ENTERING_WORLD", true, false)
+check(printed[#printed]:find("Welcome to Angler's TackleBox version dev. Type /tb menu", 1, true), "login: welcome line, dev build from the repo")
+C_AddOns.GetAddOnMetadata = function() return "v1.2.1" end
+check(ns.Version() == "1.2.1", "login: packaged version shown without its v")
+C_AddOns = nil
+advance(4.1)
+local tour = AnglersTackleBoxWelcome
+check(tour and tour.shown and ns.Welcome.page == 1 and not tour.back.shown, "tour: opens on first login at page 1, no Back")
+tour.next.scripts.OnClick()
+check(ns.Welcome.page == 2 and tour.pages[2].shown and not tour.pages[1].shown and tour.back.shown, "tour: Next goes to the key step")
+tour.back.scripts.OnClick(); tour.next.scripts.OnClick(); tour.next.scripts.OnClick()
+check(ns.Welcome.page == 3, "tour: Back and Next step through")
 
 SlashCmdList.ANGLERSTACKLEBOX("key f")
 check(ns.db.key == "F", "/tb key sets the key")
@@ -330,6 +363,9 @@ fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
 check(ns.Engine.state == "READY", "loot closed -> READY")
 local st = ns.Log:Stats()
 check(st.casts == 1 and st.catches == 1 and st.value == 750, "log: 1 cast, 1 catch, value 750c")
+advance(1.5)
+check(ns.Welcome.page == 4 and AnglersTackleBoxWelcome.shown and AnglersTackleBoxWelcome.next:GetText() == "Done",
+  "tour: the first cast moves it on to what's in the box")
 check(printed[#printed]:find("hatches into a mount", 1, true), "alerts: special catch matched by item ID")
 check(ns.chardb.log[2395][220134].count == 2 and ns.chardb.log[2395][220134].subs.Fairbreeze == 2, "log keyed by map, item, subzone")
 check(st.sinceRare == 0, "rare catch resets the streak")
@@ -707,6 +743,7 @@ local live = 0; for _, f in ipairs(frames) do for e in pairs(f.events) do
     and e ~= "TRADE_SKILL_DATA_SOURCE_CHANGED" then live = live + 1 end
 end end
 advance(5)
+if AnglersTackleBoxWelcome.shown then AnglersTackleBoxWelcome:Hide() end
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers (shop-window events for the sell helper aside)")
 check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session summary saved")
 check(zoom == 15, "camera: restored when fishing ends")
@@ -928,6 +965,33 @@ check(ns.Alerts:CycleSound(1).key == "readyCheck" and ns.Alerts:CycleSound(-1).k
   and ns.Alerts:CycleSound(-1).key == "none", "sound: the settings button cycles both ways")
 ns.db.alertSound = "raidWarning"
 
+-- a way of fishing the addon doesn't know (casting into an Oceanic Vortex): learned from its loot
+if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
+C_Spell.GetSpellName = (function(original) return function(id) if id == 99001 then return "Vortex Fishing" end return original(id) end end)(C_Spell.GetSpellName)
+ns.HUD:Dismiss()
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 99001); advance(0.06)
+check(ns.Engine.state ~= "CHANNELING" and not AnglersTackleBoxHUD:IsShown(), "vortex: an unknown channel isn't a cast yet")
+loot = { { id = 220134, name = "Test Fish", qty = 1, quality = 1 } }
+fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_READY"); fire("LOOT_OPENED"); fire("LOOT_CLOSED")
+check(ns.db.ids.fishingSpells[99001] == "Vortex Fishing" and printed[#printed]:find("Learned a new way to fish: Vortex Fishing", 1, true),
+  "vortex: fishing loot right after it teaches the addon, and says so")
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 99001); advance(0.06)
+check(ns.Engine.state == "CHANNELING" and bindings.F == "INTERACTTARGET" and AnglersTackleBoxHUD:IsShown(),
+  "vortex: the next cast counts: key reels in, the Fishing Companion comes back")
+fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); advance(2)
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 99002); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+advance(5); fire("LOOT_READY"); fire("LOOT_OPENED"); fire("LOOT_CLOSED")
+check(ns.db.ids.fishingSpells[99002] == nil, "vortex: loot long after another channel teaches nothing")
+SlashCmdList.ANGLERSTACKLEBOX("casts"); SlashCmdList.ANGLERSTACKLEBOX("casts reset")
+check(ns.db.ids.fishingSpells == nil and not ns.Compat.IsFishingSpell(99001), "/tb casts reset forgets learned casts")
+
+-- auras by name: 12.x's AuraUtil.FindAuraByName errors, C_UnitAuras answers
+AuraUtil.FindAuraByName = function() error("attempt to call a nil value") end
+check(ns.Compat.AuraRemaining(nil, "Test Lure") == nil, "auras: a broken AuraUtil doesn't error")
+C_UnitAuras.GetAuraDataBySpellName = function(_, name) if name == "Test Lure" then return { expirationTime = now + 30 } end end
+check(ns.Compat.AuraRemaining(nil, "Test Lure") == 30, "auras: found by name through C_UnitAuras")
+C_UnitAuras.GetAuraDataBySpellName, AuraUtil.FindAuraByName = nil, function() end
+
 -- the session window's X: hidden until the next cast
 if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
 fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
@@ -941,37 +1005,97 @@ check(AnglersTackleBoxHUD:IsShown(), "window: the next cast brings it back")
 advance(2)
 
 -- The Briny Best tracker
-local brinyText = { [1225270] = "Catch Rank: Minnow\nAnglin' Score: |cffffffff78.3|r points.\nAreas you can find:\n- Eversong Woods",
-  [1225279] = "Anglin' Score: 100.0 points" }
-local brinyName = { [1225270] = "Item220134", [1225279] = "Warping Wise" }
+local brinyText = {
+  [1225270] = "Catch Rank: Minnow\nAnglin' Score: |cffffffff78.3|r points.\nAreas you can find:\n- Eversong Woods\n"
+    .. "Fishing Pools:\n- Sunwell Swirl\nRates:\n- Better in fishing pools.",
+  [1225279] = "Anglin' Score: 100.0 points\nAreas you can find:\n- Eversong Woods",
+  [1295409] = "Anglin' Score: 100.0 points\nAreas you can find:\n- Atal'Utek",
+  [1295404] = "Anglin' Score: 90.0 points\nAreas you can find:\n- Zul'Aman\nRates:\n- Better in open water.",
+}
+local brinyName = { [1225270] = "Item220134", [1225279] = "Warping Wise", [1295409] = "Dirty Darter",
+  [1295404] = "Item220136" }
 local brinyRequested = 0
-C_Spell.GetSpellDescription = function(id) return brinyText[id] end
+-- Like the game: a description keeps its old text until its data is requested again.
+local brinyServed = {}
+C_Spell.GetSpellDescription = function(id)
+  if brinyServed[id] == nil then brinyServed[id] = brinyText[id] end
+  return brinyServed[id]
+end
 C_Spell.GetSpellName = (function(original) return function(id) return brinyName[id] or original(id) end end)(C_Spell.GetSpellName)
-C_Spell.RequestLoadSpellData = function() brinyRequested = brinyRequested + 1 end
+C_Spell.RequestLoadSpellData = function(id) brinyRequested = brinyRequested + 1; brinyServed[id] = nil end
 local achievementInfo = GetAchievementInfo
-GetAchievementInfo = function(a, b) if a == 63510 then return 63510, "The Briny Best", 10, false end return achievementInfo(a, b) end
+GetAchievementInfo = function(a, b)
+  if a == 63510 or a == 63632 then return a, "Briny", 10, false end
+  return achievementInfo(a, b)
+end
+local function catchFish(id, name)
+  loot = { { id = id, name = name, qty = 1, quality = 1 } }
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
+  fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
+end
+local function tooltipOf(row)
+  local out = {}
+  local tip = { AddLine = function(_, text) out[#out + 1] = text end,
+    AddDoubleLine = function(_, a, b) out[#out + 1] = a .. " " .. b end }
+  row.tooltip(tip)
+  return table.concat(out, "|")
+end
 if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
 local hud = AnglersTackleBoxHUD
 check(ns.HUD:CatalogEntry("briny") == nil, "briny: off by default, no tab")
 ns.Briny:SetEnabled(true)
 check(ns.db.hud.tab == "briny" and ns.HUD:CatalogEntry("briny") ~= nil, "briny: the checkbox adds the Briny tab and opens it")
-check(brinyRequested > 0 and ns.Briny:Scan().pending == 26, "briny: fish not loaded yet are asked for")
-check(hud.rows[1].right:GetText() == "178 / 2500", "briny: score adds up the fish until the achievement counts")
-check(hud.rows[3].left:GetText() == "Item220134" and hud.rows[3].right:GetText():find("Minnow|r 78.3", 1, true),
-  "briny: a fish's rank and score in the window, Trophy fish left out")
-loot = { { id = 220134, name = "Item220134", qty = 1, quality = 1 } }
-fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
-fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
-brinyText[1225270] = "Anglin' Score: 81.0 points"
+check(brinyRequested > 0 and ns.Briny:Scan().pending == 24, "briny: fish not loaded yet are asked for")
+check(hud.rows[1].right:GetText() == "368 / 2500", "briny: score adds up the fish until the achievement counts")
+local criteriaInfo = GetAchievementCriteriaInfo
+GetAchievementCriteriaInfo = function(id, i) if id == 63510 then error("criteria not found") end return criteriaInfo(id, i) end
+check(ns.Briny:Score() == 368, "briny: an achievement lookup that errors falls back to the fish")
+GetAchievementCriteriaInfo = criteriaInfo
+check(hud.rows[2].left:GetText() == "Eversong Woods" and hud.rows[2].right:GetText():find("178.3 / 200", 1, true),
+  "briny: this zone's total against its maximum")
+check(tooltipOf(hud.rows[2]):find("Item220134", 1, true), "briny: the zone row's tooltip lists the most to gain")
+check(hud.rows[3].left:GetText():find("Catch a Midnight fish", 1, true) and hud.rows[4].left:GetText() == "",
+  "briny: before any catch, a hint instead of a list")
+local darter = ns.Briny:Scan().byName["Dirty Darter"]
+check(darter.areas[1] == "Somewhere" and ns.Briny:Scan().byName.Item220134.best == "pools"
+  and ns.Briny:Scan().byName.Item220136.best == "open", "briny: garbled zone names fixed, open water and pool tags read")
+
+catchFish(220134, "Item220134")
+brinyText[1225270] = brinyText[1225270]:gsub("78%.3", "81.0")
 advance(2)
 check(printed[#printed]:find("Item220134 reached Pike rank", 1, true), "briny: a rank-up alerts")
 ns.HUD:Refresh()
-check(hud.rows[2].left:GetText() == "Item220134" and hud.rows[2].right:GetText():find("+2.7", 1, true),
+check(hud.rows[3].left:GetText() == "Item220134" and hud.rows[3].right:GetText():find("+2.7", 1, true),
   "briny: the last catch shows its new rank and the points gained")
+local tip = tooltipOf(hud.rows[3])
+check(tip:find("14.0 to Shark", 1, true) and tip:find("(pools)", 1, true) and tip:find("Sunwell Swirl", 1, true),
+  "briny: hovering a fish shows rank progress, where it bites best and its pools")
+
+catchFish(220136, "Item220136")
+brinyText[1295404] = "Anglin' Score: 100.0 points\nAreas you can find:\n- Zul'Aman"
+advance(2)
+check(printed[#printed]:find("Trophy! Item220136", 1, true), "briny: reaching Trophy has its own alert")
+catchFish(220134, "Item220134"); advance(2); ns.HUD:Refresh()
+check(#ns.Briny.recent == 2 and hud.rows[3].left:GetText() == "Item220134" and hud.rows[4].left:GetText() == "Item220136",
+  "briny: catching a fish again moves it to the top, gains kept")
+
 local goals = {}
 for _, line in ipairs(ns.Goals:Lines()) do goals[#goals + 1] = line.text end
 goals = table.concat(goals, "|")
-check(goals:find("The Briny Best", 1, true) and goals:find("1 of 2 fish at Trophy", 1, true), "briny: Goals lists every fish")
+check(goals:find("3 of 4 fish at Trophy", 1, true) and goals:find("Toxic Trophies: 2 of 8", 1, true),
+  "briny: Goals shows Trophy count and Toxic Trophies progress")
+check(goals:find("Here: Eversong Woods", 1, true) and goals:find("Item220134", 1, true) and goals:find("to Shark", 1, true)
+  and goals:find("Zul'Aman", 1, true), "briny: Goals lists each zone with its fish, this zone first")
+
+GetInventoryItemID = function(_, slot) if slot == 28 then return 244790 end end
+C_TooltipInfo = { GetInventoryItem = function() return { lines = { { leftText = "The Coiled Huntress" },
+  { leftText = "+1,234 Venom" } } } end }
+ns.HUD:Refresh()
+check(ns.Briny:Venom() == 1234 and hud.footer.text:GetText():find("Venom 1234", 1, true), "briny: Coiled Huntress venom read from its tooltip")
+GetInventoryItemID, C_TooltipInfo = function() end, nil
+check(ns.Briny:Venom() == nil, "briny: no venom line without the Huntress")
+
+SlashCmdList.ANGLERSTACKLEBOX("briny")
 SlashCmdList.ANGLERSTACKLEBOX("menu"); ns.Menu:Select("goals"); SlashCmdList.ANGLERSTACKLEBOX("menu")
 ns.Briny:SetEnabled(false)
 local brinyTabs = {}

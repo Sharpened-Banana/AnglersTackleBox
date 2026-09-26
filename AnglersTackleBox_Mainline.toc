@@ -39,6 +39,7 @@ Records.lua
 Stats.lua
 Recommend.lua
 Midnight.lua
+BrinyJournal.lua
 Briny.lua
 Planner.lua
 Engine.lua

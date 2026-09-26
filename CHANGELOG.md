@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.1
+
+- **A new welcome tour.** The first-login window is now four short pages: what TackleBox does, picking your key, your first cast, and what's in the box, with a click-through to each compartment. Back and Next step through it, and your first cast moves it on. `/tb welcome` opens it any time.
+- **The Briny tab shows your zone.** Your zone's total against its maximum (100 a fish), then this session's Midnight catches, newest first, with each fish's rank, score and the points it has gained this session. Hover a fish for how far it is from the next rank, whether it bites best in open water or pools, its lure and its pools; hover the zone for the fish with the most to gain there. With the Coiled Huntress equipped, the footer shows its venom.
+- **More Briny Best in Goals:** Toxic Trophies progress (which of its eight fish still need Trophy), Coiled Huntress venom, and every zone with its total against its maximum, your zone first, each fish tagged open water, pools or lure with the points to its next rank.
+- A fish reaching Trophy rank gets its own alert.
+- The small window you fish with is now called the **Fishing Companion** everywhere: its title, the settings, the help and the tour.
+- A welcome line in chat at every login and reload shows the version and how to open the interface. It can be turned off in the settings.
+- `/tb briny` prints what the tracker reads from the journal, for checking it in game.
+
+### Fixes
+
+- Fishing into an Oceanic Vortex wasn't seen as a cast: the key didn't switch to reel in, the Fishing Companion stayed hidden and casts weren't counted. TackleBox now learns a cast like that from its first catch and treats it like normal fishing from then on (`/tb casts` lists what it learned).
+- The settings panel stopped partway down: from "Track The Briny Best" on, nothing showed, because two settings shared a name.
+- Briny scores no longer get stuck after a catch. The tracker now asks the game to reload the Fishing Journal a few times after each catch, so ranks, rank-up alerts and points gained show up.
+- A Lua error, repeated every second, when reading lure timers on Retail 12.x, where Blizzard's own aura-by-name helper is broken.
+- A Lua error from the Briny tracker when the game couldn't find the achievement's progress.
+
 ## 1.2.0
 
 - Cast, catch and miss cues, in the Alarms compartment: a sound for each moment of a cast, an optional screen glow while the line is out, and green or red flashes on a catch or a miss. All sounds are off by default. The game gives addons no signal for the bite itself, so the splash is still your cue to reel in.

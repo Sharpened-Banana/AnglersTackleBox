@@ -33,13 +33,14 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb bobber [random\|off\|link or ID]` | Bobber toy to keep up; no argument opens the list |
 | `/tb doubleclick [on\|off]` | A quick double right-click does the same as the key |
 | `/tb set <name>`, `/tb set none` | Equipment set to wear while fishing |
-| `/tb hud` | Show or hide the session window |
+| `/tb hud` | Show or hide the Fishing Companion (the small window while you fish) |
 | `/tb tabs` | Choose and order the fishing companion's tabs, in the Top Tray (Session always stays first) |
 | `/tb log` | Catch log, By zone view: per-zone catches, share, value and pools |
 | `/tb journal` | Catch log, By fish view: a page per fish with where you catch it |
 | `/tb export` | The catch log as CSV in a copyable box |
 | `/tb export settings`, `/tb import [string]` | Copy your settings out as a string, or paste one back in |
 | `/tb sound [name\|test] [kind]` | Choose the alert sound, for all alerts or one kind; `cast`, `catch` or `miss` as the kind sets a fishing cue |
+| `/tb casts [reset]` | List the extra fishing casts TackleBox learned (like fishing into an Oceanic Vortex), or forget them |
 | `/tb sessions [drop N\|clear]` | List or remove saved sessions |
 | `/tb forget spot` | Forget the fishing spot you are standing on |
 | `/tb welcome` | Reopen the first-run welcome |
@@ -70,7 +71,7 @@ Everything gold-related (rankings, value alert, sell helper, history chart) live
 
 ## Credits
 
-The Briny Best tracker builds on [BrinyBest](https://github.com/nerolabs/BrinyBest) by Andrew Edmond: its way of reading the Fishing Journal, fish IDs, score labels and rank cutoffs. BrinyBest is MIT licensed; its license ships in `Licenses/BrinyBest.txt`.
+The Briny Best tracker builds on [BrinyBest](https://github.com/nerolabs/BrinyBest) by Andrew Edmond: its way of reading the Fishing Journal, fish IDs, each language's journal labels, the Coiled Isle zone-name fixes and rank cutoffs. BrinyBest is MIT licensed; its license ships in `Licenses/BrinyBest.txt`.
 
 ## License
 

@@ -9,6 +9,7 @@ globals = {
   "BINDING_HEADER_ANGLERSTACKLEBOX", "BINDING_NAME_ANGLERSTACKLEBOX_TOGGLE", "BINDING_NAME_ANGLERSTACKLEBOX_MENU",
   "AnglersTackleBox_ToggleMenu",
   "SLASH_ANGLERSTACKLEBOX1", "SLASH_ANGLERSTACKLEBOX2", "SlashCmdList", "UISpecialFrames",
+  "StaticPopupDialogs",
 }
 
 read_globals = {
@@ -16,7 +17,8 @@ read_globals = {
   "wipe", "date", "time",
   -- Frames and UI
   "CreateFrame", "UIParent", "RaidNotice_AddMessage", "RaidWarningFrame", "ChatTypeInfo",
-  "PlaySound", "PlaySoundFile", "LibStub", "SOUNDKIT", "Settings", "CreateSettingsButtonInitializer",
+  "StaticPopup_Show", "StaticPopup_Hide", "CLOSE", "CANCEL",
+  "PlaySound", "PlaySoundFile", "C_AddOns", "GetAddOnMetadata", "LibStub", "C_TooltipInfo", "SOUNDKIT", "Settings", "CreateSettingsButtonInitializer",
   "MinimalSliderWithSteppersMixin",
   -- Bindings and input
   "SetOverrideBinding", "SetOverrideBindingClick", "ClearOverrideBindings",

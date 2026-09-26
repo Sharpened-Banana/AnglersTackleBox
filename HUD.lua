@@ -1,4 +1,4 @@
--- Session window: Session tab first, then the player's picks from HUD.catalog.
+-- The Fishing Companion (the session window): Session tab first, then the player's picks from HUD.catalog.
 -- Built on first use, so a character that never fishes never pays for it.
 local _, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
@@ -52,7 +52,7 @@ local function Build()
 
   frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   frame.title:SetPoint("TOPLEFT", 10, -8)
-  frame.title:SetText("Angler's TackleBox")
+  frame.title:SetText(L["Fishing Companion"])
 
   -- The X hides the window until the next cast; /tb hud hides it for good.
   frame.close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
@@ -109,6 +109,13 @@ local function Build()
         HUD:Refresh()
       end
     end)
+    row:SetScript("OnEnter", function(self)
+      if not self.tooltip then return end
+      GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+      self.tooltip(GameTooltip)
+      GameTooltip:Show()
+    end)
+    row:SetScript("OnLeave", function() GameTooltip:Hide() end)
     frame.rows[index] = row
   end
 
@@ -130,13 +137,13 @@ end
 
 local ROW_COLORS = { gold = { 1, 0.82, 0 }, green = { 0.25, 1, 0.25 }, white = { 1, 1, 1 } }
 
--- "style" is true/"green", "white", or nil for the default gold.
-local function SetRow(row, left, right, onClick, style)
+-- "style" is true/"green", "white", or nil for the default gold. "tooltip" fills GameTooltip on hover.
+local function SetRow(row, left, right, onClick, style, tooltip)
   row.left:SetText(left or "")
   row.right:SetText(right or "")
   row.left:SetWidth((right == nil or right == "") and (WIDTH - 20) or (WIDTH - 90))
-  row.onClick = onClick
-  row:EnableMouse(onClick ~= nil)
+  row.onClick, row.tooltip = onClick, tooltip
+  row:EnableMouse(onClick ~= nil or tooltip ~= nil)
   local color = ROW_COLORS[style == true and "green" or style or "gold"] or ROW_COLORS.gold
   row.left:SetTextColor(color[1], color[2], color[3])
 end
@@ -309,27 +316,38 @@ function fill.gold(frame)
   SetRow(rows[6], L["Your record"], record and (Compat.CoinString(record.value) .. L["/hr"]) or "-")
 end
 
--- The Briny Best: warband score, the last journal fish caught, then the fish with the
--- most to gain that you've caught in this zone (any zone when none).
+-- The Briny Best: warband score, this zone's total against its maximum, then this session's journal
+-- fish, newest catch first, with the points each has gained. Hover a fish for its rank progress and
+-- where it bites best. Every zone and fish is in Goals.
 function fill.briny(frame)
   local rows, Briny = frame.rows, ns.Briny
   SetRow(rows[1], L["Anglin' Score"], Briny:ScoreText())
-  local name, text = Briny:LastText()
-  if name then
-    SetRow(rows[2], name, text, nil, "green")
+  local here = Briny:Here()
+  if here then
+    SetRow(rows[2], here.name, Briny:ZoneText(here), nil, nil, function(tooltip)
+      tooltip:AddLine(here.name)
+      tooltip:AddLine(string.format(L["%d fish here, %d at Trophy. Most to gain:"], #here.fish, here.trophies), 1, 1, 1)
+      for index = 1, math.min(5, #here.fish) do
+        local fish = here.fish[index]
+        if fish.score < 100 then tooltip:AddDoubleLine(fish.name, Briny:RankText(fish) .. " " .. Briny:Tags(fish)) end
+      end
+    end)
   else
-    SetRow(rows[2], "|cff808080" .. L["Catch a Midnight fish to see its rank"] .. "|r")
+    SetRow(rows[2], "|cff808080" .. L["Not in a Midnight fishing zone"] .. "|r")
   end
-  local lowest = Briny:Lowest(C_Map.GetBestMapForUnit("player"))
-  if #lowest == 0 then lowest = Briny:Lowest() end
   for index = 3, ROW_COUNT do
-    local fish = lowest[index - 2]
-    if fish then
-      SetRow(rows[index], fish.name, Briny:RankText(fish), nil, "white")
+    local entry = Briny.recent[index - 2]
+    if entry then
+      SetRow(rows[index], entry.name, Briny:RecentText(entry), nil, index == 3 and "green" or "white",
+        function(tooltip) Briny:FillTooltip(tooltip, entry.name) end)
+    elseif index == 3 then
+      SetRow(rows[index], "|cff808080" .. L["Catch a Midnight fish to see its rank"] .. "|r")
     else
       SetRow(rows[index])
     end
   end
+  local venom = Briny:Venom()
+  if venom then return string.format(L["Venom %d - every fish's rank..."], venom), "goals" end
 end
 
 -- Every tab the window can show. Session is fixed in first place.
