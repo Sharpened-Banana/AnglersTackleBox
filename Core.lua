@@ -69,6 +69,7 @@ ns.defaults = {
   doubleClick = false,  -- double right-click performs the armed action
   oversizedBobber = true, -- keep the Reusable Oversized Bobber up, if owned
   bobber = nil,         -- bobber toy to keep up: an item ID, "random" or nil
+  customBobbers = {},   -- bobber toys added with /tb bobber that Data.bobberToys doesn't know yet
   eventAlerts = true,   -- fishing event reminders
   autoPole = false,     -- Classic: fishing mode follows the equipped pole
   lureWarn = 60,        -- seconds before expiry

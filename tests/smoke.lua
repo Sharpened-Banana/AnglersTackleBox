@@ -583,6 +583,20 @@ press(); fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 5005); advance(0.5)
 check(btn.attrs.spell == "Fishing" and ns.Bobbers:Active() == 142529, "bobber toy with unreadable buff: trusted for an hour after its cast")
 SlashCmdList.ANGLERSTACKLEBOX("bobber random"); advance(1)
 check(btn.attrs.spell == "Fishing", "random: nothing queued while a bobber is already up")
+toys[237345] = true
+local function ownedHas(id) for _, x in ipairs(ns.Bobbers:Owned()) do if x == id then return true end end return false end
+check(ownedHas(237345), "bobbers: newer toys (Undermine's Rocket Bobber) are listed")
+toys[250001] = true
+SlashCmdList.ANGLERSTACKLEBOX("bobber 250001")
+check(ns.db.customBobbers[1] == 250001 and ns.db.bobber == 250001 and ownedHas(250001)
+  and printed[#printed - 1]:find("Added", 1, true), "bobbers: a toy the list lacks is added when chosen")
+SlashCmdList.ANGLERSTACKLEBOX("bobber 250001")
+check(#ns.db.customBobbers == 1, "bobbers: choosing it again doesn't add it twice")
+ns.db.customBobbers = {}
+check(ownedHas(250001), "bobbers: the chosen toy always counts, so its buff is seen")
+table.insert(ns.db.customBobbers, 250001)
+SlashCmdList.ANGLERSTACKLEBOX("bobber remove 250001")
+check(#ns.db.customBobbers == 0 and ns.db.bobber == nil and not ownedHas(250001), "bobbers: /tb bobber remove takes an added toy off")
 SlashCmdList.ANGLERSTACKLEBOX("bobber off"); auras[397827] = nil; ns.db.oversizedBobber = false; advance(1)
 
 -- auction price refresh

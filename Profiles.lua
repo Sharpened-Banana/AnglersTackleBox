@@ -29,7 +29,7 @@ end
 Profiles.account = {
   { "key", "string" }, { "loginMessage" }, { "alwaysOn" }, { "softInteract" }, { "classicSoftInteract" },
   { "autoLoot" }, { "useRaft" }, { "doubleClick" }, { "oversizedBobber" },
-  { "bobber", "string|number" }, { "eventAlerts" }, { "autoPole" }, { "lureWarn" },
+  { "bobber", "string|number" }, { "customBobbers", "list:number" }, { "eventAlerts" }, { "autoPole" }, { "lureWarn" },
   { "alerts" }, { "alertQuality" }, { "alertFlash" }, { "valueAlert" }, { "priceCap" },
   { "ahScan" }, { "ahScanDays" }, { "mapPins" }, { "afkWarning" },
   { "camera.enabled" }, { "camera.zoom", "number" },

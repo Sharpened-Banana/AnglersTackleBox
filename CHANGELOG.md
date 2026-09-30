@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2
+
+- Bobbers: four newer bobber toys are now listed: Bat Visage Bobber, and Undermine's Limited Edition Rocket, Artisan Beverage Goblet and Organically-Sourced Wellington bobbers.
+- Bobbers: a bobber toy TackleBox doesn't know yet can be added with `/tb bobber <link>`. It then shows in the Bobbers compartment and tab and joins the random pick; `/tb bobber remove <link>` takes it off.
+
+### Fixes
+
+- A bobber toy chosen with `/tb bobber` but missing from the addon's list never showed its buff as up, so the key could keep using the toy instead of casting.
+
 ## 1.2.1
 
 - **A new welcome tour.** The first-login window is now four short pages: what TackleBox does, picking your key, your first cast, and what's in the box, with a click-through to each compartment. Back and Next step through it, and your first cast moves it on. `/tb welcome` opens it any time.

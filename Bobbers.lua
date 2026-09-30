@@ -28,12 +28,49 @@ ns:OnModeEvent("UNIT_SPELLCAST_SUCCEEDED", function(_, _, spellID)
   if not Compat.IsSecret(spellID) and spellID then castAt[spellID] = GetTime() end
 end)
 
+-- Owned bobber toys: the known list, then any added with /tb bobber (Blizzard keeps adding them),
+-- then the chosen one if it's somehow neither, so its buff is always seen.
 function Bobbers:Owned()
-  local owned = {}
-  for _, itemID in ipairs(Data.bobberToys) do
-    if Compat.HasToy(itemID) then owned[#owned + 1] = itemID end
+  local owned, seen = {}, {}
+  local function Add(itemID)
+    if type(itemID) == "number" and not seen[itemID] and Compat.HasToy(itemID) then
+      seen[itemID] = true
+      owned[#owned + 1] = itemID
+    end
   end
+  for _, itemID in ipairs(Data.bobberToys) do Add(itemID) end
+  for _, itemID in ipairs(ns.db.customBobbers) do Add(itemID) end
+  Add(ns.db.bobber)
   return owned
+end
+
+function Bobbers:Known(itemID)
+  for _, known in ipairs(Data.bobberToys) do
+    if known == itemID then return true end
+  end
+  for _, known in ipairs(ns.db.customBobbers) do
+    if known == itemID then return true end
+  end
+  return false
+end
+
+-- Adds a toy the list doesn't have yet. True when it was new.
+function Bobbers:AddCustom(itemID)
+  if self:Known(itemID) then return false end
+  table.insert(ns.db.customBobbers, itemID)
+  return true
+end
+
+function Bobbers:RemoveCustom(itemID)
+  local list = ns.db.customBobbers
+  for index = #list, 1, -1 do
+    if list[index] == itemID then
+      table.remove(list, index)
+      if ns.db.bobber == itemID then ns.db.bobber = nil end
+      return true
+    end
+  end
+  return false
 end
 
 function Bobbers:HasOversized()

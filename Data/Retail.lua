@@ -24,6 +24,10 @@ Data.bobberToys = {
   147310, -- Floating Totem
   147311, -- Replica Gondola
   147312, -- Demon Noggin
+  180993, -- Bat Visage Bobber (Shadowlands)
+  237345, -- Limited Edition Rocket Bobber (Undermine)
+  237346, -- Artisan Beverage Goblet Bobber (Undermine)
+  237347, -- Organically-Sourced Wellington Bobber (Undermine)
 }
 Data.bobberDuration = 3600
 

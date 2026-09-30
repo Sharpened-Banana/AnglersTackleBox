@@ -309,7 +309,8 @@ commands.help = function()
     L["/tb extra <item link or ID> - add or remove a toy or item to keep up"],
     L["/tb raft [on|off] - use the fishing raft"],
     L["/tb oversized [on|off] - keep the oversized bobber up"],
-    L["/tb bobber [random|off|item link or ID] - bobber toy to keep up (no argument opens the list)"],
+    L["/tb bobber [random|off|item link or ID] - bobber toy to keep up (no argument opens the list); "
+      .. "a toy the list lacks is added, /tb bobber remove <link> takes it off"],
     L["/tb doubleclick [on|off] - double right-click does the same as the key"],
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
     L["/tb hud - show or hide the Fishing Companion;  /tb tabs - choose its tabs"],
@@ -419,11 +420,22 @@ commands.bobber = function(rest)
   elseif lower == "random" then
     ns.db.bobber = "random"
     ns:Print(L["Bobber toy: a random one you own."])
+  elseif lower:match("^remove ") then
+    local itemID = ItemIDFrom(rest:sub(8))
+    if itemID and ns.Bobbers:RemoveCustom(itemID) then
+      ns:Print(string.format(L["Removed %s from your bobbers."], ItemLabel(itemID)))
+    else
+      ns:Print(L["Only bobbers you added yourself can be removed."])
+    end
   else
     local itemID = ItemIDFrom(rest)
     if not itemID or not Compat.HasToy(itemID) then
       ns:Print(L["That isn't a toy you own."])
       return
+    end
+    -- A bobber toy the addon doesn't list yet joins the list, for the menu, the tab and random.
+    if ns.Bobbers:AddCustom(itemID) then
+      ns:Print(string.format(L["Added %s to your bobbers."], ItemLabel(itemID)))
     end
     ns.db.bobber = itemID
     ns:Print(string.format(L["Bobber toy: %s"], ItemLabel(itemID)))
