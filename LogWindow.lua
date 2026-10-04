@@ -186,9 +186,11 @@ function Window:Refresh()
     casts, catches, Compat.CoinString(value), ns.FormatTime(seconds)))
 end
 
--- Addons can't write files, so the CSV export is a selectable text box to copy from.
-function Window:ShowExport()
-  local box = self.export
+-- Addons can't write files, so exports are a selectable text box to copy from. Shared by the
+-- CSV export and the error report (/tb errors).
+local copyBox
+function ns.ShowCopyText(title, text)
+  local box = copyBox
   if not box then
     box = CreateFrame("Frame", "AnglersTackleBoxExport", UIParent, "BackdropTemplate")
     box:SetSize(520, 320)
@@ -216,14 +218,18 @@ function Window:ShowExport()
     box.edit:SetWidth(470)
     box.edit:SetScript("OnEscapePressed", function() box:Hide() end)
     scroll:SetScrollChild(box.edit)
-    self.export = box
+    copyBox = box
   end
-  local text, count = ns.Log:ExportCSV()
-  box.title:SetText(string.format(L["%d rows - press Ctrl+C (Cmd+C on a Mac) to copy"], count))
+  box.title:SetText(title)
   box.edit:SetText(text)
   box:Show()
   box.edit:SetFocus()
   box.edit:HighlightText()
+end
+
+function Window:ShowExport()
+  local text, count = ns.Log:ExportCSV()
+  ns.ShowCopyText(string.format(L["%d rows - press Ctrl+C (Cmd+C on a Mac) to copy"], count), text)
 end
 
 -- Start on the zone the player is standing in, when it has catches.

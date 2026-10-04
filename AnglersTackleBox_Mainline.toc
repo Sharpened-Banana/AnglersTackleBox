@@ -14,6 +14,7 @@
 
 Locales/enUS.lua
 Compat.lua
+Errors.lua
 Data/Retail.lua
 Core.lua
 Profiles.lua

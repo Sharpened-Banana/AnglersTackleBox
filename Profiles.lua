@@ -30,7 +30,8 @@ Profiles.account = {
   { "key", "string" }, { "loginMessage" }, { "alwaysOn" }, { "softInteract" }, { "classicSoftInteract" },
   { "autoLoot" }, { "useRaft" }, { "doubleClick" }, { "oversizedBobber" },
   { "bobber", "string|number" }, { "customBobbers", "list:number" }, { "eventAlerts" }, { "autoPole" }, { "lureWarn" },
-  { "alerts" }, { "alertQuality" }, { "alertFlash" }, { "valueAlert" }, { "priceCap" },
+  { "alerts" }, { "alertChat" }, { "modeMessages" }, { "sellHelper" }, { "dasherAlert" },
+  { "errorNotice" }, { "alertQuality" }, { "alertFlash" }, { "valueAlert" }, { "priceCap" },
   { "ahScan" }, { "ahScanDays" }, { "mapPins" }, { "afkWarning" },
   { "camera.enabled" }, { "camera.zoom", "number" },
   { "minimap.hide" }, { "minimap.angle" },
@@ -41,7 +42,7 @@ Profiles.account = {
   { "cues.castSound", check = ValidSound }, { "cues.catchSound", check = ValidSound },
   { "cues.missSound", check = ValidSound }, { "cues.glow" },
   { "cues.color", check = ValidColor }, { "cues.flashCatch" }, { "cues.flashMiss" },
-  { "hud.shown" }, { "hud.scale" }, { "hud.tabs", "list:string" },
+  { "hud.shown" }, { "hud.scale" }, { "hud.alpha" }, { "hud.locked" }, { "hud.tabs", "list:string" },
   { "briny.enabled" }, { "sessionGoals.catches" }, { "sessionGoals.gold" }, { "sessionGoals.minutes" },
 }
 

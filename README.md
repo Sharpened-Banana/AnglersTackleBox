@@ -41,6 +41,7 @@ Symlink the repo into the game's AddOns folder, then `/reload`:
 | `/tb export settings`, `/tb import [string]` | Copy your settings out as a string, or paste one back in |
 | `/tb sound [name\|test] [kind]` | Choose the alert sound, for all alerts or one kind; `cast`, `catch` or `miss` as the kind sets a fishing cue |
 | `/tb casts [reset]` | List the extra fishing casts TackleBox learned (like fishing into an Oceanic Vortex), or forget them |
+| `/tb errors [clear]` | Lua errors TackleBox caught, as a report to paste into a GitHub issue; `clear` empties the list |
 | `/tb sessions [drop N\|clear]` | List or remove saved sessions |
 | `/tb forget spot` | Forget the fishing spot you are standing on |
 | `/tb welcome` | Reopen the first-run welcome |

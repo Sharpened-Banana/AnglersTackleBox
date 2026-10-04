@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.3
+
+- **Error reports.** TackleBox now catches its own Lua errors and keeps the ten most recent, with how often each happened and the version it happened on. `/tb errors` shows them as a report to copy into a GitHub issue; `/tb errors clear` empties the list. The first error in a session prints one chat line pointing there, and "Send feedback..." mentions it too. Errors still reach BugSack as before.
+- A handler that hits an error no longer stops the rest of the addon's handlers for that event.
+- **More switches for everything TackleBox says on its own** (Settings, and the box's Settings and Top Tray):
+  - Switching a kind of alert off now silences it completely. Before, its chat line still printed.
+  - New: alerts in chat on or off, fishing mode on/off messages, the Derby Dasher warning (separate from fishing contest reminders), the sell helper list at vendors and the auction house, and the Lua error notice.
+  - Fishing Companion: lock it in place, and set how see-through its background is.
+  - The settings panel now also has map pins, the away warning and the auction-house price prompt, which were only in the box or in commands before.
+- Finding a rare drop like the Sea Turtle is now a real "Rare catches" alert instead of a plain chat line.
+
 ## 1.2.2
 
 - Bobbers: four newer bobber toys are now listed: Bat Visage Bobber, and Undermine's Limited Edition Rocket, Artisan Beverage Goblet and Organically-Sourced Wellington bobbers.

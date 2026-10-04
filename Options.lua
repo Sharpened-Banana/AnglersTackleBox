@@ -122,6 +122,8 @@ local function BuildPanel()
 
   Checkbox(db, defaults, "loginMessage", L["Welcome message at login"],
     L["A line in chat at every login and reload with the version and how to open the interface."])
+  Checkbox(db, defaults, "modeMessages", L["Fishing mode on/off messages"],
+    L["A chat line when fishing mode turns on or off."])
   Checkbox(db, defaults, "alwaysOn", L["Fishing mode always on"],
     L["Turns fishing mode on by itself at login and after instances, so the key is always ready."]
       .. " " .. L["Sound and interact settings still only change while you are actually fishing."],
@@ -163,8 +165,10 @@ local function BuildPanel()
   Slider(db, defaults, "lureWarn", L["Lure warning"],
     L["Warn this long before the lure runs out."], 0, 300, 10, Seconds)
 
-  Checkbox(db, defaults, "alerts", L["Alerts"],
-    L["Screen and sound alerts. The chat line always prints."])
+  Checkbox(db, defaults, "alerts", L["Alerts on screen and with sound"],
+    L["Big screen text, sound and flash for alerts. Each kind can also be switched off below."])
+  Checkbox(db, defaults, "alertChat", L["Alerts in chat"],
+    L["Each alert also as a line in chat, even with screen and sound alerts off."])
   Checkbox(db, defaults, "alertFlash", L["Flash the screen on alerts"],
     L["A visual cue for players who fish with the sound off."])
   if Settings.CreateDropdown and Settings.CreateControlTextContainer then
@@ -222,19 +226,35 @@ local function BuildPanel()
     alertDefaults[kind.key] = true
     if db.alertTypes[kind.key] == nil then db.alertTypes[kind.key] = true end
     Checkbox(db.alertTypes, alertDefaults, kind.key, string.format(L["Alert: %s"], kind.label),
-      L["Screen and sound alert for this kind of event."])
+      L["Off silences this kind of alert completely: no screen text, sound or chat line."])
   end
   if ns.Briny then
     Checkbox(db.briny, defaults.briny, "enabled", L["Track The Briny Best"],
       L["Anglin' Score and each Midnight fish's catch rank, in a Briny tab on the Fishing Companion and in Goals."],
       function(_, value) ns.Briny:SetEnabled(value) end, "briny_enabled")
   end
-  Checkbox(db, defaults, "eventAlerts", L["Fishing event reminders"],
+  Checkbox(db, defaults, "eventAlerts", L["Fishing contest reminders"],
     L["While fishing, reminds you shortly before a fishing contest and when it starts."])
+  Checkbox(db, defaults, "dasherAlert", L["Derby Dasher warning"],
+    L["Warns shortly before your Derby Dasher buff runs out."])
+  Checkbox(db, defaults, "afkWarning", L["Away warning"],
+    L["Warns after four minutes without a key press, before the game marks you away."])
+  Checkbox(db, defaults, "sellHelper", L["Sell helper at vendors"],
+    L["Lists the fish worth selling in chat when you open a vendor or the auction house."])
+  Checkbox(db, defaults, "ahScan", L["Offer to refresh auction prices"],
+    L["At the auction house, asks once per visit whether to rescan when fish prices are out of date."])
+  Checkbox(db, defaults, "mapPins", L["Fishing spots on the world map"],
+    L["Pins on the world map for every spot you have fished."], function() ns.Spots:RefreshPins() end)
+  Checkbox(db, defaults, "errorNotice", L["Tell me about Lua errors"],
+    L["A chat line the first time TackleBox hits a Lua error in a session. /tb errors always has the report."])
   Checkbox(db.hud, defaults.hud, "shown", L["Show the Fishing Companion"],
     L["Casts, catches, value per hour and lure timer while fishing."], UpdateHUD)
+  Checkbox(db.hud, defaults.hud, "locked", L["Lock the Fishing Companion in place"],
+    L["Stops the window from being dragged by accident."])
   Slider(db.hud, defaults.hud, "scale", L["Fishing Companion scale"],
     L["Size of the Fishing Companion window."], 0.6, 2, 0.05, Percent, UpdateHUD)
+  Slider(db.hud, defaults.hud, "alpha", L["Fishing Companion background"],
+    L["How see-through the window's background is. Text stays fully visible."], 0, 1, 0.05, Percent, UpdateHUD)
 
   if Compat.needsPole then
     Checkbox(db, defaults, "classicSoftInteract", L["Reel in without aiming (soft interact)"],
@@ -318,6 +338,7 @@ commands.help = function()
     L["/tb export settings - your settings as a string;  /tb import - paste one back in"],
     L["/tb sound [name|test] [alert kind] - the alert sound (no argument lists them)"],
     L["/tb casts [reset] - fishing casts learned from new places, like an Oceanic Vortex"],
+    L["/tb errors [clear] - Lua errors TackleBox caught, as a report to send the author"],
     L["/tb sessions [drop <number>|clear] - list or remove saved sessions"],
     L["/tb forget spot - forget the fishing spot you are standing on"],
     L["/tb find <fish> - where you catch it, from your own log"],
@@ -510,6 +531,16 @@ commands.casts = function(rest)
   end
   ns:Print(L["Learned fishing casts (/tb casts reset forgets them):"])
   for spellID, name in pairs(learned) do print(string.format("   %s (%d)", tostring(name), spellID)) end
+end
+
+-- Lua errors TackleBox caught, as a report to paste into a GitHub issue; "clear" empties the list.
+commands.errors = function(rest)
+  if rest:lower() == "clear" then
+    ns.Errors:Clear()
+    ns:Print(L["Error list cleared."])
+  else
+    ns.Errors:Show()
+  end
 end
 
 commands.briny = function()

@@ -134,30 +134,38 @@ local function BuildWindow(panel)
   local show = Check(panel, L["Show the fishing companion while fishing"], ns.db.hud, "shown",
     function() ns.HUD:UpdateVisibility() end)
   show:SetPoint("TOPLEFT", 0, 0)
+  local lock = Check(panel, L["Lock it in place"], ns.db.hud, "locked")
+  lock:SetPoint("TOPLEFT", 0, -26)
 
-  local scaleLabel = Label(panel, "GameFontHighlight")
-  scaleLabel:SetPoint("TOPLEFT", 2, -36)
-  local function Scale(step)
-    ns.db.hud.scale = math.max(0.6, math.min(2, (ns.db.hud.scale or 1) + step))
-    ns.HUD:UpdateVisibility()
-    Menu:Refresh()
+  -- Size and background opacity, each with -/+ buttons.
+  local function Stepper(x, key, low, high, fallback)
+    local label = Label(panel, "GameFontHighlight")
+    label:SetPoint("TOPLEFT", x + 2, -62)
+    local function Step(step)
+      ns.db.hud[key] = math.max(low, math.min(high, (ns.db.hud[key] or fallback) + step))
+      ns.HUD:UpdateVisibility()
+      Menu:Refresh()
+    end
+    local less = Button(panel, "-", 26, function() Step(-0.05) end)
+    less:SetPoint("TOPLEFT", x + 120, -57)
+    local more = Button(panel, "+", 26, function() Step(0.05) end)
+    more:SetPoint("LEFT", less, "RIGHT", 4, 0)
+    return label
   end
-  local smaller = Button(panel, "-", 26, function() Scale(-0.05) end)
-  smaller:SetPoint("TOPLEFT", 130, -31)
-  local bigger = Button(panel, "+", 26, function() Scale(0.05) end)
-  bigger:SetPoint("LEFT", smaller, "RIGHT", 4, 0)
+  local scaleLabel = Stepper(0, "scale", 0.6, 2, 1)
+  local alphaLabel = Stepper(200, "alpha", 0, 1, 0.7)
 
   local header = Label(panel, "GameFontNormal")
-  header:SetPoint("TOPLEFT", 2, -70)
+  header:SetPoint("TOPLEFT", 2, -98)
   local note = Label(panel, "GameFontDisableSmall",
     L["Session always comes first. Tick the tabs you want; the arrows set their order."])
-  note:SetPoint("TOPLEFT", 2, -88)
+  note:SetPoint("TOPLEFT", 2, -116)
 
   local rows = {}
   for index = 1, #ns.HUD.catalog do
     local row = CreateFrame("Frame", nil, panel)
     row:SetSize(400, 26)
-    row:SetPoint("TOPLEFT", 0, -84 - index * 27)
+    row:SetPoint("TOPLEFT", 0, -112 - index * 27)
     row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
     row.check:SetSize(24, 24)
     row.check:SetPoint("LEFT")
@@ -181,11 +189,13 @@ local function BuildWindow(panel)
     ns.HUD:ResetTabs()
     Menu:Refresh()
   end)
-  reset:SetPoint("TOPLEFT", 0, -90 - (#ns.HUD.catalog + 1) * 27)
+  reset:SetPoint("TOPLEFT", 0, -118 - (#ns.HUD.catalog + 1) * 27)
 
   panel.Refresh = function()
     show.Sync()
+    lock.Sync()
     scaleLabel:SetText(string.format(L["Size: %d%%"], math.floor((ns.db.hud.scale or 1) * 100 + 0.5)))
+    alphaLabel:SetText(string.format(L["Background: %d%%"], math.floor((ns.db.hud.alpha or 0.7) * 100 + 0.5)))
     local tabs = ns.HUD:Tabs()
     local place = {}
     for index, entry in ipairs(tabs) do place[entry.key] = index end
@@ -252,7 +262,7 @@ local function BuildTopTray(host)
   -- The small window shown while fishing: on/off, size and its tabs.
   local companionHeader = Label(panel, "GameFontNormalLarge", L["Fishing Companion"])
   companionHeader:SetPoint("TOPLEFT", 2, -140)
-  local companionHeight = 90 + (#ns.HUD.catalog + 1) * 27 + 30 -- matches BuildWindow's rows and reset button
+  local companionHeight = 118 + (#ns.HUD.catalog + 1) * 27 + 30 -- matches BuildWindow's rows and reset button
   local companion = CreateFrame("Frame", nil, panel)
   companion:SetPoint("TOPLEFT", 0, -164)
   companion:SetSize(410, companionHeight)
@@ -1009,7 +1019,8 @@ local function BuildSettings(panel)
     Check(panel, L["Swap to fishing gear"], ns.chardb, "gearSwap"),
     Check(panel, L["Alerts on screen and with sound"], ns.db, "alerts"),
     Check(panel, L["Flash the screen on alerts"], ns.db, "alertFlash"),
-    Check(panel, L["Fishing event reminders"], ns.db, "eventAlerts"),
+    Check(panel, L["Alerts in chat"], ns.db, "alertChat"),
+    Check(panel, L["Fishing contest reminders"], ns.db, "eventAlerts"),
     Check(panel, L["Warn before the game marks me away"], ns.db, "afkWarning"),
     Check(panel, L["Show my fishing spots on the world map"], ns.db, "mapPins",
       function() ns.Spots:RefreshPins() end),
@@ -1065,7 +1076,7 @@ local FEEDBACK_URL = "https://github.com/Sharpened-Banana/AnglersTackleBox/issue
 function Menu:ShowFeedback()
   if not StaticPopupDialogs["ANGLERS_TACKLEBOX_FEEDBACK"] then
     StaticPopupDialogs["ANGLERS_TACKLEBOX_FEEDBACK"] = {
-      text = L["Found a bug or have an idea? Copy this link (Ctrl-C) and open it in your browser:"],
+      text = L["Found a bug or have an idea? Copy this link (Ctrl-C) and open it in your browser:"] .. "%s",
       button1 = CLOSE,
       hasEditBox = true,
       editBoxWidth = 320,
@@ -1086,7 +1097,10 @@ function Menu:ShowFeedback()
       timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
     }
   end
-  StaticPopup_Show("ANGLERS_TACKLEBOX_FEEDBACK")
+  -- A caught error is worth attaching: point at the report.
+  local errors = ns.Errors:Count() > 0
+    and ("\n\n" .. L["TackleBox caught errors: type /tb errors and paste that report into your issue too."]) or ""
+  StaticPopup_Show("ANGLERS_TACKLEBOX_FEEDBACK", errors)
 end
 
 local function SpellIcon(spellID)

@@ -129,15 +129,14 @@ end
 
 -- Reminders while fishing: once shortly before a contest and once at its start.
 function Events:Tick()
-  if not ns.db.eventAlerts then return end
-
-  local dasher = DasherRemaining()
+  local dasher = ns.db.dasherAlert and DasherRemaining()
   if not dasher then
     self.dasherWarned = nil
   elseif dasher <= DASHER_WARNING and not self.dasherWarned then
     self.dasherWarned = true
     ns.Alerts:Fire("event", string.format(L["Derby Dasher runs out in %s!"], ns.FormatTime(dasher)))
   end
+  if not ns.db.eventAlerts then return end
 
   local now = GetTime()
   if now < (self.nextCheck or 0) then return end

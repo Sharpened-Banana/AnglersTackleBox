@@ -27,10 +27,11 @@ function ns:On(message, handler)
   table.insert(listeners[message], handler)
 end
 
+-- Each handler runs through ns.Safe (Errors.lua): one that errors is recorded and the rest still run.
 function ns:Fire(message, ...)
   local handlers = listeners[message]
   if not handlers then return end
-  for i = 1, #handlers do handlers[i](...) end
+  for i = 1, #handlers do ns.Safe(handlers[i], ...) end
 end
 
 -- Reports are lists of { text = ..., header = bool }, shared by chat and the menu window.
@@ -74,6 +75,11 @@ ns.defaults = {
   autoPole = false,     -- Classic: fishing mode follows the equipped pole
   lureWarn = 60,        -- seconds before expiry
   alerts = true,
+  alertChat = true,     -- each alert also as a line in chat
+  modeMessages = true,  -- "Fishing mode on/off" in chat
+  sellHelper = true,    -- list fish to sell at vendors and the auction house
+  dasherAlert = true,   -- warn before the Derby Dasher buff runs out
+  errorNotice = true,   -- a chat line the first time a session hits a Lua error
   alertQuality = 3,     -- alert on catches of this quality and up
   alertFlash = false,   -- flash the screen edges with each alert
   valueAlert = 0,       -- gold; alert on a single catch worth at least this (0 = off)
@@ -107,9 +113,10 @@ ns.defaults = {
     muteAmbience = true,
     backgroundSound = true,
   },
-  hud = { shown = true, scale = 1.0, tab = "session", tabs = { "lures", "log" } },
+  hud = { shown = true, scale = 1.0, alpha = 0.7, locked = false, tab = "session", tabs = { "lures", "log" } },
   ids = {},             -- game IDs found at runtime (faction, currency)
   cvarBackup = {},
+  errors = {},          -- recent Lua errors from this addon, newest first (Errors.lua, /tb errors)
   characters = {},      -- [name-realm] = lifetime Stats totals (warband view)
 }
 
@@ -191,7 +198,7 @@ modeFrame:SetScript("OnEvent", function(_, event, ...)
   if Core.suspended and not ALWAYS_DELIVERED[event] then return end
   local handlers = modeHandlers[event]
   if not handlers then return end
-  for i = 1, #handlers do handlers[i](...) end
+  for i = 1, #handlers do ns.Safe(handlers[i], ...) end
 end)
 
 local function RegisterModeEvents()
@@ -252,8 +259,8 @@ function Core:SetMode(on, quiet)
     self.suspended = false
     RegisterModeEvents()
     ForEachModule("Enable")
-    self.ticker = C_Timer.NewTicker(1, function() Core:Tick() end)
-    if not quiet then ns:Print(L["Fishing mode on."]) end
+    self.ticker = C_Timer.NewTicker(1, function() ns.Safe(Core.Tick, Core) end)
+    if not quiet and ns.db.modeMessages then ns:Print(L["Fishing mode on."]) end
     if not quiet and not ns.db.key and not ns.db.doubleClick then
       ns:Print(L["No fishing key set yet. Type /tb bind to pick one."])
     end
@@ -266,7 +273,7 @@ function Core:SetMode(on, quiet)
     ForEachModule("Disable", true)
     self:Unfocus()
     CVars:RestoreAll()
-    if not quiet then ns:Print(L["Fishing mode off."]) end
+    if not quiet and ns.db.modeMessages then ns:Print(L["Fishing mode off."]) end
   end
 end
 
@@ -388,7 +395,7 @@ function Core:UpdateAutoPole()
   end
 end
 
-frame:SetScript("OnEvent", function(_, event, arg1)
+local function OnEvent(_, event, arg1)
   if event == "ADDON_LOADED" then
     if arg1 ~= ADDON then return end
     frame:UnregisterEvent("ADDON_LOADED")
@@ -398,6 +405,7 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     ApplyDefaults(AnglersTackleBoxDB, ns.defaults)
     ApplyDefaults(AnglersTackleBoxCharDB, ns.charDefaults)
     ns.db, ns.chardb = AnglersTackleBoxDB, AnglersTackleBoxCharDB
+    ns.Errors:Init()
 
     -- Undo CVars from a session that never cleaned up.
     CVars:RestoreAll()
@@ -450,7 +458,9 @@ frame:SetScript("OnEvent", function(_, event, arg1)
       CVars:RestoreAll()
     end
   end
-end)
+end
+
+frame:SetScript("OnEvent", function(...) ns.Safe(OnEvent, ...) end)
 
 ---------------------------------------------------------------------------
 -- Global entry points: key binding and addon compartment

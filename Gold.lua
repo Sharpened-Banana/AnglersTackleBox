@@ -292,6 +292,7 @@ local function OnShopOpened(_, event)
     Gold.offered = true
     Gold:OfferScan()
   end
+  if not ns.db.sellHelper then return end
   local now = GetTime()
   if Gold.lastShop and now - Gold.lastShop < 30 then return end
   Gold.lastShop = now

@@ -107,7 +107,7 @@ ns:On("CAST_LOOTED", function(looted, pool)
       counter.n = counter.n + 1
       if looted[drop.item] then
         counter.found = counter.n
-        ns:Print(string.format(L["%s after %d attempts!"], drop.name, counter.n))
+        ns.Alerts:Fire("rare", string.format(L["%s after %d attempts!"], drop.name, counter.n))
       end
     end
   end

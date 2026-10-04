@@ -32,12 +32,14 @@ local function Build()
     edgeSize = 12,
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
   })
-  frame:SetBackdropColor(0, 0, 0, 0.7)
+  frame:SetBackdropColor(0, 0, 0, ns.db.hud.alpha or 0.7)
   frame:SetClampedToScreen(true)
   frame:SetMovable(true)
   frame:EnableMouse(true)
   frame:RegisterForDrag("LeftButton")
-  frame:SetScript("OnDragStart", frame.StartMoving)
+  frame:SetScript("OnDragStart", function(self)
+    if not ns.db.hud.locked then self:StartMoving() end
+  end)
   frame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     SavePosition(self)
@@ -472,6 +474,7 @@ function HUD:UpdateVisibility()
   if show and not self.frame then self.frame = Build() end
   if not self.frame then return end
   self.frame:SetScale(ns.db.hud.scale)
+  self.frame:SetBackdropColor(0, 0, 0, ns.db.hud.alpha or 0.7)
   self.frame:SetShown(show)
   self:Refresh()
 end

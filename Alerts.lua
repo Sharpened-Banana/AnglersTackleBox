@@ -1,4 +1,4 @@
--- Screen, sound and flash alerts with a per-category toggle. The chat line always prints.
+-- Screen, sound, flash and chat alerts, with a switch per kind of alert.
 local ADDON, ns = ...
 local L, Compat, Data = ns.L, ns.Compat, ns.Data
 
@@ -143,10 +143,12 @@ function Alerts:Flash(rgb)
   flash.fade:Play()
 end
 
--- silent: show the text on screen without the sound or the flash.
+-- A kind switched off is silent everywhere, chat included. "alerts" covers the screen text, sound
+-- and flash; "alertChat" the chat line. silent: screen text only, no sound or flash.
 function Alerts:Fire(category, text, silent)
-  ns:Print(text)
-  if not ns.db.alerts or ns.db.alertTypes[category] == false then return end
+  if ns.db.alertTypes[category] == false then return end
+  if ns.db.alertChat then ns:Print(text) end
+  if not ns.db.alerts then return end
   if RaidNotice_AddMessage and RaidWarningFrame then
     RaidNotice_AddMessage(RaidWarningFrame, text, ChatTypeInfo["RAID_WARNING"])
   end

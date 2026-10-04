@@ -127,6 +127,8 @@ StaticPopup_Show = function(name) shownPopup = name end
 SlashCmdList = {}
 UISpecialFrames = {}
 GetLocale = function() return "enUS" end
+-- ns.Safe hands caught errors to the game's handler; in the tests that's a failure.
+geterrorhandler = function() return function(err) print("CAUGHT ERROR: " .. tostring(err)); os.exit(1) end end
 UnitGUID = function(unit) return unit == "nameplate1" and "Creature-0-1-2-3-263682-000000" or "Creature-0-1-2-3-1-000000" end
 strsplit = function(sep, text) local out = {} for part in (text .. sep):gmatch("(.-)" .. sep) do out[#out + 1] = part end return table.unpack(out) end
 local tooltipCalls = {}
@@ -237,7 +239,7 @@ if CLASSIC then
   C_Spell.GetSpellName = function(id) if id == 7620 or id == 7731 then return "Fishing" end end
   TooltipDataProcessor = nil
 
-  for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Classic.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
+  for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Errors.lua", "Data/Classic.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "Cues.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
     "Spots.lua", "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
     "Recommend.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
@@ -304,7 +306,7 @@ if CLASSIC then
   print_real("classic run complete")
   os.exit(0)
 end
-for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Data/Retail.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
+for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Errors.lua", "Data/Retail.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "Cues.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
   "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
   "Midnight.lua", "BrinyJournal.lua", "Briny.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
@@ -953,6 +955,103 @@ P:SetShared(false)
 ns.chardb.gearSwap = true; fire("PLAYER_LOGOUT")
 check(ns.db.sharedChar.gearSwap == false, "shared: off means nothing is saved back")
 ns.chardb.lureID, ns.chardb.fishingSet, ns.chardb.log[9999] = nil, nil, nil
+
+-- switches for everything that talks on its own
+if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
+local before = #printed
+ns.db.alertTypes.event = false; played = {}
+ns.Alerts:Fire("event", "contest soon")
+check(#printed == before and #played == 0, "options: a kind of alert switched off is silent, chat line included")
+ns.db.alertTypes.event = true; ns.db.alertChat = false
+ns.Alerts:Fire("event", "contest soon")
+check(#printed == before and #played == 1, "options: alerts without the chat line still sound")
+ns.db.alertChat = true
+ns.db.modeMessages = false
+SlashCmdList.ANGLERSTACKLEBOX(""); SlashCmdList.ANGLERSTACKLEBOX("")
+check(#printed == before and ns.Core.mode, "options: fishing mode on/off lines can be turned off")
+ns.db.modeMessages = true
+before = #printed
+ns.db.eventAlerts, ns.db.dasherAlert = true, false
+auras[456024] = { expirationTime = now + 30 }; ns.Events.dasherWarned = nil
+ns.Events:Tick()
+check(not ns.Events.dasherWarned, "options: the Derby Dasher warning has its own switch")
+ns.db.dasherAlert = true; ns.Events:Tick()
+check(ns.Events.dasherWarned and printed[#printed]:find("Derby Dasher runs out", 1, true), "options: Derby Dasher warning when on")
+auras[456024] = nil
+if ns.Gold then
+  ns.db.sellHelper = false; ns.Gold.lastShop = nil; before = #printed
+  fire("MERCHANT_SHOW")
+  check(#printed == before, "options: the sell helper list can be turned off")
+  ns.db.sellHelper = true
+end
+local hudFrame = AnglersTackleBoxHUD
+local moved, backdropAlpha = false, nil
+hudFrame.StartMoving = function() moved = true end
+hudFrame.SetBackdropColor = function(_, _, _, _, a) backdropAlpha = a end
+ns.db.hud.locked = true
+hudFrame.scripts.OnDragStart(hudFrame)
+check(not moved, "options: a locked Fishing Companion can't be dragged")
+ns.db.hud.locked = false
+hudFrame.scripts.OnDragStart(hudFrame)
+check(moved, "options: unlocked it drags again")
+ns.db.hud.alpha = 0.25; ns.HUD:UpdateVisibility()
+check(backdropAlpha == 0.25, "options: the Fishing Companion's background opacity applies")
+ns.db.hud.alpha = 0.7; ns.HUD:UpdateVisibility()
+
+-- the error catcher (Errors.lua, /tb errors)
+local failOnError, forwarded = geterrorhandler, {}
+geterrorhandler = function() return function(err) forwarded[#forwarded + 1] = err end end
+debugstack = function()
+  return "[string \"@Interface/AddOns/AnglersTackleBox/Briny.lua\"]:158: in function <Briny.lua:150>\n"
+    .. "[C]: in function 'xpcall'\n[string \"@Interface/AddOns/AnglersTackleBox/Core.lua\"]:33: in function 'Fire'"
+end
+GetBuildInfo = function() return "12.1.5", "65000", "Sep 1 2026", 120105 end
+ns.Errors:Clear()
+local ranAfter = false
+ns:On("TEST_ERROR", function() error("Interface/AddOns/AnglersTackleBox/Briny.lua:158: attempt to index a nil value") end)
+ns:On("TEST_ERROR", function() ranAfter = true end)
+ns:Fire("TEST_ERROR")
+check(ranAfter and ns.Errors:Count() == 1, "errors: a failing handler is recorded and the next one still runs")
+check(forwarded[1] and forwarded[1]:find("attempt to index", 1, true), "errors: passed on to the game's handler, nothing swallowed")
+check(printed[#printed]:find("/tb errors", 1, true), "errors: one chat line tells the player")
+local lineCount = #printed
+ns:Fire("TEST_ERROR")
+check(ns.Errors:Count() == 1 and ns.db.errors[1].count == 2 and #printed == lineCount,
+  "errors: the same error again counts up, no second chat line")
+ns:On("TEST_OTHER", function() error("Interface/AddOns/AnglersTackleBox/HUD.lua:99: bad argument") end)
+debugstack = function() return "[string \"@Interface/AddOns/AnglersTackleBox/HUD.lua\"]:99: in function <HUD.lua:90>" end
+ns:Fire("TEST_OTHER")
+check(ns.Errors:Count() == 2 and ns.db.errors[1].message:find("HUD.lua:99", 1, true), "errors: a different bug is its own entry, newest first")
+for i = 1, 12 do
+  ns:On("TEST_MANY" .. i, function() error("Interface/AddOns/AnglersTackleBox/Gold.lua:" .. i .. ": boom") end)
+  debugstack = function() return "[string \"@Interface/AddOns/AnglersTackleBox/Gold.lua\"]:" .. i .. ": in main chunk" end
+  ns:Fire("TEST_MANY" .. i)
+end
+check(ns.Errors:Count() == 10, "errors: only the ten newest are kept")
+local report = ns.Errors:Report()
+check(report:find("Angler's TackleBox dev | WoW 12.1.5 (65000, interface 120105)", 1, true)
+  and report:find("Gold.lua:12: boom", 1, true), "errors: the report leads with versions and lists each error")
+SlashCmdList.ANGLERSTACKLEBOX("errors")
+check(AnglersTackleBoxExport and AnglersTackleBoxExport.shown and AnglersTackleBoxExport.edit:GetText() == report,
+  "/tb errors opens the report in the copy box")
+AnglersTackleBoxExport:Hide()
+SlashCmdList.ANGLERSTACKLEBOX("errors clear")
+check(ns.Errors:Count() == 0, "/tb errors clear empties the list")
+local bugCallback
+BugGrabber = { RegisterCallback = function(_, _, fn) bugCallback = fn end }
+ns.Errors.listening = nil; ns.Errors:Init()
+bugCallback(nil, { message = "Interface/AddOns/SomeoneElse/x.lua:1: theirs", stack = "SomeoneElse" })
+check(ns.Errors:Count() == 0, "errors: BugGrabber's errors from other addons are ignored")
+bugCallback(nil, { message = "Interface/AddOns/AnglersTackleBox/Menu.lua:12: clicked", stack = "Menu.lua" })
+check(ns.Errors:Count() == 1, "errors: BugGrabber's errors from our buttons are kept")
+geterrorhandler = function() return function(err) bugCallback(nil, { message = err, stack = "AnglersTackleBox" }) end end
+ns:Fire("TEST_OTHER")
+check(ns.Errors:Count() == 2 and ns.db.errors[1].count == 1, "errors: forwarding to BugGrabber doesn't count it twice")
+ns.Errors:Clear(); ns.db.errorNotice = false; before = #printed
+ns:Fire("TEST_OTHER")
+check(#printed == before and ns.Errors:Count() == 1, "options: the Lua error chat line can be turned off, the report still fills")
+ns.db.errorNotice = true
+ns.Errors:Clear(); BugGrabber, geterrorhandler, debugstack, GetBuildInfo = nil, failOnError, nil, nil
 
 -- alert sounds
 ns.db.alerts, ns.db.alertTypes.rare = true, true
