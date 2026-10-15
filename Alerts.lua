@@ -9,15 +9,25 @@ Alerts.categories = {
   { key = "rare", label = L["Rare catches"] },
   { key = "teleport", label = L["Teleporting catches"] },
   { key = "hostile", label = L["Hostile catches"] },
-  { key = "npc", label = L["Master Grenadier Birdie"] },
+  { key = "npc", label = L["Master Grenadier Birdie"],
+    available = function() return Data.npcs ~= nil and Data.npcs.birdie ~= nil end },
   { key = "lure", label = L["Lure warnings"] },
   { key = "event", label = L["Fishing events"] },
   { key = "value", label = L["Valuable catches"] },
   { key = "record", label = L["Personal records"] },
   { key = "afk", label = L["Away warnings"] },
   { key = "goal", label = L["Session goals"] },
-  { key = "briny", label = L["Briny Best rank-ups"] },
+  { key = "briny", label = L["Briny Best rank-ups"], available = function() return ns.Briny ~= nil end },
 }
+
+-- The kinds of alert this client can raise, for the switches (Birdie and Briny are Retail-only).
+function Alerts:Kinds()
+  local kinds = {}
+  for _, kind in ipairs(self.categories) do
+    if not kind.available or kind.available() then kinds[#kinds + 1] = kind end
+  end
+  return kinds
+end
 
 local SOUND_DIR = "Interface\\AddOns\\" .. ADDON .. "\\Sounds\\"
 
@@ -137,7 +147,8 @@ function Alerts:Flash(rgb)
     alpha:SetDuration(1.2)
     flash.fade:SetScript("OnFinished", function() flash:Hide() end)
   end
-  flash.texture:SetVertexColor(unpack(rgb or { 0.3, 0.8, 1 }))
+  rgb = rgb or { 0.3, 0.8, 1 }
+  flash.texture:SetVertexColor(rgb[1], rgb[2], rgb[3])
   flash:Show()
   flash.fade:Stop()
   flash.fade:Play()
@@ -149,7 +160,10 @@ function Alerts:Fire(category, text, silent)
   if ns.db.alertTypes[category] == false then return end
   if ns.db.alertChat then ns:Print(text) end
   if not ns.db.alerts then return end
-  if RaidNotice_AddMessage and RaidWarningFrame then
+  -- RaidWarningUtil since 12.1.0; RaidNotice_AddMessage is a deprecation fallback until the next expansion.
+  if RaidWarningUtil and RaidWarningUtil.AddMessage then
+    RaidWarningUtil.AddMessage(text, ChatTypeInfo["RAID_WARNING"])
+  elseif RaidNotice_AddMessage and RaidWarningFrame then
     RaidNotice_AddMessage(RaidWarningFrame, text, ChatTypeInfo["RAID_WARNING"])
   end
   if silent then return end

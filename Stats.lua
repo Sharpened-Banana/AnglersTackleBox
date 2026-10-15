@@ -23,7 +23,8 @@ function Stats:Data()
   local function Fold(casts, catches, value, seconds, sessions, start)
     data.casts, data.catches, data.value = data.casts + casts, data.catches + catches, data.value + value
     data.seconds, data.sessions = data.seconds + seconds, data.sessions + sessions
-    data.longest = math.max(data.longest, seconds / math.max(1, sessions))
+    -- Daily roll-ups (sessions = 0) aren't one session, so they don't set the longest.
+    if sessions > 0 then data.longest = math.max(data.longest, seconds / sessions) end
     if start and (not first or start < first) then first = start end
   end
   for _, session in ipairs(chardb.sessions or {}) do

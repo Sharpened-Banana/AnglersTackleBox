@@ -109,7 +109,9 @@ local function Guarded(itemID, raw)
       Log.suspect[itemID] = nil
       return raw
     end
-    if not pending then known.pending = { price = raw, day = today } end
+    -- A first spike, or a much lower one (the troll listing gone, the market settling higher):
+    -- start the confirmation from this price.
+    if not pending or raw < pending.price / 2 then known.pending = { price = raw, day = today } end
     Log.suspect[itemID] = { listed = raw, used = known.price }
     return known.price
   end
@@ -151,7 +153,7 @@ local function Pack(s)
   local offsets = {}
   for index, at in ipairs(s.catchTimes or {}) do offsets[index] = at - s.t0 end
   return {
-    savedAt = time(), start = s.start, sinceT0 = now - s.t0,
+    savedAt = time(), start = s.start, sinceT0 = now - s.t0, mapID = s.mapID,
     casts = s.casts, catches = s.catches, value = s.value, sinceRare = s.sinceRare,
     items = s.items, catchOffsets = offsets, goalsFired = s.goalsFired,
   }
@@ -161,6 +163,7 @@ local function Unpack(saved)
   local gap = math.max(0, time() - saved.savedAt)
   local s = NewSession()
   s.start, s.casts, s.catches, s.value = saved.start, saved.casts, saved.catches, saved.value
+  s.mapID = saved.mapID
   s.sinceRare, s.items, s.goalsFired = saved.sinceRare or 0, saved.items or {}, saved.goalsFired
   s.t0 = GetTime() - (saved.sinceT0 or 0) - gap -- the reload counts as time fished
   for index, offset in ipairs(saved.catchOffsets or {}) do s.catchTimes[index] = s.t0 + offset end
@@ -173,8 +176,12 @@ local function Finish(s, stop)
   local summary = {
     start = s.start, stop = stop or time(),
     casts = s.casts, catches = s.catches, value = s.value,
-    mapID = C_Map and C_Map.GetBestMapForUnit("player") or nil,
+    -- Where it was fished; where the player stands now is only a fallback for old saves.
+    mapID = s.mapID or (C_Map and C_Map.GetBestMapForUnit("player")) or nil,
   }
+  -- Lifetime stats seed themselves from the saved sessions the first time; do that before this
+  -- one is added, or its own SESSION_END would count it twice.
+  if ns.Stats then ns.Stats:Data() end
   table.insert(sessions, summary)
   Log.lastSession = s -- the sell helper still wants its items
   ns:Fire("SESSION_END", summary, s)
@@ -210,7 +217,10 @@ function Log:Init()
 end
 
 function Log:Enable()
-  self.session = self:TakeSaved() or (not ns.db.alwaysOn and NewSession() or nil)
+  local resumed = self:TakeSaved()
+  -- Always-on files a session after SESSION_IDLE without activity; a reload isn't idleness.
+  if resumed then ns.Core.lastActivity = GetTime() end
+  self.session = resumed or (not ns.db.alwaysOn and NewSession() or nil)
   self.lootSeen, self.pool, self.hovered = nil, nil, nil
   HookTooltips()
 end
@@ -250,7 +260,10 @@ function Log:OnCast()
   local hovered = self.hovered
   if hovered and GetTime() - hovered.at <= HOVER_WINDOW then self.pool = hovered.name end
   local s = self.session
-  if s.casts == 0 then s.t0 = GetTime() end -- the clock starts at the first cast
+  -- The clock starts at the first cast, so time before it isn't counted as fishing.
+  if s.casts == 0 then s.t0, s.start = GetTime(), time() end
+  s.mapID = C_Map and C_Map.GetBestMapForUnit("player") or s.mapID
+  self.lootSeen = nil -- a loot window closed during combat never reported it
   s.casts = s.casts + 1
   s.sinceRare = s.sinceRare + 1
   ns.HUD:Refresh()
@@ -365,6 +378,7 @@ local function Record(itemID, name, quantity, quality)
   local special = Data.special[itemID]
   local isRare = special ~= nil or (quality or 0) >= ns.db.alertQuality
   if isRare then
+    s.lastDry = s.sinceRare - 1 -- casts before this one without a rare, for the dry-streak record
     s.sinceRare = 0
     if special == "teleport" then
       ns.Alerts:Fire("teleport", string.format(L["%s: it teleports you to a random zone!"], name))

@@ -19,6 +19,7 @@ read_globals = {
   "CreateFrame", "UIParent", "RaidNotice_AddMessage", "RaidWarningFrame", "ChatTypeInfo",
   "StaticPopup_Show", "StaticPopup_Hide", "CLOSE", "CANCEL",
   "debugstack", "geterrorhandler", "BugGrabber", "GetBuildInfo",
+  "C_PaperDollInfo", "RaidWarningUtil", "WOW_PROJECT_CAMELOT",
   "PlaySound", "PlaySoundFile", "C_AddOns", "GetAddOnMetadata", "LibStub", "C_TooltipInfo", "SOUNDKIT", "Settings", "CreateSettingsButtonInitializer",
   "MinimalSliderWithSteppersMixin",
   -- Bindings and input

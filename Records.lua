@@ -43,15 +43,17 @@ ns:On("CATCH", function(_, name, quantity, _, unit)
   end
 end)
 
--- Longest run of casts without a rare, measured when the run ends.
+-- Longest run of casts without a rare, measured when a rare ends it: misses included, and it
+-- survives a /reload since the count lives on the session.
 ns:On("CAST_LOOTED", function()
   local session = ns.Log.session
-  if not session then return end
-  if session.sinceRare == 0 and (Records.run or 0) > 0 then
-    Beat("dry", Records.run, ZoneName(C_Map and C_Map.GetBestMapForUnit("player")),
-      string.format(L["Longest dry streak: %d casts without a rare."], Records.run))
+  local run = session and session.lastDry
+  if not run then return end
+  session.lastDry = nil
+  if run > 0 then
+    Beat("dry", run, ZoneName(C_Map and C_Map.GetBestMapForUnit("player")),
+      string.format(L["Longest dry streak: %d casts without a rare."], run))
   end
-  Records.run = session.sinceRare
 end)
 
 ns:On("SESSION_END", function(summary)

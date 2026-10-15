@@ -204,6 +204,10 @@ local function AuctionatorAPI()
   return Auctionator and Auctionator.API and Auctionator.API.v1
 end
 
+function Gold:HasAuctionator()
+  return AuctionatorAPI() ~= nil
+end
+
 local function AuctionHouseOpen()
   return (AuctionHouseFrame and AuctionHouseFrame:IsShown())
     or (AuctionFrame and AuctionFrame:IsShown()) or false
@@ -306,6 +310,9 @@ function Gold:Init()
   frame:SetScript("OnEvent", OnShopOpened)
   pcall(frame.RegisterEvent, frame, "AUCTION_HOUSE_SHOW")
   pcall(frame.RegisterEvent, frame, "AUCTION_HOUSE_CLOSED")
+  -- A session resumed after /reload never fires SESSION_START, so vendors are watched from the
+  -- start; the sell list itself is empty until there's a session.
+  pcall(frame.RegisterEvent, frame, "MERCHANT_SHOW")
 end
 
 ns:On("SESSION_START", function()

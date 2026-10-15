@@ -26,7 +26,7 @@ Pick any key. While fishing mode is on, each press does the next right thing: eq
 ### It remembers
 - **Catch log** with two views: by zone, subzone and pool with CSV export, and by fish, a page per fish answering "where do I catch this?" from your own catches.
 - **Map pins** for every spot you have fished, with what you caught there.
-- **Gold**: session gold and gold per hour, your best zones and spots, an alert for valuable catches, a sell helper at vendors and the auction house, a 30-session chart, and a **price history graph** per fish. Uses Auctionator or TSM prices, guarded against troll listings. Stale prices are refreshed only when you say so.
+- **Gold**: session gold and gold per hour, your best zones and spots, an alert for valuable catches, a sell helper at vendors and the auction house, a 30-session chart, and a **price history graph** per fish. Uses Auctionator or TSM prices, guarded against troll listings. Price searches are opt-in: switch them on in the tour or settings, and even then TackleBox asks before each one.
 - **Statistics**: lifetime and warband totals, and a **catch-rate graph** that shows whether your spot is drying up.
 - **Best Spot**: your zones ranked by gold per hour or catch rate.
 - **Shopping list**: open Cooking once and see which recipes need fish you've caught, by fish or by recipe, with clickable links and how many casts you still need.
@@ -45,7 +45,7 @@ Set session goals for catches, gold or minutes fished and get one alert when you
 Export your settings as a string and import them anywhere, or use one set of gear, pole and lure settings on all your characters.
 
 ### Getting started
-A short tour opens the first time you log in: what TackleBox does, picking your key, your first cast, and what's in the box. `/tb welcome` opens it again any time. The short version:
+A short tour opens the first time you log in: what TackleBox does, picking your key, your first cast, optional extras to switch on, and what's in the box. `/tb welcome` opens it again any time. The short version:
 1. `/tb bind` and press the key you want to fish with.
 2. `/tb` to turn fishing mode on (or make it always on in the box).
 3. Face some water and press your key. Press it again on the splash.

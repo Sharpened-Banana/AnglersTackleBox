@@ -38,9 +38,7 @@ function Lures:Remaining(itemID)
 
   -- Classic: the lure is a temporary enchant on the pole.
   if Data.lureIsEnchant and ns.Gear:PoleEquipped() then
-    local hasEnchant, expirationMS = GetWeaponEnchantInfo()
-    if hasEnchant and expirationMS then return expirationMS / 1000 end
-    return nil
+    return Compat.WeaponEnchantRemaining()
   end
 
   -- Retail: usually a buff named after the item's use spell.
@@ -100,7 +98,7 @@ function Lures:Tick()
   if Compat.GetItemCount(itemID) == 0 then
     -- Auto-swap has a spare waiting for the current lure to wear off.
     if ns.chardb.lureAutoSwap and NextOwned(itemID) then return end
-    if not self.emptySaid then
+    if not self.emptySaid and ns.db.lureEmptyWarn then
       self.emptySaid = true
       -- Always-on runs all day, so running out gets a silent popup, not a raid warning.
       ns.Alerts:Fire("lure", L["Out of lures!"], ns.db.alwaysOn)
@@ -124,6 +122,43 @@ function Lures:Tick()
     self.warned, self.expiredSaid = nil, nil
   end
 end
+
+-- First cast of a session with no lure up: the key applies an owned lure before casting, so a
+-- cast without one means none is picked or none is left. Ask once, with a way to pick one.
+local PROMPT = "ANGLERS_TACKLEBOX_NO_LURE"
+
+function Lures:Prompt(text)
+  if not StaticPopupDialogs or not StaticPopup_Show then return end
+  StaticPopupDialogs[PROMPT] = StaticPopupDialogs[PROMPT] or {
+    text = "%s",
+    button1 = L["Pick a lure"],
+    button2 = L["Not now"],
+    button3 = L["Don't ask again"],
+    OnAccept = function() ns.Menu:Open("lures") end,
+    OnAlt = function()
+      ns.db.lurePrompt = false
+      ns:Print(L["Won't ask about lures again. Turn it back on in the Lures compartment or the settings."])
+    end,
+    timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+  }
+  StaticPopup_Show(PROMPT, text)
+end
+
+ns:On("CAST_START", function()
+  if Lures.prompted or not ns.db.lurePrompt or not ns.chardb.lureEnabled then return end
+  Lures.prompted = true
+  local itemID = Lures:Current()
+  if itemID and (Lures:Remaining(itemID) or 0) > 0 then return end
+  local name = itemID and Compat.GetItemInfo(itemID)
+  if itemID and Compat.GetItemCount(itemID) == 0 then
+    Lures:Prompt(string.format(L["You're fishing without a lure: you're out of %s. Pick another?"],
+      name or ("item:" .. itemID)))
+  elseif not itemID then
+    Lures:Prompt(L["You're fishing without a lure. Pick one and your fishing key keeps it up for you."])
+  end
+end)
+
+ns:On("SESSION_START", function() Lures.prompted = nil end)
 
 ns:OnModeEvent("UNIT_SPELLCAST_SUCCEEDED", function(_, _, spellID)
   if Compat.IsSecret(spellID) then return end

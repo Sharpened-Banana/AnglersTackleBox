@@ -366,9 +366,21 @@ check(ns.Engine.state == "READY", "loot closed -> READY")
 local st = ns.Log:Stats()
 check(st.casts == 1 and st.catches == 1 and st.value == 750, "log: 1 cast, 1 catch, value 750c")
 advance(1.5)
-check(ns.Welcome.page == 4 and AnglersTackleBoxWelcome.shown and AnglersTackleBoxWelcome.next:GetText() == "Done",
-  "tour: the first cast moves it on to what's in the box")
-check(printed[#printed]:find("hatches into a mount", 1, true), "alerts: special catch matched by item ID")
+check(ns.Welcome.page == 4 and AnglersTackleBoxWelcome.shown and AnglersTackleBoxWelcome.next:GetText() == "Next",
+  "tour: the first cast moves it on to the optional extras")
+check(ns.db.ahScan == false, "auction scan: off by default")
+ns.db.ahScan, ns.db.ahScanOptIn = true, nil; ns.Core:Migrate()
+check(ns.db.ahScan == false and ns.db.ahScanOptIn, "auction scan: switched off once on older installs")
+ns.db.ahScan = true; ns.Core:Migrate()
+check(ns.db.ahScan == true, "auction scan: a later opt-in sticks")
+ns.db.ahScan = false
+AnglersTackleBoxWelcome.next.scripts.OnClick()
+check(ns.Welcome.page == 5 and AnglersTackleBoxWelcome.next:GetText() == "Done", "tour: then what's in the box, the last page")
+AnglersTackleBoxWelcome.back.scripts.OnClick()
+local recentLines = table.concat(printed, "\n", math.max(1, #printed - 3))
+check(recentLines:find("hatches into a mount", 1, true), "alerts: special catch matched by item ID")
+check(recentLines:find("after 1 attempts", 1, true) and ns.chardb.attempts.netherEgg and ns.chardb.attempts.netherEgg.found == 1,
+  "rare drops: looting the drop itself counts as found, even with nothing else in range")
 check(ns.chardb.log[2395][220134].count == 2 and ns.chardb.log[2395][220134].subs.Fairbreeze == 2, "log keyed by map, item, subzone")
 check(st.sinceRare == 0, "rare catch resets the streak")
 
@@ -425,7 +437,8 @@ check(shopping:find("Unlearned Fish Pie", 1, true) == nil
   and shopping:find("Test Fish Feast]|h - needs 4", 1, true) ~= nil, "shopping: each recipe gets its own line and amount")
 tradeSkillOpen, counts[220134] = false, nil
 check(ns.chardb.skill.level == 100, "goals: fishing skill tracked")
-check(ns.chardb.attempts.netherEgg.n == 0, "goals: an out-of-scope cast is not an attempt")
+check(ns.chardb.attempts.netherEgg.n == 1 and ns.chardb.attempts.netherEgg.found == 1,
+  "goals: the cast that looted the egg is its one attempt; casts after it is found aren't counted")
 ns.db.valueAlert = 0.02; ns.db.camera = { enabled = true, zoom = 6 }
 
 -- session window tabs
@@ -568,8 +581,21 @@ local appliedAt = ns.Lures.appliedAt[555]; ns.Lures.appliedAt[555] = nil; advanc
 check(btn.attrs.type == "item" and btn.attrs.item == "item:241145" and ns.chardb.lureID == 555,
   "lure auto-swap: next press applies another owned lure, the pick is kept")
 check(#printed == before + 1 and printed[#printed]:find("Switched to", 1, true), "lure auto-swap: announced once")
-counts[241145] = nil; advance(1)
-check(printed[#printed]:find("Out of lures!", 1, true) ~= nil, "lure auto-swap: nothing else owned -> out of lures")
+counts[241145] = nil; before = #printed; advance(1)
+check(#printed == before, "lures: running out is quiet by default")
+ns.db.lureEmptyWarn = true; ns.Lures.emptySaid = nil; advance(1)
+check(printed[#printed]:find("Out of lures!", 1, true) ~= nil, "lures: the out-of-lures warning when switched on")
+ns.db.lureEmptyWarn = false
+-- first cast with no lure up: asked once a session
+shownPopup, ns.Lures.prompted = nil, nil
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+check(shownPopup == "ANGLERS_TACKLEBOX_NO_LURE", "lures: the first cast without a lure asks about one")
+shownPopup = nil; advance(1)
+fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+check(shownPopup == nil, "lures: only once a session")
+StaticPopupDialogs.ANGLERS_TACKLEBOX_NO_LURE.OnAlt()
+check(ns.db.lurePrompt == false, "lures: Don't ask again turns the question off")
+ns.db.lurePrompt, ns.Lures.prompted = true, nil; advance(1)
 counts[555], ns.Lures.appliedAt[555] = 3, appliedAt; ns.chardb.lureAutoSwap = false; advance(1)
 
 -- bobbers
@@ -619,8 +645,17 @@ StaticPopup_Show = function(name) shown[name] = (shown[name] or 0) + 1 end
 StaticPopup_Hide = function(name) shown[name] = nil end
 local POPUP = "ANGLERS_TACKLEBOX_PRICE_SCAN"
 AuctionHouseFrame = Frame(); fire("AUCTION_HOUSE_SHOW"); advance(1.1)
+check(searched == nil and shown[POPUP] == nil, "scan: off by default, the auction house stays quiet")
+fire("AUCTION_CLOSED"); fire("AUCTION_HOUSE_CLOSED")
+-- Opting in from the tour's Optional extras page.
+check(ns.Gold:HasAuctionator(), "scan: the tour sees Auctionator")
+ns.Welcome:Show(); ns.Welcome:Go(4)
+local extras = AnglersTackleBoxWelcome.pages[4]
+check(extras.shown, "tour: the Optional extras page")
+ns.db.ahScan = true; ns.Gold.offered = nil
+fire("AUCTION_HOUSE_SHOW"); advance(1.1)
 check(searched == nil, "scan: opening the auction house does not search on its own")
-check(shown[POPUP] == 1, "scan: stale prices at the auction house -> asks first")
+check(shown[POPUP] == 1, "scan: opted in, stale prices at the auction house -> asks first")
 fire("AUCTION_HOUSE_SHOW"); advance(1.1)
 check(shown[POPUP] == 1, "scan: asks at most once per auction house visit")
 popups[POPUP].OnAccept()
@@ -761,7 +796,7 @@ end end
 advance(5)
 if AnglersTackleBoxWelcome.shown then AnglersTackleBoxWelcome:Hide() end
 check(live == 0 and #timers == 0, "inert again: no gameplay events, no timers (shop-window events for the sell helper aside)")
-check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 4, "session summary saved")
+check(#ns.chardb.sessions == 1 and ns.chardb.sessions[1].casts == 6, "session summary saved")
 check(zoom == 15, "camera: restored when fishing ends")
 check(ns.chardb.records.sessionValue and ns.chardb.records.sessionCatches, "records: set when the session ends")
 check(#ns.Gold:Lines() >= 4 and #ns.Records:Lines() >= 3, "gold and records reports build")
@@ -956,9 +991,14 @@ ns.chardb.gearSwap = true; fire("PLAYER_LOGOUT")
 check(ns.db.sharedChar.gearSwap == false, "shared: off means nothing is saved back")
 ns.chardb.lureID, ns.chardb.fishingSet, ns.chardb.log[9999] = nil, nil, nil
 
+-- /tb prep explains what each upkeep step sees
+local before = #printed
+SlashCmdList.ANGLERSTACKLEBOX("prep")
+check(#printed > before and printed[before + 1]:find("Prep: state", 1, true), "/tb prep reports the upkeep steps")
+
 -- switches for everything that talks on its own
 if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
-local before = #printed
+before = #printed
 ns.db.alertTypes.event = false; played = {}
 ns.Alerts:Fire("event", "contest soon")
 check(#printed == before and #played == 0, "options: a kind of alert switched off is silent, chat line included")
@@ -1281,4 +1321,106 @@ check(true, "menu: alarms compartment builds with the cue controls")
 SlashCmdList.ANGLERSTACKLEBOX("menu"); ns.Menu:Select("settings")
 check(ns.Menu.selected == "settings", "menu: settings compartment builds with the new controls")
 SlashCmdList.ANGLERSTACKLEBOX("menu")
+-- bug sweep regressions
+do
+  -- A player's shorter list (Fishing Companion tabs) isn't refilled from the defaults.
+  local saved = { hud = { tabs = { "gold" } } }
+  ns.ApplyDefaults(saved, ns.defaults)
+  check(#saved.hud.tabs == 1 and saved.hud.tabs[1] == "gold" and saved.hud.scale == 1,
+    "defaults: a shortened tab list stays short; other defaults still fill in")
+  local fresh = {}
+  ns.ApplyDefaults(fresh, ns.defaults)
+  check(#fresh.hud.tabs == 2 and fresh.hud.tabs ~= ns.defaults.hud.tabs, "defaults: a missing list gets its own copy")
+
+  -- Loot first, then the channel stops: the cast still ends once.
+  if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
+  local ends = 0
+  ns:On("CAST_END", function() ends = ends + 1 end)
+  loot = { { id = 220134, name = "Test Fish", qty = 1, quality = 1 } }
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
+  fire("LOOT_READY"); fire("LOOT_OPENED")
+  check(ends == 1 and ns.Engine.state == "LOOTING", "engine: loot before the channel stop ends the cast")
+  fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
+  check(ends == 1 and ns.Engine.state == "READY", "engine: and the stop after it doesn't end it twice")
+  advance(2)
+
+  -- Combat ends with the line still out: the key reels, not recasts.
+  local channel = UnitChannelInfo
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06)
+  fire("PLAYER_REGEN_DISABLED")
+  UnitChannelInfo = function(unit) if unit == "player" then return "Fishing", nil, nil, 0, 0, nil, nil, 131476 end end
+  fire("PLAYER_REGEN_ENABLED"); advance(0.1)
+  check(ns.Engine.state == "CHANNELING" and bindings.F == "INTERACTTARGET", "engine: after combat a line still out keeps the key on reel")
+  UnitChannelInfo = channel
+  fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); advance(2)
+
+  -- A mode-off queued in combat can be taken back.
+  InCombatLockdown = function() return true end
+  SlashCmdList.ANGLERSTACKLEBOX("")
+  check(ns.Core.offAfterCombat, "mode: off is queued in combat")
+  SlashCmdList.ANGLERSTACKLEBOX("")
+  InCombatLockdown = function() return combat end
+  check(not ns.Core.offAfterCombat and printed[#printed]:find("stays on", 1, true), "mode: toggling again keeps it on")
+
+  -- Always-on: a session resumed after /reload isn't filed on the first tick.
+  ns.db.alwaysOn = true
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 131476); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+  local session = ns.Log.session
+  ns.Core.loggingOut = true; ns.Log:Disable(); ns.Core.loggingOut = nil
+  ns.Core.lastActivity = nil
+  ns.Log:Enable()
+  ns.Log:Tick()
+  check(ns.Log.session ~= nil and ns.Log.session.casts == session.casts, "always-on: a resumed session survives its first tick")
+  ns.db.alwaysOn = false
+
+  -- The session's zone is where it was fished.
+  check(ns.Log.session.mapID == 2395, "sessions: the zone is recorded at the cast")
+
+  -- A troll spike followed by a real, lower move is believed the next day.
+  local auction = 100000
+  local realAuctionator, realTSM = Auctionator, TSM_API
+  TSM_API = nil
+  Auctionator = { API = { v1 = { GetAuctionPriceByItemID = function() return auction end,
+    GetAuctionAgeByItemID = function() return 0 end } } }
+  ns.db.prices[424242] = { price = 100, day = "2026-01-01" }
+  price(424242)
+  auction = 1500
+  check(price(424242) == 100, "guard: a second, lower spike is held too")
+  local realDate2 = date
+  date = function(f, t) if f == "%Y-%m-%d" and not t then return "2099-01-02" end return realDate2(f, t) end
+  check(price(424242) == 1500, "guard: the lower price is believed the next day, not stuck behind the troll listing")
+  date = realDate2
+  Auctionator, TSM_API = realAuctionator, realTSM
+
+  -- A bad bobber in an imported settings string is refused.
+  local validBobber
+  for _, entry in ipairs(ns.Profiles.account) do if entry[1] == "bobber" then validBobber = entry.check end end
+  check(validBobber and validBobber("random") and validBobber(142529) and not validBobber("foo"),
+    "profiles: an imported bobber must be random or a toy ID")
+
+  -- Keys typed with modifiers in any order.
+  check(ns.Options.NormalizeKey("shift-ctrl-f") == "CTRL-SHIFT-F" and ns.Options.NormalizeKey("f") == "F",
+    "/tb key: modifiers put in the game's order")
+
+  -- A shift-clicked fish link finds the fish.
+  local found = ns.Journal:Find("|cffffffff|Hitem:220134::|h[Test Fish]|h|r")
+  local foundText = {}
+  for _, line in ipairs(found) do foundText[#foundText + 1] = line.text end
+  check(table.concat(foundText, "|"):find("Test Fish", 1, true) ~= nil, "/tb find: a shift-clicked link finds the fish")
+
+  -- "only" as a whole word: "commonly found in pools" isn't pools-only.
+  local text = C_Spell.GetSpellDescription
+  C_Spell.GetSpellDescription = function() return "Anglin' Score: 50.0 points\nRates:\n- Commonly found in fishing pools." end
+  local fish = ns.BrinyJournal.Read(1225270)
+  C_Spell.GetSpellDescription = text
+  check(fish and fish.best == "pools", "briny: 'commonly' isn't read as 'pools only'")
+
+  -- The Bobbers compartment fits every toy.
+  for id = 900001, 900020 do toys[id] = true; table.insert(ns.db.customBobbers, id) end
+  SlashCmdList.ANGLERSTACKLEBOX("menu"); ns.Menu:Select("bobbers")
+  check(true, "menu: the Bobbers compartment builds with 30+ choices")
+  SlashCmdList.ANGLERSTACKLEBOX("menu")
+  ns.db.customBobbers = {}
+end
+
 print_real("--- chat output ---"); for _, l in ipairs(printed) do print_real(l) end

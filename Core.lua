@@ -74,6 +74,8 @@ ns.defaults = {
   eventAlerts = true,   -- fishing event reminders
   autoPole = false,     -- Classic: fishing mode follows the equipped pole
   lureWarn = 60,        -- seconds before expiry
+  lureEmptyWarn = false, -- alert when the chosen lure runs out of stock
+  lurePrompt = true,    -- ask once a session when casting with no lure up
   alerts = true,
   alertChat = true,     -- each alert also as a line in chat
   modeMessages = true,  -- "Fishing mode on/off" in chat
@@ -86,7 +88,8 @@ ns.defaults = {
   priceCap = 2000,      -- gold; a single fish listed above this is ignored (0 = no ceiling)
   prices = {},          -- [itemID] = last trusted auction price, for spike detection
   priceHistory = {},    -- [itemID] = up to 14 daily { day, price } points (price graph)
-  ahScan = true,        -- offer a stale-price refresh at the auction house
+  ahScan = false,       -- offer a stale-price refresh at the auction house (opt in: tour, settings)
+  ahScanOptIn = false,  -- the switch to opt-in has been applied to this install
   ahScanDays = 1,       -- prices at least this old count as stale
   mapPins = true,       -- fished spots on the world map
   afkWarning = true,
@@ -141,9 +144,16 @@ ns.charDefaults = {
   daily = {},
 }
 
+-- A default list (hud.tabs) is copied only when missing: filling it index by index would refill
+-- entries the player removed.
 local function ApplyDefaults(target, defaults)
   for key, value in pairs(defaults) do
-    if type(value) == "table" then
+    if type(value) == "table" and value[1] ~= nil then
+      if type(target[key]) ~= "table" then
+        target[key] = {}
+        for index, entry in ipairs(value) do target[key][index] = entry end
+      end
+    elseif type(value) == "table" then
       if type(target[key]) ~= "table" then target[key] = {} end
       ApplyDefaults(target[key], value)
     elseif target[key] == nil then
@@ -151,6 +161,8 @@ local function ApplyDefaults(target, defaults)
     end
   end
 end
+
+ns.ApplyDefaults = ApplyDefaults -- for the tests
 
 ---------------------------------------------------------------------------
 -- CVars: backed up in saved variables before any change, so a crash can be undone next login.
@@ -279,6 +291,12 @@ end
 
 -- A manual "off" sticks until the player turns the mode on, even with always-on.
 function Core:ToggleMode()
+  -- A mode-off queued for after combat can be taken back by toggling again.
+  if self.offAfterCombat then
+    self.offAfterCombat = nil
+    ns:Print(L["Fishing mode stays on."])
+    return
+  end
   self.manualOff = self.mode and ns.db.alwaysOn or nil
   self:SetMode(not self.mode)
 end
@@ -368,8 +386,9 @@ local function OnEquipmentChanged(slot)
   if ns.Gear.lastSwap and GetTime() - ns.Gear.lastSwap < 2 then return end
   local poleEquipped = ns.Gear:PoleEquipped()
   if poleEquipped and not Core.mode then
-    Core.autoStarted = true
+    if InCombatLockdown() then return end -- the mode can't start in combat; no message per equip
     Core:SetMode(true)
+    Core.autoStarted = Core.mode or nil
   elseif not poleEquipped and Core.mode and Core.autoStarted then
     Core.autoStarted = nil
     Core:SetMode(false)
@@ -395,6 +414,16 @@ function Core:UpdateAutoPole()
   end
 end
 
+-- One-time changes to saved settings, for defaults that changed after players already had them saved.
+function Core:Migrate()
+  local db = ns.db
+  -- The price-scan offer became opt-in in 1.2.4. Older installs saved the old "on" default as if
+  -- chosen, so it's switched off once; the tour and settings turn it back on.
+  if not db.ahScanOptIn then
+    db.ahScan, db.ahScanOptIn = false, true
+  end
+end
+
 local function OnEvent(_, event, arg1)
   if event == "ADDON_LOADED" then
     if arg1 ~= ADDON then return end
@@ -406,6 +435,8 @@ local function OnEvent(_, event, arg1)
     ApplyDefaults(AnglersTackleBoxCharDB, ns.charDefaults)
     ns.db, ns.chardb = AnglersTackleBoxDB, AnglersTackleBoxCharDB
     ns.Errors:Init()
+
+    Core:Migrate()
 
     -- Undo CVars from a session that never cleaned up.
     CVars:RestoreAll()

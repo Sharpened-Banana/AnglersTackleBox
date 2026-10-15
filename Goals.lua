@@ -103,7 +103,8 @@ ns:On("CAST_LOOTED", function(looted, pool)
   for _, drop in ipairs(Data.rareDrops) do
     local counter = attempts[drop.key] or { n = 0 }
     attempts[drop.key] = counter
-    if not counter.found and InScope(drop, looted, pool) then
+    -- Looting the drop itself always counts, even with nothing else in range on that cast.
+    if not counter.found and (looted[drop.item] or InScope(drop, looted, pool)) then
       counter.n = counter.n + 1
       if looted[drop.item] then
         counter.found = counter.n

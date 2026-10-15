@@ -247,6 +247,13 @@ local function BulletValue(line)
   return value ~= "" and value or nil
 end
 
+-- A whole word (so "only" doesn't match "commonly"). Letter boundaries only work on plain ASCII;
+-- other scripts fall back to a plain find.
+local function HasWord(text, word)
+  if word:find("[\128-\255]") then return text:find(word, 1, true) ~= nil end
+  return text:find("%f[%a]" .. word:gsub("%p", "%%%0") .. "%f[%A]") ~= nil
+end
+
 local function StripCodes(text)
   return (text:gsub("|H.-|h(.-)|h", "%1"):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn.-:", ""):gsub("|r", "")
     :gsub("|T.-|t", ""):gsub("|A.-|a", ""))
@@ -389,7 +396,7 @@ function Journal.Read(spellID)
     local rateText = table.concat(rates, " "):lower()
     local open = PARSE.openWaterWord and rateText:find(PARSE.openWaterWord, 1, true)
     local pool = PARSE.poolWord and rateText:find(PARSE.poolWord, 1, true)
-    if pool and PARSE.onlyWord and rateText:find(PARSE.onlyWord, 1, true) then
+    if pool and PARSE.onlyWord and HasWord(rateText, PARSE.onlyWord) then
       fish.best = "poolsOnly"
     elseif open and pool then
       fish.best = "either"

@@ -1,5 +1,5 @@
--- First-run tour: nothing shows until fishing mode is on, so the first login walks through four short
--- pages: what TackleBox does, picking the key, a first cast, and what's in the box. Once per account;
+-- First-run tour: nothing shows until fishing mode is on, so the first login walks through five short
+-- pages: what TackleBox does, picking the key, a first cast, optional extras, and what's in the box. Once per account;
 -- /tb welcome reopens it. Steps tick off as they happen.
 local _, ns = ...
 local L = ns.L
@@ -108,7 +108,47 @@ pages[3] = function(page)
   end
 end
 
--- 4: what's in the box. Each compartment opens from here.
+-- 4: opt-ins that are off by default, so the tour is where players hear about them.
+pages[4] = function(page)
+  Text(page, "GameFontHighlight", L["A few extras are off until you want them. Tick any you'd like; "
+    .. "each can be changed later in the settings."], -8)
+  local checks = {}
+  local y = -56
+  local function Add(text, note, get, set)
+    local check = Check(page, text, y, get, set)
+    check.note = Text(page, "GameFontDisableSmall", note, y - 22)
+    check.note:SetPoint("TOPLEFT", PAD + 26, y - 22)
+    check.note:SetWidth(TEXT_WIDTH - 26)
+    checks[#checks + 1] = check
+    y = y - 50
+    return check
+  end
+  local scan
+  if ns.Gold then
+    scan = Add(L["Refresh fish prices at the auction house"],
+      L["Offers an Auctionator price search once per visit when your fish prices are out of date."],
+      function() return ns.db.ahScan end, function(value) ns.db.ahScan = value end)
+  end
+  Add(L["Warn when out of lures"], L["An alert when the lure you picked runs out of stock."],
+    function() return ns.db.lureEmptyWarn end, function(value) ns.db.lureEmptyWarn = value end)
+  if ns.Briny then
+    Add(L["Track The Briny Best"], L["Your Anglin' Score and each Midnight fish's rank, in a Briny tab."],
+      function() return ns.db.briny.enabled end, function(value) ns.Briny:SetEnabled(value) end)
+  end
+  page.Refresh = function()
+    for _, check in ipairs(checks) do check.Sync() end
+    -- The price search runs through Auctionator, so it waits for that addon.
+    if scan then
+      local hasAuctionator = ns.Gold:HasAuctionator()
+      scan:SetEnabled(hasAuctionator)
+      scan.note:SetText(hasAuctionator
+        and L["Offers an Auctionator price search once per visit when your fish prices are out of date."]
+        or L["Needs the Auctionator addon. Install it to use this."])
+    end
+  end
+end
+
+-- 5: what's in the box. Each compartment opens from here.
 local SHOWCASE = {
   { key = "top", name = L["Top Tray"], text = L["Mode, key, Fishing Companion"],
     icon = "Interface\\Icons\\Trade_Fishing" },
@@ -128,7 +168,7 @@ local SHOWCASE = {
     icon = "Interface\\Icons\\INV_Misc_Gear_01" },
 }
 
-pages[4] = function(page)
+pages[5] = function(page)
   Text(page, "GameFontHighlight",
     L["Open the box any time with /tb menu or the minimap button. Click one to look inside:"], -8)
   local cellWidth, cellHeight = TEXT_WIDTH / 2, 38
@@ -162,6 +202,7 @@ local TITLES = {
   L["Welcome to Angler's TackleBox"],
   L["Step 1: Pick your fishing key"],
   L["Step 2: Make your first cast"],
+  L["Step 3: Optional extras"],
   L["What's in the box"],
 }
 
@@ -257,7 +298,7 @@ function Welcome:Go(index)
   end
   frame.title:SetText(TITLES[self.page])
   frame.back:SetShown(self.page > 1)
-  local labels = { L["Let's go"], L["Next"], L["Next"], L["Done"] }
+  local labels = { L["Let's go"], L["Next"], L["Next"], L["Next"], L["Done"] }
   frame.next:SetText(labels[self.page])
   self:Refresh()
 end
@@ -267,12 +308,12 @@ function Welcome:Refresh()
   if not frame or not frame:IsShown() then return end
   local page = frame.pages[self.page]
   if page.Refresh then page.Refresh() end
-  -- The first cast finishes step 2: move on to the box once.
+  -- The first cast finishes step 2: move on to the extras once.
   local stats = ns.Log:Stats()
   if self.page == 3 and stats and stats.casts > 0 and not self.castSeen then
     self.castSeen = true
     C_Timer.After(1.5, function()
-      if frame:IsShown() and self.page == 3 then self:Go(4) end
+      if frame:IsShown() and self.page == 3 then self:Go(4) end -- Step 3: Optional extras
     end)
   end
 end

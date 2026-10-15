@@ -127,6 +127,9 @@ function Window:Attach(frame)
   frame.forget = forget
 
   frame.total:SetPoint("BOTTOMLEFT", 4, 16)
+  frame.total:SetPoint("RIGHT", forget, "LEFT", -6, 0)
+  frame.total:SetJustifyH("LEFT")
+  frame.total:SetWordWrap(false)
   frame.allTime = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   frame.allTime:SetPoint("BOTTOMLEFT", 4, 0)
 end

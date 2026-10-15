@@ -75,6 +75,8 @@ end
 
 -- /tb find <text>
 function Journal:Find(text)
+  -- A shift-clicked link: search by its [Name], not the link codes around it.
+  text = text:match("|h%[(.-)%]|h") or text
   local needle = text:lower()
   local lines, found = {}, 0
   for _, fish in ipairs(self:Fish()) do

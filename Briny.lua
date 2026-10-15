@@ -127,9 +127,11 @@ end
 
 -- { fish, byName, byID, zones, zoneByKey, pending }. Cached until something changes; fish still
 -- loading are asked for and re-read next time.
+local RESCAN_LOADING = 5 -- seconds between re-reads while journal entries are still loading
+
 function Briny:Scan()
-  if scan and scan.pending == 0 then return scan end
-  scan = { fish = {}, byName = {}, byID = {}, pending = 0 }
+  if scan and (scan.pending == 0 or GetTime() < scan.retryAt) then return scan end
+  scan = { fish = {}, byName = {}, byID = {}, pending = 0, retryAt = GetTime() + RESCAN_LOADING }
   for _, spellID in ipairs(Data.briny.fish) do
     local fish = Journal.Read(spellID)
     if fish then
@@ -308,8 +310,9 @@ function Briny:ScoreText()
 end
 
 -- "412.3 / 600", green when every fish here is at Trophy.
+-- Green only once every fish there is read and at Trophy: a fish still loading isn't in the max yet.
 function Briny:ZoneText(zone)
-  local color = zone.total >= zone.max and "1eff00" or "ffffff"
+  local color = zone.total >= zone.max and self:Scan().pending == 0 and "1eff00" or "ffffff"
   return string.format("|cff%s%.1f / %d|r", color, zone.total, zone.max)
 end
 

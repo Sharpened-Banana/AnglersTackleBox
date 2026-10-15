@@ -58,13 +58,14 @@ local function ZoneRows()
     local seconds, value = SpotTotals(mapID)
     local zoneStats = statsData and statsData.zones and statsData.zones[mapID]
     local casts = zoneStats and zoneStats.casts or 0
-    local catches = zoneStats and zoneStats.catches or 0
-    local logCatches = LoggedCatches(mapID)
-    if logCatches > catches then catches = logCatches end
+    local statCatches = zoneStats and zoneStats.catches or 0
+    -- The catch log can be older than the zone stats (or outlive a stats reset), so it's only used
+    -- for the catch count; the rate pairs stats catches with stats casts.
+    local catches = math.max(statCatches, LoggedCatches(mapID))
 
     if casts > 0 or catches > 0 or seconds > 0 then
       local perHour = seconds >= MIN_SECONDS_FOR_RATE and (value / seconds * 3600) or nil
-      local rate = casts >= MIN_CASTS_FOR_RATE and (catches / casts) or nil
+      local rate = casts >= MIN_CASTS_FOR_RATE and math.min(1, statCatches / casts) or nil
       rows[#rows + 1] = {
         mapID = mapID, name = ZoneName(mapID), seconds = seconds, value = value,
         perHour = perHour, casts = casts, catches = catches, rate = rate,
@@ -158,7 +159,7 @@ function Recommend:Lines()
   local stats = session and ns.Log:Stats()
   if best.perHour and stats and stats.perHour > 0 then
     local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
-    if mapID and stats.perHour < best.perHour * LOW_RATE_WARNING then
+    if mapID and mapID ~= best.mapID and stats.perHour < best.perHour * LOW_RATE_WARNING then
       Header(L["Right now"])
       Add(string.format(L["This spot is running %s per hour - %s in %s has done much better."],
         Compat.CoinString(stats.perHour), Compat.CoinString(best.perHour), best.name))

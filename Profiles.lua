@@ -22,6 +22,12 @@ local function ValidSound(value)
   return ns.Alerts:Sound(value) ~= nil or (type(value) == "string" and value:match("^lsm:.") ~= nil)
 end
 
+-- "random" or a toy's item ID; any other string would reach PlayerHasToy
+-- and stop the key re-arming.
+local function ValidBobber(value)
+  return value == "random" or type(value) == "number"
+end
+
 local function ValidColor(value)
   return ns.Cues:Color(value).key == value
 end
@@ -29,7 +35,9 @@ end
 Profiles.account = {
   { "key", "string" }, { "loginMessage" }, { "alwaysOn" }, { "softInteract" }, { "classicSoftInteract" },
   { "autoLoot" }, { "useRaft" }, { "doubleClick" }, { "oversizedBobber" },
-  { "bobber", "string|number" }, { "customBobbers", "list:number" }, { "eventAlerts" }, { "autoPole" }, { "lureWarn" },
+  { "bobber", "string|number", check = ValidBobber }, { "customBobbers", "list:number" },
+  { "eventAlerts" }, { "autoPole" },
+  { "lureWarn" }, { "lureEmptyWarn" }, { "lurePrompt" },
   { "alerts" }, { "alertChat" }, { "modeMessages" }, { "sellHelper" }, { "dasherAlert" },
   { "errorNotice" }, { "alertQuality" }, { "alertFlash" }, { "valueAlert" }, { "priceCap" },
   { "ahScan" }, { "ahScanDays" }, { "mapPins" }, { "afkWarning" },

@@ -141,7 +141,8 @@ local function BuildPanel()
     L["Starts the raft when you swim and refreshes it under 60 seconds."])
 
   Checkbox(db.audio, defaults.audio, "enabled", L["Focus audio"],
-    L["The splash is the bite cue. Boosts sound effects while fishing, then restores your levels."])
+    L["The splash is the bite cue. Boosts sound effects while fishing, then restores your levels."], nil,
+    "audio_enabled")
   Slider(db.audio, defaults.audio, "sfxVolume", L["Sound effects volume"],
     L["Sound effects volume while fishing."], 0, 1, 0.05, Percent)
   Checkbox(db.audio, defaults.audio, "muteMusic", L["Mute music"], L["Mutes music while fishing."])
@@ -164,6 +165,10 @@ local function BuildPanel()
     function(_, value) ns.Profiles:SetShared(value) end)
   Slider(db, defaults, "lureWarn", L["Lure warning"],
     L["Warn this long before the lure runs out."], 0, 300, 10, Seconds)
+  Checkbox(db, defaults, "lureEmptyWarn", L["Warn when out of lures"],
+    L["An alert when the lure you picked runs out of stock. Off by default."])
+  Checkbox(db, defaults, "lurePrompt", L["Ask on the first cast when no lure is up"],
+    L["Once a session, if you cast with no lure up, offers to pick one."])
 
   Checkbox(db, defaults, "alerts", L["Alerts on screen and with sound"],
     L["Big screen text, sound and flash for alerts. Each kind can also be switched off below."])
@@ -176,7 +181,7 @@ local function BuildPanel()
       "string", L["Alert sound"], defaults.alertSound)
     local function Choices()
       local container = Settings.CreateControlTextContainer()
-      for _, choice in ipairs(ns.Alerts.sounds) do container:Add(choice.key, choice.label) end
+      for _, choice in ipairs(ns.Alerts:Choices()) do container:Add(choice.key, choice.label) end
       return container:GetData()
     end
     Settings.CreateDropdown(category, sound, Choices,
@@ -222,7 +227,7 @@ local function BuildPanel()
     L["A quick red flash when a cast ends with nothing caught."])
 
   local alertDefaults = {}
-  for _, kind in ipairs(ns.Alerts.categories) do
+  for _, kind in ipairs(ns.Alerts:Kinds()) do
     alertDefaults[kind.key] = true
     if db.alertTypes[kind.key] == nil then db.alertTypes[kind.key] = true end
     Checkbox(db.alertTypes, alertDefaults, kind.key, string.format(L["Alert: %s"], kind.label),
@@ -339,6 +344,7 @@ commands.help = function()
     L["/tb sound [name|test] [alert kind] - the alert sound (no argument lists them)"],
     L["/tb casts [reset] - fishing casts learned from new places, like an Oceanic Vortex"],
     L["/tb errors [clear] - Lua errors TackleBox caught, as a report to send the author"],
+    L["/tb prep - what the key's upkeep (lure, bobbers) sees right now, and what the next press does"],
     L["/tb sessions [drop <number>|clear] - list or remove saved sessions"],
     L["/tb forget spot - forget the fishing spot you are standing on"],
     L["/tb find <fish> - where you catch it, from your own log"],
@@ -360,13 +366,28 @@ end
 
 commands.bind = function() Options:CaptureKey() end
 
+-- "shift-ctrl-f" -> "CTRL-SHIFT-F": bindings only fire with modifiers in the game's ALT-CTRL-SHIFT order.
+function Options.NormalizeKey(text)
+  local parts, mods = {}, {}
+  for part in text:upper():gmatch("[^%-]+") do parts[#parts + 1] = part end
+  if #parts == 0 then return text:upper() end
+  local key = table.remove(parts)
+  for _, part in ipairs(parts) do mods[part] = true end
+  local out = {}
+  for _, mod in ipairs({ "ALT", "CTRL", "SHIFT" }) do
+    if mods[mod] then out[#out + 1] = mod end
+  end
+  out[#out + 1] = key
+  return table.concat(out, "-")
+end
+
 commands.key = function(rest)
   if rest == "" then
     ns:Print(string.format(L["Fishing key: %s"], ns.db.key or L["none"]))
   elseif rest:lower() == "none" then
     Options:SetKey(nil)
   else
-    Options:SetKey(rest:upper())
+    Options:SetKey(Options.NormalizeKey(rest))
   end
 end
 
@@ -441,9 +462,11 @@ commands.bobber = function(rest)
   elseif lower == "random" then
     ns.db.bobber = "random"
     ns:Print(L["Bobber toy: a random one you own."])
-  elseif lower:match("^remove ") then
-    local itemID = ItemIDFrom(rest:sub(8))
-    if itemID and ns.Bobbers:RemoveCustom(itemID) then
+  elseif lower:match("^remove") then
+    local itemID = ItemIDFrom((rest:gsub("^%S+%s*", "")))
+    if not itemID then
+      ns:Print(L["Usage: /tb bobber remove <toy link or item ID>"])
+    elseif ns.Bobbers:RemoveCustom(itemID) then
       ns:Print(string.format(L["Removed %s from your bobbers."], ItemLabel(itemID)))
     else
       ns:Print(L["Only bobbers you added yourself can be removed."])
@@ -532,6 +555,9 @@ commands.casts = function(rest)
   ns:Print(L["Learned fishing casts (/tb casts reset forgets them):"])
   for spellID, name in pairs(learned) do print(string.format("   %s (%d)", tostring(name), spellID)) end
 end
+
+-- What each upkeep step (lure, bobbers, extras) sees right now.
+commands.prep = function() ns.Planner:Diagnose() end
 
 -- Lua errors TackleBox caught, as a report to paste into a GitHub issue; "clear" empties the list.
 commands.errors = function(rest)

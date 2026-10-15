@@ -79,6 +79,56 @@ local function ExtraAction()
   end
 end
 
+-- /tb prep: what each upkeep step sees right now and why it is or isn't next, for working out
+-- why something isn't being kept up in a particular place (an Oceanic Vortex, say).
+function Planner:Diagnose()
+  local function Seconds(value)
+    if value == math.huge then return "up, no timer" end
+    return value and string.format("%d s left", math.floor(value)) or "not up"
+  end
+  local function Snooze(id)
+    local untilTime = self.snoozed[id]
+    if untilTime and GetTime() < untilTime then
+      return string.format(", SNOOZED %d s (it didn't take effect 3 times)", math.floor(untilTime - GetTime()))
+    end
+    return ""
+  end
+  local engine = ns.Engine
+  ns:Print(string.format("Prep: state %s, key does %s, next press: %s", tostring(engine.state),
+    tostring(engine.armed), tostring(engine.nextLabel)))
+
+  local lureID = ns.Lures:Current()
+  if not ns.chardb.lureEnabled then
+    print("   lure: off in settings")
+  elseif not lureID then
+    print("   lure: none chosen and none known in the bags")
+  else
+    local spellName, spellID = Compat.GetItemSpell(lureID)
+    print(string.format("   lure: %s x%d, buff %s (%s / %s), ready %s%s",
+      Compat.GetItemInfo(lureID) or lureID, Compat.GetItemCount(lureID), Seconds(ns.Lures:Remaining(lureID)),
+      tostring(spellName), tostring(spellID), tostring(Compat.ItemReady(lureID)), Snooze("lure:" .. lureID)))
+  end
+
+  local oversized = Data.oversizedBobber
+  if oversized then
+    print(string.format("   oversized bobber: setting %s, owned %s, buff %s, ready %s%s",
+      tostring(ns.db.oversizedBobber), tostring(Compat.HasToy(oversized.item)),
+      Seconds(Compat.AuraRemaining(oversized.spell)), tostring(Compat.ItemReady(oversized.item)),
+      Snooze("oversized")))
+  end
+
+  local active, remaining = ns.Bobbers:Active()
+  local choice = ns.db.bobber
+  local chosen = type(choice) == "number"
+    and (", ready " .. tostring(Compat.ItemReady(choice)) .. Snooze("bobber:" .. choice)) or ""
+  print(string.format("   bobber toy: choice %s, active %s (%s)%s", tostring(choice),
+    active and (Compat.GetItemInfo(active) or active) or "none", Seconds(remaining), chosen))
+
+  local next = self:Next()
+  print(string.format("   so the next press: %s (%s %s)", tostring(next.label), tostring(next.type),
+    tostring(next.value)))
+end
+
 function Planner:Next()
   local action = ns.Gear:PoleAction()
   if action and not Snoozed(action.id) then return action end

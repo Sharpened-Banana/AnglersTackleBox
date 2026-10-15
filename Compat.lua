@@ -6,7 +6,9 @@ local Compat = {}
 ns.Compat = Compat
 
 Compat.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+-- WoW Forever reports its own project (WOW_PROJECT_CAMELOT, 1.60.1) but plays as Classic Era.
 Compat.isClassicEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+  or (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
 
 -- Retail poles sit in the profession tool slot; elsewhere the pole must be in the main hand.
 Compat.needsPole = not Compat.isRetail
@@ -89,6 +91,22 @@ Compat.GetItemInfoInstant = C_Item and C_Item.GetItemInfoInstant or GetItemInfoI
 Compat.GetItemCount = C_Item and C_Item.GetItemCount or GetItemCount
 Compat.GetItemSpell = C_Item and C_Item.GetItemSpell or GetItemSpell
 Compat.EquipItemByName = C_Item and C_Item.EquipItemByName or EquipItemByName
+
+-- Seconds left on the main-hand temporary enchant (a Classic lure), or nil. 12.1.0 moved this to
+-- C_PaperDollInfo; GetWeaponEnchantInfo only survives as an optional deprecation fallback.
+function Compat.WeaponEnchantRemaining()
+  if C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo then
+    local info = C_PaperDollInfo.GetTemporaryEnchantmentInfo(MAINHAND)
+    if type(info) == "table" and info.remainingTimeMs and not Compat.IsSecret(info.remainingTimeMs) then
+      return info.remainingTimeMs / 1000
+    end
+    return nil
+  end
+  if GetWeaponEnchantInfo then
+    local hasEnchant, expirationMS = GetWeaponEnchantInfo()
+    if hasEnchant and expirationMS then return expirationMS / 1000 end
+  end
+end
 
 function Compat.HasToy(itemID)
   return PlayerHasToy ~= nil and PlayerHasToy(itemID) or false

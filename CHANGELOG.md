@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.2.4
+
+- The auction-house price search offer is now **opt-in and off by default**, including for existing installs (switched off once; turn it back on any time). It needs Auctionator.
+- The welcome tour has a new **Optional extras** page for things that are off by default: the auction price search, the out-of-lures warning, and the Briny Best tracker (Retail). Your first cast now moves the tour on to it.
+- The "Out of lures!" warning is now optional and **off by default** (Lures compartment or settings: "Warn when out of lures").
+- Instead, the first cast of a session with no lure up asks once: pick a lure (opens the Lures compartment), not now, or don't ask again. If you own a lure, the key still applies it before casting, so the question only comes when there's nothing to apply.
+- `/tb prep` shows what the key's upkeep sees right now: your lure, the Oversized Bobber and your bobber toy, whether each is up, ready or paused after not taking effect, and what the next press will do.
+
+### Fixes
+
+- With fishing mode always on, a session resumed after `/reload` was filed about a second later, restarting your session stats and goals.
+- Fishing Companion tabs you removed came back after every reload.
+- When the loot window opened before the cast ended, the cast was never marked finished: the line glow stayed on, cast time went uncounted, and sound settings could switch back early.
+- After combat with your line still out, the key went back to casting instead of reeling.
+- Saved sessions now record the zone you fished in and start at your first cast, not when fishing mode came on, so zone rankings and gold per hour are right.
+- A rare drop like the Nether-Warped Egg now counts as found on the cast that loots it.
+- A real price change that followed a troll listing could stay ignored for good.
+- Best Spot could show a catch rate over 100%, and could warn that your current zone does better than... your current zone.
+- The longest dry streak record counted only the last few casts, and reset on `/reload`.
+- The vendor sell list stayed quiet after a `/reload` until a new session.
+- The Bobbers compartment cut off toys past the 14th; it now shows two columns.
+- Smaller fixes: a mode-off queued in combat can be cancelled; the colour button no longer covers "Flash red on a miss"; `/tb key` accepts modifiers in any order; `/tb find` works with a shift-clicked link; "commonly" in a fish's rates no longer reads as "pools only"; the Settings sound list includes shared sounds; no empty Fishing Companion tooltips; tab names stay inside their tab; Retail-only alert switches no longer show on Classic.
+- Game updates: the on-screen alert text and the Classic lure timer use the current game functions (the old ones are on their way out), and WoW Forever's new project ID turns its fishing-hour and season features back on.
+
+
 ## 1.2.3
 
 - **Error reports.** TackleBox now catches its own Lua errors and keeps the ten most recent, with how often each happened and the version it happened on. `/tb errors` shows them as a report to copy into a GitHub issue; `/tb errors clear` empties the list. The first error in a session prints one chat line pointing there, and "Send feedback..." mentions it too. Errors still reach BugSack as before.

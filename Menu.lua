@@ -377,9 +377,13 @@ local function BuildLures(panel)
   extraDrop:SetPoint("TOPLEFT", 0, -302)
   local raft = Check(panel, L["Use the fishing raft"], ns.db, "useRaft")
   raft:SetPoint("TOPLEFT", 0, -338)
+  local emptyWarn = Check(panel, L["Warn when out of lures"], ns.db, "lureEmptyWarn")
+  emptyWarn:SetPoint("TOPLEFT", 0, -364)
+  local prompt = Check(panel, L["Ask on the first cast when no lure is up"], ns.db, "lurePrompt")
+  prompt:SetPoint("TOPLEFT", 0, -390)
 
   panel.Refresh = function()
-    enabled.Sync() autoSwap.Sync() raft.Sync()
+    enabled.Sync() autoSwap.Sync() raft.Sync() emptyWarn.Sync() prompt.Sync()
     local lureID = ns.Lures:Current()
     if lureID then
       local remaining = ns.Lures:Remaining(lureID)
@@ -423,22 +427,23 @@ local function BuildLures(panel)
   end
 end
 
-local BOBBER_ROWS = 14
+local BOBBER_ROWS, BOBBER_COLUMNS = 14, 2 -- 28 slots: None, Random and every bobber toy so far
 
 local function BuildBobbers(panel)
   local oversized = Check(panel, L["Keep the Reusable Oversized Bobber up"], ns.db, "oversizedBobber")
   oversized:SetPoint("TOPLEFT", 0, 0)
   local status = Label(panel, "GameFontNormal")
   status:SetPoint("TOPLEFT", 2, -34)
-  local hint = Label(panel, "GameFontDisableSmall",
-    L["When the buff is missing, your next key press uses the toy, then you cast."])
+  local HINT = L["When the buff is missing, your next key press uses the toy, then you cast."]
+  local hint = Label(panel, "GameFontDisableSmall", HINT)
   hint:SetPoint("TOPLEFT", 2, -52)
 
   local rows = {}
-  for index = 1, BOBBER_ROWS do
+  for index = 1, BOBBER_ROWS * BOBBER_COLUMNS do
+    local column, line = math.floor((index - 1) / BOBBER_ROWS), (index - 1) % BOBBER_ROWS
     local row = CreateFrame("Button", nil, panel)
-    row:SetSize(300, 21)
-    row:SetPoint("TOPLEFT", 0, -50 - index * 22)
+    row:SetSize(218, 21)
+    row:SetPoint("TOPLEFT", column * 224, -72 - line * 22)
     row.glow = Fill(row, "BACKGROUND", COLOR.brass, 0.25)
     row.glow:SetAllPoints()
     row.icon = row:CreateTexture(nil, "ARTWORK")
@@ -446,6 +451,9 @@ local function BuildBobbers(panel)
     row.icon:SetPoint("LEFT", 2, 0)
     row.text = Label(row, "GameFontHighlight")
     row.text:SetPoint("LEFT", 28, 0)
+    row.text:SetPoint("RIGHT", -2, 0)
+    row.text:SetJustifyH("LEFT")
+    row.text:SetWordWrap(false)
     row:SetHighlightTexture(SOLID)
     row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.08)
     row:SetScript("OnClick", function(self)
@@ -489,9 +497,8 @@ local function BuildBobbers(panel)
         row.glow:SetShown(ns.db.bobber == entry.choice)
       end
     end
-    if #owned == 0 then
-      hint:SetText(L["No bobber toys in your toy box yet (Crate of Bobbers, from Conjurer Margoss)."])
-    end
+    hint:SetText(#owned == 0
+      and L["No bobber toys in your toy box yet (Crate of Bobbers, from Conjurer Margoss)."] or HINT)
   end
 end
 
@@ -616,7 +623,7 @@ local function BuildGold(panel)
   box:SetScript("OnEditFocusLost", Commit)
   box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
-  local autoScan = Check(panel, L["Offer to refresh stale fish prices when I open the auction house"], ns.db, "ahScan")
+  local autoScan = Check(panel, L["Offer to refresh old prices at the auction house"], ns.db, "ahScan")
   autoScan:SetPoint("TOPLEFT", 0, -28)
   local scan = Button(panel, L["Scan now"], 90, function()
     local _, message = ns.Gold:Scan()
@@ -807,7 +814,8 @@ local function BuildAlarms(panel)
   local kindsHeader = Label(panel, "GameFontNormal", L["Alert me about"])
   kindsHeader:SetPoint("TOPLEFT", 2, -116)
   local checks = {}
-  for index, kind in ipairs(ns.Alerts.categories) do
+  local kinds = ns.Alerts:Kinds()
+  for index, kind in ipairs(kinds) do
     -- A missing entry means on; only false turns a kind off.
     local check = Check(panel, kind.label, ns.db.alertTypes, kind.key)
     check.Sync = function() check:SetChecked(ns.db.alertTypes[kind.key] ~= false) end
@@ -817,7 +825,7 @@ local function BuildAlarms(panel)
   end
 
   -- Cast, catch and miss cues. Sound buttons: left-click for the next sound, right-click for the previous.
-  local cuesTop = -136 - math.ceil(#ns.Alerts.categories / 2) * 24 - 12
+  local cuesTop = -136 - math.ceil(#kinds / 2) * 24 - 12
   local cuesHeader = Label(panel, "GameFontNormal", L["Cast and catch cues"])
   cuesHeader:SetPoint("TOPLEFT", 2, cuesTop)
   local cuesNote = Label(panel, "GameFontDisableSmall", L["No signal for the bite - listen for the splash."])
@@ -848,7 +856,7 @@ local function BuildAlarms(panel)
     Menu:Refresh()
   end)
   color:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-  color:SetPoint("TOPLEFT", 0, cuesTop - 74)
+  color:SetPoint("TOPLEFT", 205, cuesTop - 72) -- the free cell beside "Flash red on a miss"
 
   panel.Refresh = function()
     for _, row in ipairs(rows) do

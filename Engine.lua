@@ -63,7 +63,7 @@ function Engine:Rearm()
       self.retrying = true
       C_Timer.After(0.05, function()
         Engine.retrying = false
-        Engine:Rearm()
+        ns.Safe(Engine.Rearm, Engine)
       end)
     end
     return
@@ -116,6 +116,7 @@ function Engine:Evaluate()
   else
     if self.state == "PAUSED" then
       self.state = Compat.IsFishingChannelActive() and "CHANNELING" or "READY"
+      if self.state == "CHANNELING" then self.castOpen = true end
     end
     self:Rearm()
   end
@@ -142,13 +143,14 @@ end
 function Engine:Enable()
   self:UpdateDoubleClick()
 
-  if self.state == "OFF" then
-    ns.Planner:Reset()
-    self.state = Compat.IsFishingChannelActive() and "CHANNELING" or "READY"
-  else -- resuming after combat
-    self.state = "READY"
+  -- Mode on, or resuming after combat: a line still out keeps the key on reel. Its CHANNEL_START
+  -- may have been swallowed while suspended, so the cast is (re)opened here.
+  if self.state == "OFF" then ns.Planner:Reset() end
+  self.state = Compat.IsFishingChannelActive() and "CHANNELING" or "READY"
+  if self.state == "CHANNELING" then
+    self.castOpen = true
+    ns.Core:Focus()
   end
-  if self.state == "CHANNELING" then ns.Core:Focus() end
   self:Evaluate()
 end
 
@@ -171,7 +173,13 @@ end
 -- Catches changes no event announces: a lure running out, a raft about to
 -- expire, a cooldown finishing.
 function Engine:Tick()
-  if self.state ~= "CHANNELING" then self:Rearm() end
+  -- A pause normally ends on a mount/death event; re-checking here means a missed one can't
+  -- leave the key released.
+  if self.state == "PAUSED" then
+    self:Evaluate()
+  elseif self.state ~= "CHANNELING" then
+    self:Rearm()
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -188,7 +196,7 @@ btn:SetScript("PostClick", function()
   if Engine.prep and Engine.armed ~= "reel" and Engine.armed ~= nil then
     ns.Planner:NoteAttempt(Engine.action)
     Engine.armed = nil -- re-plan, in case the action was just set aside
-    C_Timer.After(0.3, function() Engine:Rearm() end)
+    C_Timer.After(0.3, function() ns.Safe(Engine.Rearm, Engine) end)
   end
 end)
 
@@ -242,20 +250,33 @@ ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_START", function(_, _, spellID)
   end
   ns.Core:Focus()
   SetState("CHANNELING")
+  Engine.castOpen = true
   ns.Log:OnCast()
   ns:Fire("CAST_START")
   Engine:Rearm()
 end)
 
--- Catch, miss or out-of-range cast: re-arm at once so the next press casts.
-ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_STOP", function()
-  if Engine.state ~= "CHANNELING" then
-    if Engine.otherChannel then Engine.otherChannel.stopped = GetTime() end
-    return
-  end
+-- The end of a cast, once: the channel stopping or the loot window opening, whichever the game
+-- sends first (both orders happen).
+local function EndCast()
+  if not Engine.castOpen then return end
+  Engine.castOpen = nil
   Engine.lastFishEnd = GetTime()
   ns.Core.lastActivity = Engine.lastFishEnd
   ns:Fire("CAST_END")
+end
+
+-- Catch, miss or out-of-range cast: re-arm at once so the next press casts.
+ns:OnModeEvent("UNIT_SPELLCAST_CHANNEL_STOP", function()
+  if Engine.state ~= "CHANNELING" then
+    if Engine.castOpen then
+      EndCast() -- the loot window opened first; the cast ends now
+    elseif Engine.otherChannel then
+      Engine.otherChannel.stopped = GetTime()
+    end
+    return
+  end
+  EndCast()
   Engine.state = "READY"
   Engine:Rearm()
 end)
@@ -282,6 +303,7 @@ ns:OnModeEvent("LOOT_OPENED", function()
   local recentlyFished = Engine.state == "CHANNELING"
     or (Engine.lastFishEnd ~= nil and GetTime() - Engine.lastFishEnd < 3)
   if not Compat.IsFishingLoot(recentlyFished) then return end
+  if Engine.state == "CHANNELING" then EndCast() end
   Engine.state = "LOOTING"
   Engine:Rearm() -- LOOTING arms the same as READY: the next press casts
 end)

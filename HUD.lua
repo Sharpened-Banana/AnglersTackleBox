@@ -76,7 +76,9 @@ local function Build()
   for index = 1, MAX_TABS do
     local button = CreateFrame("Button", nil, frame)
     button.text = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    button.text:SetPoint("CENTER")
+    button.text:SetPoint("LEFT", 2, 0)
+    button.text:SetPoint("RIGHT", -2, 0)
+    button.text:SetWordWrap(false)
     button.line = button:CreateTexture(nil, "ARTWORK")
     button.line:SetTexture("Interface\\Buttons\\WHITE8x8")
     button.line:SetVertexColor(0.85, 0.66, 0.22)
@@ -115,7 +117,7 @@ local function Build()
       if not self.tooltip then return end
       GameTooltip:SetOwner(self, "ANCHOR_LEFT")
       self.tooltip(GameTooltip)
-      GameTooltip:Show()
+      if (GameTooltip:NumLines() or 0) > 0 then GameTooltip:Show() else GameTooltip:Hide() end
     end)
     row:SetScript("OnLeave", function() GameTooltip:Hide() end)
     frame.rows[index] = row
