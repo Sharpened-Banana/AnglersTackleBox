@@ -187,6 +187,10 @@ end
 -- forever. PostClick runs after the secure action and does nothing protected.
 ---------------------------------------------------------------------------
 
+btn:SetScript("PreClick", function()
+  if Engine.armed == "pole" then ns.Gear:BeforePolePress() end
+end)
+
 local lastClick = 0
 btn:SetScript("PostClick", function()
   local now = GetTime()

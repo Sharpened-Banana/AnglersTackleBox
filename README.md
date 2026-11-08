@@ -68,7 +68,7 @@ Everything gold-related (rankings, value alert, sell helper, history chart) live
     lua tests/smoke.lua
     TB_FLAVOR=classic lua tests/smoke.lua
 
-`tests/smoke.lua` stubs the WoW API and drives a fishing session through every module; `TB_FLAVOR=classic` runs the WoW Forever configuration (pole, enchant lures, mouseover reel) instead. It checks the wiring, not the game: in-game testing is still needed for anything the stubs assume.
+`tests/smoke.lua` stubs the WoW API and drives a fishing session through every module; `TB_FLAVOR=classic` runs the WoW Forever configuration (pole, enchant lures, soft-interact reel) instead. It checks the wiring, not the game: in-game testing is still needed for anything the stubs assume.
 
 ## Credits
 

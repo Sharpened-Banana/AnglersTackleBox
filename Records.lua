@@ -12,10 +12,21 @@ local function ZoneName(mapID)
   return info and info.name or (GetZoneText() or "?")
 end
 
--- Plain "1,204g" text: chat can't show the coin icons.
+local function Coins(big, bigMark, small, smallMark)
+  return small > 0 and string.format("%d%s %d%s", big, bigMark, small, smallMark) or big .. bigMark
+end
+
+-- Plain text, since chat can't show the coin icons: "1,204g", "12g 34s", "45s 12c" or "8c".
+-- Only the two largest coins matter, and past 100g only the gold.
 local function GoldText(copper)
-  local gold = math.floor((copper or 0) / 10000 + 0.5)
-  local text = tostring(gold)
+  copper = math.floor(copper or 0)
+  local gold, silver, rest = math.floor(copper / 10000), math.floor(copper / 100) % 100, copper % 100
+  if gold < 100 then
+    if gold > 0 then return Coins(gold, "g", silver, "s") end
+    if silver > 0 then return Coins(silver, "s", rest, "c") end
+    return rest .. "c"
+  end
+  local text = tostring(math.floor(copper / 10000 + 0.5))
   while true do
     local replaced
     text, replaced = text:gsub("^(%d+)(%d%d%d)", "%1,%2")
@@ -24,6 +35,34 @@ local function GoldText(copper)
   return text .. "g"
 end
 Records.GoldText = GoldText
+
+local COPPER_PER = { g = 10000, s = 100, c = 1 }
+
+-- What a player typed into an amount box, in copper: "2" means gold, or "1g 50s", "50s", "25c".
+-- nil when it can't be read. Commas are allowed because GoldText writes them.
+function Records.ParseCoins(text)
+  local rest = (text or ""):lower():gsub("[%s,]", "")
+  if rest == "" then return 0 end
+  if rest:match("^[%d%.]+$") then
+    local gold = tonumber(rest)
+    return gold and math.floor(gold * 10000 + 0.5) or nil
+  end
+  local copper = 0
+  while rest ~= "" do
+    local amount, mark, tail = rest:match("^([%d%.]+)([gsc])(.*)$")
+    amount = tonumber(amount)
+    if not amount then return nil end
+    copper = copper + amount * COPPER_PER[mark]
+    rest = tail
+  end
+  return math.floor(copper + 0.5)
+end
+
+-- A saved amount (in gold, possibly a fraction) as an amount box shows it.
+function Records.CoinInput(gold)
+  local copper = math.floor((gold or 0) * 10000 + 0.5)
+  return copper == 0 and "0" or GoldText(copper)
+end
 
 -- The first value ever set isn't announced, so a first session doesn't spray toasts.
 local function Beat(key, value, detail, announce)

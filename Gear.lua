@@ -42,6 +42,23 @@ local function FishingSetID()
   return C_EquipmentSet.GetEquipmentSetID(name)
 end
 
+local function Snapshot()
+  if ns.chardb.gearBackup then return end
+  local backup = {}
+  for slot = FIRST_SLOT, LAST_SLOT do
+    backup[slot] = GetInventoryItemLink("player", slot)
+  end
+  ns.chardb.gearBackup = backup
+end
+
+-- The key is about to equip the pole: remember what it replaces, for when the mode ends.
+function Gear:BeforePolePress()
+  if ns.db.alwaysOn or not ns.chardb.gearSwap then return end
+  Snapshot()
+  self.lastSwap = GetTime()
+  self.applied = true
+end
+
 function Gear:Enable()
   -- Always-on would mean fishing gear all day, so no swap.
   if ns.db.alwaysOn then return end
@@ -50,13 +67,7 @@ function Gear:Enable()
   local pole = self:FindPole()
   if not setID and not pole then return end
 
-  if not ns.chardb.gearBackup then
-    local backup = {}
-    for slot = FIRST_SLOT, LAST_SLOT do
-      backup[slot] = GetInventoryItemLink("player", slot)
-    end
-    ns.chardb.gearBackup = backup
-  end
+  Snapshot()
 
   self.lastSwap = GetTime()
   if setID then
@@ -93,4 +104,9 @@ function Gear:Suspend()
   if ns.chardb.gearCombatRestore then self:Restore() end
 end
 
-Gear.Resume = Gear.Enable
+-- After combat the pole waits for the fishing key (Planner), or the next pull would start with it
+-- in hand. A fishing set has no key action, so it still comes back by itself.
+function Gear:Resume()
+  if Compat.needsPole and not FishingSetID() then return end
+  self:Enable()
+end

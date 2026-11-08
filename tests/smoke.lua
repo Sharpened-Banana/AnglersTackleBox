@@ -231,7 +231,10 @@ local ns = {}
 if CLASSIC then
   local equipped, bagPole, enchantMS = nil, 6256, nil
   C_Item.GetItemInfoInstant = function(id) if id == 6256 then return id, "", "", "", 1, 2, 20 end return id, "", "", "", 1, 0, 0 end
-  C_Item.EquipItemByName = function(item) if item == 6256 then equipped, bagPole = 6256, nil end end
+  C_Item.EquipItemByName = function(item)
+    if item == 6256 then equipped, bagPole = 6256, nil
+    elseif item == "cane" then equipped, bagPole = nil, 6256 end
+  end
   GetInventoryItemID = function(_, slot) if slot == 16 then return equipped end end
   C_Container.GetContainerNumSlots = function(bag) return bag == 0 and 4 or 0 end
   C_Container.GetContainerItemID = function(bag, slot) if bag == 0 and slot == 2 then return bagPole end end
@@ -260,10 +263,14 @@ if CLASSIC then
   enchantMS = 590000; fire("UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 1); advance(0.5)
   check(btn.attrs.spell == "Fishing" and btn.attrs["target-slot"] == nil, "classic: pole enchant seen -> back to casting")
   fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06)
-  check(bindings.F == "INTERACTMOUSEOVER", "classic: reel in through mouseover interact")
-  ns.db.classicSoftInteract = true; ns.Engine.armed = nil; ns.Engine:Rearm()
-  check(bindings.F == "INTERACTTARGET" , "classic: soft-interact reel is available as an option")
-  ns.db.classicSoftInteract = false
+  check(bindings.F == "INTERACTTARGET", "classic: reel in through soft interact by default")
+  ns.db.classicSoftInteract = false; ns.Engine.armed = nil; ns.Engine:Rearm()
+  check(bindings.F == "INTERACTMOUSEOVER", "classic: mouseover reel is available as an option")
+  ns.db.classicSoftInteractOn = nil; ns.Core:Migrate()
+  check(ns.db.classicSoftInteract == true and ns.db.classicSoftInteractOn == true, "classic: older installs switch to the soft-interact reel once")
+  ns.db.classicSoftInteract = false; ns.Core:Migrate()
+  check(ns.db.classicSoftInteract == false, "classic: choosing mouseover afterwards sticks")
+  ns.db.classicSoftInteract = true
   loot = { { id = 6358, name = "Oily Blackmouth", qty = 1, quality = 1 } }
   fire("LOOT_READY"); fire("LOOT_OPENED"); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player"); fire("LOOT_CLOSED")
   check(ns.Log:Stats().catches == 1, "classic: catch logged")
@@ -273,6 +280,21 @@ if CLASSIC then
   check(equipped == 6256 and ns.chardb.gearBackup ~= nil, "classic: gear swap equips the pole and snapshots the gear")
   SlashCmdList.ANGLERSTACKLEBOX("")
   check(ns.chardb.gearBackup == nil, "classic: gear restored when the mode ends")
+  local noLink = GetInventoryItemLink
+  GetInventoryItemLink = function(_, slot) if slot == 16 then return equipped == 6256 and "pole" or "cane" end end
+  equipped, bagPole = nil, 6256
+  SlashCmdList.ANGLERSTACKLEBOX("")
+  check(equipped == 6256 and ns.chardb.gearBackup[16] == "cane", "classic: mode on swaps the weapon for the pole")
+  fire("PLAYER_REGEN_DISABLED"); combat = true
+  check(equipped == nil and ns.chardb.gearBackup == nil, "classic: combat puts the weapon back")
+  combat = false; fire("PLAYER_REGEN_ENABLED")
+  check(equipped == nil and btn.attrs.item == "item:6256", "classic: after combat the pole waits for the key")
+  btn.scripts.PreClick(btn); C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  check(ns.chardb.gearBackup[16] == "cane" and btn.attrs.spell == "Fishing", "classic: the key equips the pole and remembers the weapon")
+  SlashCmdList.ANGLERSTACKLEBOX("")
+  check(equipped == nil and ns.chardb.gearBackup == nil, "classic: mode off puts the weapon back after a fight")
+  GetInventoryItemLink = noLink
+  equipped, bagPole = 6256, nil
   local seen = {}
   for _, line in ipairs(ns.Events:Lines()) do seen[#seen + 1] = line.text end
   local events = table.concat(seen, "|")
@@ -299,10 +321,39 @@ if CLASSIC then
     "classic: a line graph falls back to bars without texture lines")
   SlashCmdList.ANGLERSTACKLEBOX("goals"); SlashCmdList.ANGLERSTACKLEBOX("midnight"); SlashCmdList.ANGLERSTACKLEBOX("bobber")
   local classicExport = ns.Profiles:Export()
-  ns.db.classicSoftInteract = true
-  check(ns.Profiles:Import(classicExport) and ns.db.classicSoftInteract == false, "classic: settings export and import round trip")
+  ns.db.classicSoftInteract = false
+  check(ns.Profiles:Import(classicExport) and ns.db.classicSoftInteract == true, "classic: settings export and import round trip")
   played = {}; ns.Alerts:Fire("rare", "x")
   check(played[1] == 8959, "classic: alert sound falls back to the numeric raid warning kit")
+  local coins = ns.Records.GoldText
+  check(coins(8) == "8c" and coins(800) == "8s" and coins(812) == "8s 12c" and coins(0) == "0c", "classic: small values read in silver and copper")
+  check(coins(123456) == "12g 34s" and coins(120000) == "12g" and coins(12040000) == "1,204g", "classic: larger values read in gold")
+  local parse, input = ns.Records.ParseCoins, ns.Records.CoinInput
+  check(parse("50s") == 5000 and parse("1g 50s") == 15000 and parse("25c") == 25 and parse("2") == 20000
+    and parse("0.5") == 5000 and parse("1,204g") == 12040000 and parse("") == 0, "classic: amount boxes read gold, silver and copper")
+  check(parse("abc") == nil and parse("5x") == nil and parse("1.2.3") == nil and parse("-1") == nil, "classic: amount boxes reject what they can't read")
+  check(input(0.5) == "50s" and input(0) == "0" and input(nil) == "0" and input(2) == "2g" and input(1.5) == "1g 50s", "classic: amount boxes show saved amounts in coins")
+  SlashCmdList.ANGLERSTACKLEBOX("") -- fishing mode on, for a live session
+  ns.Log:ResetSession(); ns.Log.session.value = 3000
+  ns.db.sessionGoals.gold = 0.5; ns.SessionGoals:Check()
+  check(not ns.SessionGoals:Fired("gold") and ns.SessionGoals:Text("gold", true) == "30s / 50s", "classic: a silver goal shows progress in silver")
+  ns.Log.session.value = 5000; ns.SessionGoals:Check()
+  check(ns.SessionGoals:Fired("gold") and ns.SessionGoals:Text("gold", true):find("50s / 50s", 1, true), "classic: a silver goal fires when reached")
+  ns.db.sessionGoals.gold = 0
+  check(ns.SessionGoals:Text("gold", true):find("off", 1, true), "classic: a goal of 0 reads as off")
+  ns.db.valueAlert = 0.05
+  local valueAlerts, realFire = 0, ns.Alerts.Fire
+  ns.Alerts.Fire = function(self, kind, ...)
+    if kind == "value" then valueAlerts = valueAlerts + 1 end
+    return realFire(self, kind, ...)
+  end
+  ns:Fire("CATCH", 6358, "Oily Blackmouth", 1, 1, 400)
+  local belowValue = valueAlerts
+  ns:Fire("CATCH", 6358, "Oily Blackmouth", 1, 1, 500)
+  ns.Alerts.Fire = realFire
+  check(belowValue == 0 and valueAlerts == 1, "classic: the value alert fires at a silver threshold")
+  ns.db.valueAlert = 0
+  SlashCmdList.ANGLERSTACKLEBOX("")
   print_real("classic run complete")
   os.exit(0)
 end

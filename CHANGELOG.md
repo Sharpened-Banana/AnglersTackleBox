@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.5
+
+- The valuable-catch alert (Gold tab) and the gold session goal (Alarms tab) now take silver and copper as well as gold: type `50s`, `1g 50s`, `25c`, or a plain number for gold. The gold goal shows its progress in coins, like `30s / 50s`.
+
+### Fixes
+
+- WoW Forever: the fishing key now reels in without pointing at the bobber, as on Retail, including for existing installs (switched once). "Reel in without aiming (soft interact)" in the settings goes back to pointing with the mouse.
+- WoW Forever: after a fight, your weapon now stays in your hand. The pole came straight back when combat ended, so the next pull started with it. Now the next press of the fishing key equips it, and turning fishing mode off still puts your weapon back.
+- Record alerts and the shared session summary rounded everything to whole gold, so a low-level catch read "0g". They now show silver and copper, like `8s 12c`.
+
 ## 1.2.4
 
 - The auction-house price search offer is now **opt-in and off by default**, including for existing installs (switched off once; turn it back on any time). It needs Auctionator.

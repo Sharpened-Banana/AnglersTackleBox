@@ -64,7 +64,8 @@ ns.defaults = {
   loginMessage = true,  -- a welcome line in chat at every login and reload
   alwaysOn = false,     -- mode starts at login and after instances
   softInteract = true,  -- raise soft-interact CVars while fishing
-  classicSoftInteract = false, -- WoW Forever: reel via soft interact, not mouseover
+  classicSoftInteract = true, -- WoW Forever: reel via soft interact, not mouseover
+  classicSoftInteractOn = false, -- the switch to soft interact has been applied to this install
   autoLoot = true,
   useRaft = false,
   doubleClick = false,  -- double right-click performs the armed action
@@ -421,6 +422,11 @@ function Core:Migrate()
   -- chosen, so it's switched off once; the tour and settings turn it back on.
   if not db.ahScanOptIn then
     db.ahScan, db.ahScanOptIn = false, true
+  end
+  -- WoW Forever's key used to reel only with the mouse on the bobber, which read as the key not
+  -- reeling at all. Older installs saved that default as if chosen, so it's switched once.
+  if not db.classicSoftInteractOn then
+    db.classicSoftInteract, db.classicSoftInteractOn = true, true
   end
 end
 

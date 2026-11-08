@@ -13,7 +13,7 @@ Compat.isClassicEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 -- Retail poles sit in the profession tool slot; elsewhere the pole must be in the main hand.
 Compat.needsPole = not Compat.isRetail
 
--- Soft interact is reliable on Retail; WoW Forever reels via mouseover unless the player opts in.
+-- Soft interact reels without aiming; on WoW Forever the player can opt for mouseover instead.
 function Compat.Interact()
   if Compat.isRetail or (ns.db and ns.db.classicSoftInteract) then return "INTERACTTARGET" end
   return "INTERACTMOUSEOVER"

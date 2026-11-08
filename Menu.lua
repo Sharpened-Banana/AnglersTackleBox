@@ -612,12 +612,13 @@ local function BuildGold(panel)
   box:SetSize(60, 20)
   box:SetPoint("LEFT", label, "RIGHT", 12, 0)
   box:SetAutoFocus(false)
-  box:SetNumeric(true)
-  local unit = Label(panel, "GameFontHighlight", L["gold  (0 = off)"])
+  local unit = Label(panel, "GameFontHighlight", L["2g or 50s  (0 = off)"])
   unit:SetPoint("LEFT", box, "RIGHT", 6, 0)
   local function Commit(self)
-    ns.db.valueAlert = tonumber(self:GetText()) or 0
+    local copper = ns.Records.ParseCoins(self:GetText())
+    if copper then ns.db.valueAlert = copper / 10000 end
     self:ClearFocus()
+    self:SetText(ns.Records.CoinInput(ns.db.valueAlert))
   end
   box:SetScript("OnEnterPressed", Commit)
   box:SetScript("OnEditFocusLost", Commit)
@@ -741,7 +742,7 @@ local function BuildGold(panel)
 
   panel.Refresh = function()
     autoScan.Sync()
-    if not box:HasFocus() then box:SetText(tostring(ns.db.valueAlert or 0)) end
+    if not box:HasFocus() then box:SetText(ns.Records.CoinInput(ns.db.valueAlert)) end
     if not cap:HasFocus() then cap:SetText(tostring(ns.db.priceCap or 0)) end
     local history = ns.Gold:History(CHART_BARS)
     local best = 0
@@ -784,7 +785,8 @@ end
 local function BuildAlarms(panel)
   local header = Label(panel, "GameFontNormal", L["Session goals"])
   header:SetPoint("TOPLEFT", 2, -2)
-  local note = Label(panel, "GameFontDisableSmall", L["0 = off. Each one alerts once per session."])
+  local note = Label(panel, "GameFontDisableSmall",
+    L["0 = off. Each one alerts once per session. Gold takes 2g or 50s."])
   note:SetPoint("LEFT", header, "RIGHT", 10, 0)
 
   local rows = {}
@@ -796,9 +798,14 @@ local function BuildAlarms(panel)
     box:SetSize(60, 20)
     box:SetPoint("TOPLEFT", 130, y)
     box:SetAutoFocus(false)
-    box:SetNumeric(true)
+    if not goal.money then box:SetNumeric(true) end
     local function Commit(self)
-      ns.db.sessionGoals[goal.key] = tonumber(self:GetText()) or 0
+      if goal.money then
+        local copper = ns.Records.ParseCoins(self:GetText())
+        if copper then ns.db.sessionGoals[goal.key] = copper / 10000 end
+      else
+        ns.db.sessionGoals[goal.key] = tonumber(self:GetText()) or 0
+      end
       self:ClearFocus()
       ns.SessionGoals:Check()
       Menu:Refresh()
@@ -808,7 +815,7 @@ local function BuildAlarms(panel)
     box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     local progress = Label(panel, "GameFontHighlight")
     progress:SetPoint("TOPLEFT", 210, y - 4)
-    rows[index] = { key = goal.key, box = box, progress = progress }
+    rows[index] = { key = goal.key, money = goal.money, box = box, progress = progress }
   end
 
   local kindsHeader = Label(panel, "GameFontNormal", L["Alert me about"])
@@ -860,7 +867,10 @@ local function BuildAlarms(panel)
 
   panel.Refresh = function()
     for _, row in ipairs(rows) do
-      if not row.box:HasFocus() then row.box:SetText(tostring(ns.db.sessionGoals[row.key] or 0)) end
+      if not row.box:HasFocus() then
+        local target = ns.db.sessionGoals[row.key]
+        row.box:SetText(row.money and ns.Records.CoinInput(target) or tostring(target or 0))
+      end
       row.progress:SetText(ns.SessionGoals:Text(row.key, true))
     end
     for _, check in ipairs(checks) do check.Sync() end
