@@ -53,13 +53,10 @@ function Cues:Play(moment)
   if sound then ns.Alerts:PlaySound(sound.key) end
 end
 
--- Steps a moment's sound through the choices, plays it and returns it.
-function Cues:CycleSound(moment, direction)
-  local key = moment .. "Sound"
-  local sound = ns.Alerts:NextSound(ns.db.cues[key], direction)
-  ns.db.cues[key] = sound.key
+-- Sets a moment's sound and plays it.
+function Cues:SetSound(moment, soundKey)
+  ns.db.cues[moment .. "Sound"] = soundKey
   self:Play(moment)
-  return sound
 end
 
 ---------------------------------------------------------------------------

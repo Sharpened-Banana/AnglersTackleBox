@@ -103,8 +103,13 @@ pages[3] = function(page)
     start:SetEnabled(not ns.Core.mode)
     always.Sync()
     local stats = ns.Log:Stats()
-    castLine:SetText(Tick(stats ~= nil and stats.casts > 0,
-      L["Face some water and press your key. Press it again when the bobber splashes."]))
+    -- WoW Forever needs a pole in hand: a long first press equips it and casts in one go.
+    local how = L["Face some water and press your key. Press it again when the bobber splashes."]
+    if ns.Compat.needsPole and ns.db.holdToCast then
+      how = L["Face some water and hold your key until the pole is in your hand, then let go to cast. "
+        .. "Press it again when the bobber splashes."]
+    end
+    castLine:SetText(Tick(stats ~= nil and stats.casts > 0, how))
   end
 end
 

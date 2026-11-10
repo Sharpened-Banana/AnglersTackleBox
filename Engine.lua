@@ -88,6 +88,7 @@ function Engine:Rearm()
     end
     Release()
     btn:SetAttribute("type", action.type)
+    btn:SetAttribute("useOnKeyDown", nil)
     btn:SetAttribute("spell", nil)
     btn:SetAttribute("item", nil)
     btn:SetAttribute("toy", nil)
@@ -187,14 +188,45 @@ end
 -- forever. PostClick runs after the secure action and does nothing protected.
 ---------------------------------------------------------------------------
 
-btn:SetScript("PreClick", function()
-  if Engine.armed == "pole" then ns.Gear:BeforePolePress() end
+btn:SetScript("PreClick", function(_, _, down)
+  -- Letting go before the pole is on would only earn the game's "must have a fishing pole" error:
+  -- skip that cast, and the next press makes it.
+  if Engine.poleCast and not down then
+    Engine.poleCast = nil
+    if not ns.Gear:PoleEquipped() and not InCombatLockdown() then btn:SetAttribute("type", nil) end
+    return
+  end
+  if Engine.armed == "pole" then ns.Gear:BeforePolePress()
+  elseif Engine.armed == "cast" then ns.Gear:BeforeCastPress() end
 end)
 
 local lastClick = 0
-btn:SetScript("PostClick", function()
+btn:SetScript("PostClick", function(_, _, down)
   local now = GetTime()
   ns.Core.lastInput = now -- for the away warning
+  -- Key down just equipped the pole: point the key at the cast, so letting go casts. If the pole
+  -- isn't on yet by then, the game refuses that cast and the next press makes it.
+  if down and Engine.armed == "pole" and ns.db.holdToCast and not InCombatLockdown() then
+    ns.Planner:NoteAttempt(Engine.action)
+    -- The game runs a key's action on key down or on key up, whichever the player's setting says.
+    -- On key down the pole is on its way and this one release has to act; on key up nothing has
+    -- run yet, so the pole is equipped here and the release casts as it normally would.
+    if Compat.GetCVar("ActionButtonUseKeyDown") == "0" then
+      local pole = ns.Gear:FindPole()
+      if pole then Compat.EquipItemByName(pole) end
+    else
+      btn:SetAttribute("useOnKeyDown", false)
+    end
+    btn:SetAttribute("type", "spell")
+    btn:SetAttribute("item", nil)
+    btn:SetAttribute("target-slot", nil)
+    btn:SetAttribute("spell", Compat.FishingName())
+    Engine.armed, Engine.nextLabel, Engine.poleCast = nil, L["Cast"], true
+    lastClick = now
+    C_Timer.After(0.3, function() ns.Safe(Engine.Rearm, Engine) end)
+    return
+  end
+  if not down and not InCombatLockdown() then btn:SetAttribute("useOnKeyDown", nil) end
   if now - lastClick < 0.25 then return end -- key down and key up both click
   lastClick = now
   if Engine.prep and Engine.armed ~= "reel" and Engine.armed ~= nil then

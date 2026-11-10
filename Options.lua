@@ -155,6 +155,8 @@ local function BuildPanel()
       .. " " .. L["Name the set with /tb set."])
   Checkbox(chardb, charDefaults, "gearCombatRestore", L["Restore gear when combat starts"],
     L["Puts your normal gear back the moment you are attacked."])
+  Checkbox(chardb, charDefaults, "gearWalkAway", L["Restore gear when you walk away"],
+    L["Puts your normal gear back when you move and don't cast again within 1.5 seconds."])
   Checkbox(chardb, charDefaults, "lureEnabled", L["Keep a lure up"],
     L["Puts 'apply lure' into the one-key queue. Pick the lure with /tb lure."])
   Checkbox(chardb, charDefaults, "lureAutoSwap", L["Swap lures when out"],
@@ -264,6 +266,9 @@ local function BuildPanel()
   if Compat.needsPole then
     Checkbox(db, defaults, "classicSoftInteract", L["Reel in without aiming (soft interact)"],
       L["Off: point at the bobber and press your key. On: the key grabs the bobber by itself, as on Retail."])
+    Checkbox(db, defaults, "holdToCast", L["Hold the fishing key to equip the pole and cast"],
+      L["Hold the key until the pole is in your hand, then let go to cast. Off: one press equips, the next casts."],
+      function() ns.Engine.armed = nil ns.Engine:Rearm() end)
     Checkbox(db, defaults, "autoPole", L["Fishing mode follows the pole"],
       L["Turns fishing mode on when you equip a fishing pole and off when you remove it."],
       function() ns.Core:UpdateAutoPole() end)

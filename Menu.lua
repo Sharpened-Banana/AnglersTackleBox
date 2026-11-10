@@ -45,6 +45,113 @@ local function Button(parent, text, width, onClick)
   return button
 end
 
+-- A dropdown: a button showing the current choice that opens a list below it. One list frame is
+-- shared by every dropdown, built on first use. Drawn by hand so it looks and works the same on
+-- every game version.
+--   choices(): array of { key, label }    current(): the chosen key    pick(choice): store it
+local DROP_ROW, DROP_VISIBLE = 18, 12
+local dropList
+
+local function CloseDropdown()
+  if dropList then dropList:Hide() end
+end
+
+local function FillDropdown()
+  local owner, offset = dropList.owner, dropList.offset
+  local choices, chosen = dropList.choices, owner.current()
+  for index, row in ipairs(dropList.rows) do
+    local choice = choices[index + offset]
+    row.choice = choice
+    row:SetShown(choice ~= nil)
+    if choice then
+      row.text:SetText(choice.label)
+      if choice.key == chosen then
+        row.text:SetTextColor(COLOR.brass[1], COLOR.brass[2], COLOR.brass[3])
+      else
+        row.text:SetTextColor(1, 1, 1)
+      end
+    end
+  end
+end
+
+local function OpenDropdown(owner)
+  if not dropList then
+    dropList = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    dropList:SetFrameStrata("FULLSCREEN_DIALOG")
+    dropList:SetBackdrop({
+      bgFile = SOLID,
+      edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+      edgeSize = 12,
+      insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    dropList:SetBackdropColor(COLOR.well[1], COLOR.well[2], COLOR.well[3], 0.98)
+    dropList:SetBackdropBorderColor(COLOR.brass[1], COLOR.brass[2], COLOR.brass[3], 1)
+    dropList:EnableMouse(true)
+    dropList:EnableMouseWheel(true)
+    dropList:SetScript("OnMouseWheel", function(self, delta)
+      local last = math.max(0, #self.choices - DROP_VISIBLE)
+      self.offset = math.max(0, math.min(last, self.offset - delta))
+      FillDropdown()
+    end)
+    -- A click anywhere else closes the list.
+    dropList.catcher = CreateFrame("Button", nil, UIParent)
+    dropList.catcher:SetFrameStrata("FULLSCREEN")
+    dropList.catcher:SetAllPoints(UIParent)
+    dropList.catcher:SetScript("OnClick", CloseDropdown)
+    dropList.catcher:Hide()
+    dropList:SetScript("OnShow", function(self) self.catcher:Show() end)
+    dropList:SetScript("OnHide", function(self) self.catcher:Hide() self.owner = nil end)
+    dropList.rows = {}
+    for index = 1, DROP_VISIBLE do
+      local row = CreateFrame("Button", nil, dropList)
+      row:SetHeight(DROP_ROW)
+      row:SetPoint("TOPLEFT", 6, -6 - (index - 1) * DROP_ROW)
+      row:SetPoint("RIGHT", -6, 0)
+      row:SetHighlightTexture(SOLID)
+      row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.15)
+      row.text = Label(row, "GameFontHighlightSmall")
+      row.text:SetPoint("LEFT", 4, 0)
+      row:SetScript("OnClick", function(self)
+        local dropdown = dropList.owner
+        CloseDropdown()
+        dropdown.pick(self.choice)
+        Menu:Refresh()
+      end)
+      dropList.rows[index] = row
+    end
+    dropList:Hide()
+  end
+  if dropList.owner == owner then CloseDropdown() return end
+  dropList:Hide()
+  dropList.owner, dropList.choices, dropList.offset = owner, owner.choices(), 0
+  -- Open with the current choice in view.
+  local chosen = owner.current()
+  for index, choice in ipairs(dropList.choices) do
+    if choice.key == chosen then
+      dropList.offset = math.max(0, math.min(index - 1, #dropList.choices - DROP_VISIBLE))
+    end
+  end
+  dropList:ClearAllPoints()
+  dropList:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, 2)
+  dropList:SetSize(math.max(owner:GetWidth() or 0, 170), math.min(#dropList.choices, DROP_VISIBLE) * DROP_ROW + 12)
+  FillDropdown()
+  dropList:Show()
+end
+
+local function Dropdown(parent, width, choices, current, pick)
+  local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+  button:SetSize(width, 24)
+  button.choices, button.current, button.pick = choices, current, pick
+  button.arrow = button:CreateTexture(nil, "OVERLAY")
+  button.arrow:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
+  button.arrow:SetSize(12, 12)
+  button.arrow:SetPoint("RIGHT", -6, 0)
+  if button.arrow.SetRotation then button.arrow:SetRotation(-math.pi / 2) end -- points down
+  button:SetScript("OnClick", OpenDropdown)
+  button:SetScript("OnHide", CloseDropdown)
+  return button
+end
+
 -- Checkbox bound to tbl[key]; own label, so no template child is assumed.
 local function Check(parent, text, tbl, key, onChange)
   local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
@@ -831,7 +938,7 @@ local function BuildAlarms(panel)
     checks[#checks + 1] = check
   end
 
-  -- Cast, catch and miss cues. Sound buttons: left-click for the next sound, right-click for the previous.
+  -- Cast, catch and miss cues, each with a dropdown for its sound.
   local cuesTop = -136 - math.ceil(#kinds / 2) * 24 - 12
   local cuesHeader = Label(panel, "GameFontNormal", L["Cast and catch cues"])
   cuesHeader:SetPoint("TOPLEFT", 2, cuesTop)
@@ -839,11 +946,10 @@ local function BuildAlarms(panel)
   cuesNote:SetPoint("LEFT", cuesHeader, "RIGHT", 10, 0)
   local soundButtons = {}
   for index, moment in ipairs(ns.Cues.moments) do
-    local button = Button(panel, "", 145, function(_, mouse)
-      ns.Cues:CycleSound(moment.key, mouse == "RightButton" and -1 or 1)
-      Menu:Refresh()
-    end)
-    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    local button = Dropdown(panel, 145,
+      function() return ns.Alerts:Choices() end,
+      function() return ns.db.cues[moment.key .. "Sound"] end,
+      function(choice) ns.Cues:SetSound(moment.key, choice.key) end)
     button:SetPoint("TOPLEFT", (index - 1) * 150, cuesTop - 20)
     button.moment = moment
     soundButtons[index] = button
@@ -1043,6 +1149,10 @@ local function BuildSettings(panel)
     Check(panel, L["Show my fishing spots on the world map"], ns.db, "mapPins",
       function() ns.Spots:RefreshPins() end),
   }
+  if Compat.needsPole then
+    checks[#checks + 1] = Check(panel, L["Hold the fishing key to equip the pole and cast"], ns.db, "holdToCast",
+      function() ns.Engine.armed = nil ns.Engine:Rearm() end)
+  end
   local minimap = Check(panel, L["Minimap button"], ns.db.minimap, "hide",
     function() ns.Broker:UpdateButton() end)
   -- Stored as "hide", shown as "show".
@@ -1064,13 +1174,15 @@ local function BuildSettings(panel)
   local saveCamera = Button(panel, L["Save current zoom"], 140, function() ns.Camera:Save() Menu:Refresh() end)
   saveCamera:SetPoint("TOPLEFT", 270, -(cameraRow - 1) * ROW)
 
-  -- Sound button: left-click for the next sound, right-click for the previous.
-  local sound = Button(panel, "", 200, function(_, mouse)
-    local chosen = ns.Alerts:CycleSound(mouse == "RightButton" and -1 or 1)
-    ns.Alerts:PlaySound(chosen.key)
-    Menu:Refresh()
-  end)
-  sound:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  -- Picking a sound plays it.
+  local sound = Dropdown(panel, 200,
+    function() return ns.Alerts:Choices() end,
+    function() return ns.Alerts:SoundFor().key end,
+    function(choice)
+      ns.db.alertSound = choice.key
+      ns.Alerts:PlaySound(choice.key)
+    end)
+  Menu.alertSound = sound
   sound:SetPoint("TOPLEFT", 0, -#checks * ROW - 8)
   local test = Button(panel, L["Test"], 62, function() ns.Alerts:PlaySound(ns.Alerts:SoundFor().key) end)
   test:SetPoint("LEFT", sound, "RIGHT", 6, 0)

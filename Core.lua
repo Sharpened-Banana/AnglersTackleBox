@@ -65,6 +65,7 @@ ns.defaults = {
   alwaysOn = false,     -- mode starts at login and after instances
   softInteract = true,  -- raise soft-interact CVars while fishing
   classicSoftInteract = true, -- WoW Forever: reel via soft interact, not mouseover
+  holdToCast = true,    -- WoW Forever: holding the key equips the pole and casts on release
   classicSoftInteractOn = false, -- the switch to soft interact has been applied to this install
   autoLoot = true,
   useRaft = false,
@@ -129,6 +130,7 @@ ns.charDefaults = {
   liveSession = nil,    -- session in progress at last reload/logout (Log)
   resumeMode = nil,     -- time() of a logout with the mode on, to resume it
   gearCombatRestore = true,
+  gearWalkAway = true,
   fishingSet = nil,     -- equipment set name
   cookingReagents = nil, -- [itemID] = recipe uses from the last Cooking scan (Shopping)
   poleID = nil,

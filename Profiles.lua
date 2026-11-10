@@ -34,6 +34,7 @@ end
 
 Profiles.account = {
   { "key", "string" }, { "loginMessage" }, { "alwaysOn" }, { "softInteract" }, { "classicSoftInteract" },
+  { "holdToCast" },
   { "autoLoot" }, { "useRaft" }, { "doubleClick" }, { "oversizedBobber" },
   { "bobber", "string|number", check = ValidBobber }, { "customBobbers", "list:number" },
   { "eventAlerts" }, { "autoPole" },
@@ -55,7 +56,7 @@ Profiles.account = {
 }
 
 Profiles.char = {
-  { "gearSwap" }, { "gearCombatRestore" }, { "fishingSet", "string" }, { "poleID", "number" },
+  { "gearSwap" }, { "gearCombatRestore" }, { "gearWalkAway" }, { "fishingSet", "string" }, { "poleID", "number" },
   { "lureEnabled" }, { "lureID", "number" }, { "lureAutoSwap" }, { "extras", "list:number" },
 }
 

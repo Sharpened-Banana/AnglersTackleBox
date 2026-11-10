@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.6
+
+- WoW Forever: one press can equip the pole and cast. Hold the fishing key until the pole is in your hand, then let go, and it casts. A quick tap still just equips the pole, and the next press casts. The tracker's "Next press" line says "Equip pole (hold to cast too)" as a reminder, and the welcome tour explains it. On by default; turn it off with "Hold the fishing key to equip the pole and cast" on the Settings tab.
+- Walking away from fishing (moving without casting again for 1.5 seconds) puts your weapon or normal gear back without turning fishing mode off. Back at the water, the fishing key equips the pole again, or your fishing set goes back on with the next cast. Turn it off with "Restore gear when you walk away" in the settings.
+- The alert sound (Settings tab) and the three cast and catch cue sounds (Alarms tab) are now dropdown lists: click to see every sound, click one to pick it and hear it. Before, each click stepped to the next sound.
+
+### Fixes
+
+- WoW Forever: your weapon is now remembered between sessions, so it comes back when you walk away or get attacked even if you logged in with the pole already on. This also works with always-on fishing mode, which skipped the swap before.
+- WoW Forever: if the game refuses the weapon swap at the moment a fight starts (while you are casting, for example), TackleBox now keeps trying until your weapon is on. Before, it tried once and left the pole in your hand.
+
 ## 1.2.5
 
 - The valuable-catch alert (Gold tab) and the gold session goal (Alarms tab) now take silver and copper as well as gold: type `50s`, `1g 50s`, `25c`, or a plain number for gold. The gold goal shows its progress in coins, like `30s / 50s`.

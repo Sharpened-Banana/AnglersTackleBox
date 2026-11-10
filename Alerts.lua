@@ -94,16 +94,6 @@ function Alerts:Choices()
   return list
 end
 
--- Steps a sound key through Choices; direction -1 goes back.
-function Alerts:NextSound(key, direction)
-  local choices, index = self:Choices(), 1
-  for i, sound in ipairs(choices) do
-    if sound.key == key then index = i end
-  end
-  index = (index - 1 + (direction or 1)) % #choices + 1
-  return choices[index]
-end
-
 -- A category's own sound, else the global choice, else the raid warning.
 function Alerts:SoundFor(category)
   local override = category and ns.db.alertSounds[category]
@@ -117,13 +107,6 @@ function Alerts:PlaySound(key)
   elseif sound.id then -- "None" has neither
     PlaySound(SOUNDKIT and SOUNDKIT[sound.kit] or sound.id)
   end
-end
-
--- Steps the global choice through the list; direction -1 goes back.
-function Alerts:CycleSound(direction)
-  local sound = self:NextSound(ns.db.alertSound, direction)
-  ns.db.alertSound = sound.key
-  return sound
 end
 
 local NPC_THROTTLE = 120

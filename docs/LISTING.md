@@ -19,6 +19,7 @@ Pick any key. While fishing mode is on, each press does the next right thing: eq
 
 - Works with a key, or a quick double right-click.
 - Leave fishing mode on all day if you like. It steps aside in combat, while mounted, and inside dungeons, raids and PvP.
+- On WoW Forever, hold the key on your first press and it equips the pole and casts in one go. Walk away or get attacked and your weapon comes back by itself.
 - A `/reload` doesn't end your session: your numbers, goals and fishing mode carry on.
 - **Lure auto-swap** (optional): when your chosen lure runs out, the next press applies the best other lure in your bags.
 - Sound and interact settings change only while you are actually fishing, and are always put back, even after a crash.

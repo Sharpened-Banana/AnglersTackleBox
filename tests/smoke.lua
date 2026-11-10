@@ -45,7 +45,8 @@ local function Frame(name)
   if name then _G[name] = f end
   return f
 end
-CreateFrame = function(_, name) return Frame(name) end
+createdFrames = {}
+CreateFrame = function(_, name) local f = Frame(name); createdFrames[#createdFrames + 1] = f; return f end
 UIParent = {}
 function fire(event, ...)
   for _, f in ipairs(frames) do
@@ -289,8 +290,66 @@ if CLASSIC then
   check(equipped == nil and ns.chardb.gearBackup == nil, "classic: combat puts the weapon back")
   combat = false; fire("PLAYER_REGEN_ENABLED")
   check(equipped == nil and btn.attrs.item == "item:6256", "classic: after combat the pole waits for the key")
+  ns.db.holdToCast = false
+  btn.scripts.PreClick(btn); btn.scripts.PostClick(btn, "LeftButton", true)
+  check(btn.attrs.type == "item", "classic: with hold-to-cast off the press only equips the pole")
+  ns.db.holdToCast = true; advance(1)
+  btn.scripts.PreClick(btn); btn.scripts.PostClick(btn, "LeftButton", true)
+  check(btn.attrs.type == "spell" and btn.attrs.spell == "Fishing" and btn.attrs.item == nil, "classic: key down equips the pole and key up casts")
+  check(btn.attrs.useOnKeyDown == false, "classic: that one press acts on key up")
+  btn.scripts.PreClick(btn, "LeftButton", false)
+  check(btn.attrs.type == nil, "classic: letting go before the pole is on skips the cast instead of erroring")
+  btn.scripts.PostClick(btn, "LeftButton", false)
+  check(btn.attrs.useOnKeyDown == nil, "classic: the key goes back to the player's own key-down setting")
+  fire("PLAYER_STARTED_MOVING"); advance(2); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  check(ns.chardb.gearBackup == nil, "classic: walking away after a press that never cast still puts the weapon back")
+  advance(0.5)
+  check(btn.attrs.item == "item:6256", "classic: a pole that didn't go on is asked for again")
   btn.scripts.PreClick(btn); C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
   check(ns.chardb.gearBackup[16] == "cane" and btn.attrs.spell == "Fishing", "classic: the key equips the pole and remembers the weapon")
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+  fire("PLAYER_STARTED_MOVING"); advance(1)
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(1); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+  check(equipped == 6256, "classic: a step and a new cast keep the pole")
+  fire("PLAYER_STARTED_MOVING"); advance(1)
+  check(equipped == 6256, "classic: the pole stays for the first moment of moving")
+  advance(0.6)
+  check(equipped == nil and ns.chardb.gearBackup == nil and ns.Core.mode, "classic: 1.5s of moving without a cast puts the weapon back")
+  fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  check(btn.attrs.item == "item:6256", "classic: back at the water the key equips the pole again")
+  btn.scripts.PreClick(btn); C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+  ns.chardb.gearWalkAway = false; fire("PLAYER_STARTED_MOVING"); advance(2)
+  check(equipped == 6256, "classic: the walk-away swap can be turned off")
+  ns.chardb.gearWalkAway = true
+  fire("PLAYER_STARTED_MOVING"); advance(2); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  ns.db.alwaysOn = true
+  btn.scripts.PreClick(btn); C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+  fire("PLAYER_STARTED_MOVING"); advance(2); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  check(equipped == nil and ns.Core.mode, "classic: always-on also puts the weapon back when you walk away")
+  ns.Gear.applied, ns.chardb.gearBackup, equipped = false, nil, 6256; fire("PLAYER_EQUIPMENT_CHANGED", 16) -- as after a /reload with the pole on
+  check(ns.chardb.lastWeapon[16] == "cane", "classic: the weapon in hand is remembered")
+  fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+  fire("PLAYER_STARTED_MOVING"); advance(1); fire("PLAYER_STARTED_MOVING"); advance(0.6); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  check(equipped == nil, "classic: a pole already on at login still goes back to the remembered weapon")
+  ns.Gear.applied, ns.chardb.gearBackup, equipped = false, nil, 6256; fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  fire("PLAYER_REGEN_DISABLED"); combat = true
+  check(equipped == nil, "classic: combat puts the remembered weapon back even with a pole from login")
+  combat = false; fire("PLAYER_REGEN_ENABLED")
+  do -- the game refuses the first swap, as it does mid-cast
+    ns.Gear.applied, ns.chardb.gearBackup, equipped = false, nil, 6256; fire("PLAYER_EQUIPMENT_CHANGED", 16)
+    local equip, refused = ns.Compat.EquipItemByName, 0
+    ns.Compat.EquipItemByName = function(...) if refused < 2 then refused = refused + 1 return end return equip(...) end
+    fire("PLAYER_REGEN_DISABLED"); combat = true
+    check(equipped == 6256, "classic: (setup) the swap at the start of combat was refused")
+    advance(1.2)
+    check(equipped == nil, "classic: a refused combat swap is tried again until the weapon is on")
+    ns.Compat.EquipItemByName = equip
+    combat = false; fire("PLAYER_REGEN_ENABLED")
+  end
+  ns.db.alwaysOn = false
+  btn.scripts.PreClick(btn); C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
   SlashCmdList.ANGLERSTACKLEBOX("")
   check(equipped == nil and ns.chardb.gearBackup == nil, "classic: mode off puts the weapon back after a fight")
   GetInventoryItemLink = noLink
@@ -1165,8 +1224,19 @@ ns.db.alertSound = "bogus"; played = {}; ns.Alerts:Fire("rare", "x")
 check(played[1] == 8959, "sound: an unknown choice falls back to the raid warning")
 ns.db.alertSound = "raidWarning"
 SlashCmdList.ANGLERSTACKLEBOX("sound"); SlashCmdList.ANGLERSTACKLEBOX("sound test")
-check(ns.Alerts:CycleSound(1).key == "readyCheck" and ns.Alerts:CycleSound(-1).key == "raidWarning"
-  and ns.Alerts:CycleSound(-1).key == "none", "sound: the settings button cycles both ways")
+do
+  ns.Menu:Open("settings")
+  local drop = ns.Menu.alertSound
+  drop.scripts.OnClick(drop)
+  local list, row
+  for _, child in ipairs(createdFrames) do if rawget(child, "rows") and rawget(child, "catcher") then list = child end end
+  check(list and list.shown and list.rows[1].choice.key == "raidWarning", "sound: the settings dropdown lists the sounds")
+  row = list.rows[2]; played = {}
+  row.scripts.OnClick(row)
+  check(ns.db.alertSound == row.choice.key and not list.shown and #played == 1, "sound: picking from the dropdown sets and plays it")
+  ns.Menu:Select("alarms")
+  AnglersTackleBoxMenu:Hide()
+end
 ns.db.alertSound = "raidWarning"
 
 -- a way of fishing the addon doesn't know (casting into an Oceanic Vortex): learned from its loot
