@@ -162,6 +162,16 @@ Engine.Resume = Engine.Enable
 function Engine:Suspend()
   Release()
   self.nextLabel = nil
+  -- An addon may not equip once the fight is on, so if the swap at this moment is refused the key
+  -- itself puts the weapon back: bound here, while bindings can still change.
+  local macro, key = ns.Gear:CombatWeaponMacro(), ns.db.key
+  if macro and key then
+    btn:SetAttribute("type", "macro")
+    btn:SetAttribute("useOnKeyDown", nil)
+    btn:SetAttribute("macrotext", macro)
+    SetOverrideBindingClick(btn, true, key, "AnglersTackleBoxActionButton")
+    self.nextLabel = L["Equip weapon"]
+  end
   SetState("PAUSED")
 end
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.7
+
+### Fixes
+
+- WoW Forever: fixed the "AnglersTackleBox tried to call a protected function" error during a fight. 1.2.6 kept trying to equip your weapon after combat had started, which the game blocks for addons. TackleBox still swaps to your weapon the moment a fight starts. If the game refuses that swap (while you are casting, for example), press your fishing key during the fight and it equips your weapon; the tracker's "Next press" line says "Equip weapon". If you don't, it goes on when the fight ends.
+
 ## 1.2.6
 
 - WoW Forever: one press can equip the pole and cast. Hold the fishing key until the pole is in your hand, then let go, and it casts. A quick tap still just equips the pole, and the next press casts. The tracker's "Next press" line says "Equip pole (hold to cast too)" as a reminder, and the welcome tour explains it. On by default; turn it off with "Hold the fishing key to equip the pole and cast" on the Settings tab.
@@ -9,7 +15,7 @@
 ### Fixes
 
 - WoW Forever: your weapon is now remembered between sessions, so it comes back when you walk away or get attacked even if you logged in with the pole already on. This also works with always-on fishing mode, which skipped the swap before.
-- WoW Forever: if the game refuses the weapon swap at the moment a fight starts (while you are casting, for example), TackleBox now keeps trying until your weapon is on. Before, it tried once and left the pole in your hand.
+- WoW Forever: if the game refuses the weapon swap at the moment a fight starts (while you are casting, for example), TackleBox now keeps trying until your weapon is on. Before, it tried once and left the pole in your hand. (Replaced in 1.2.7: the retry caused an error.)
 
 ## 1.2.5
 

@@ -124,38 +124,55 @@ function Gear:Restore()
 end
 
 function Gear:Disable()
+  self.combatWeapon = nil
   -- Equipping fails during logout; keep the backup and restore at next login.
   if ns.Core.loggingOut then return end
   self:Restore()
 end
 
--- The game can refuse the swap at the moment combat starts (mid-cast, for one). Weapons may be
--- swapped during a fight, so it is tried again until the pole is gone.
-local RETRY_EVERY, RETRIES = 0.5, 10
+-- The weapon to put back when combat starts with the pole on, as slot -> link. Asked for by both
+-- Gear and Engine, whichever is suspended first.
+function Gear:CombatWeapon()
+  if self.combatWeapon ~= nil then return self.combatWeapon or nil end
+  self.combatWeapon = false
+  if not Compat.needsPole or not ns.chardb.gearCombatRestore then return nil end
+  AdoptPole() -- a pole that was already on at login has no snapshot; the remembered weapon stands in
+  local backup = ns.chardb.gearBackup
+  if not backup or not self:PoleEquipped() or not backup[Compat.MAINHAND] then return nil end
+  self.combatWeapon = { [Compat.MAINHAND] = backup[Compat.MAINHAND], [OFFHAND] = backup[OFFHAND] }
+  return self.combatWeapon
+end
 
-local function EquipWeapon(weapon, tries)
-  C_Timer.After(RETRY_EVERY, function()
-    if tries <= 0 or not Gear:PoleEquipped() then return end
-    -- After the fight the pole may be on again on purpose.
-    if tries < RETRIES and not InCombatLockdown() then return end
-    Gear.lastSwap = GetTime()
-    for slot, link in pairs(weapon) do Compat.EquipItemByName(link, slot) end
-    EquipWeapon(weapon, tries - 1)
-  end)
+-- The game can refuse the swap at the moment combat starts (mid-cast, for one), and once the fight
+-- is on an addon may not equip anything: only a key press can. This is the macro for that press.
+function Gear:CombatWeaponMacro()
+  local weapon = self:CombatWeapon()
+  if not weapon then return nil end
+  local lines = {}
+  for _, slot in ipairs({ Compat.MAINHAND, OFFHAND }) do
+    local link = weapon[slot]
+    local item = link and (link:match("%[(.-)%]") or link:match("item:%d+") or link)
+    if item then lines[#lines + 1] = "/equipslot " .. slot .. " " .. item end
+  end
+  return lines[1] and table.concat(lines, "\n") or nil
 end
 
 function Gear:Suspend()
   if not ns.chardb.gearCombatRestore then return end
-  AdoptPole() -- a pole that was already on at login has no snapshot; the remembered weapon stands in
-  local backup = ns.chardb.gearBackup
-  local weapon = backup and { [Compat.MAINHAND] = backup[Compat.MAINHAND], [17] = backup[17] }
+  self:CombatWeapon()
   self:Restore()
-  if weapon and Compat.needsPole then EquipWeapon(weapon, RETRIES) end
 end
 
 -- After combat the pole waits for the fishing key (Planner), or the next pull would start with it
 -- in hand. A fishing set has no key action, so it still comes back by itself.
 function Gear:Resume()
+  -- The swap was refused and the key never pressed: the fight is over, so it is allowed again.
+  local weapon = self.combatWeapon
+  self.combatWeapon = nil
+  if weapon and self:PoleEquipped() and not InCombatLockdown() then
+    self.lastSwap = GetTime()
+    for slot, link in pairs(weapon) do Compat.EquipItemByName(link, slot) end
+  end
   if Compat.needsPole and not FishingSetID() then return end
   self:Enable()
 end

@@ -289,7 +289,8 @@ if CLASSIC then
   fire("PLAYER_REGEN_DISABLED"); combat = true
   check(equipped == nil and ns.chardb.gearBackup == nil, "classic: combat puts the weapon back")
   combat = false; fire("PLAYER_REGEN_ENABLED")
-  check(equipped == nil and btn.attrs.item == "item:6256", "classic: after combat the pole waits for the key")
+  check(equipped == nil and btn.attrs.item == "item:6256" and btn.attrs.type ~= "macro",
+    "classic: after combat the pole waits for the key")
   ns.db.holdToCast = false
   btn.scripts.PreClick(btn); btn.scripts.PostClick(btn, "LeftButton", true)
   check(btn.attrs.type == "item", "classic: with hold-to-cast off the press only equips the pole")
@@ -340,13 +341,17 @@ if CLASSIC then
   do -- the game refuses the first swap, as it does mid-cast
     ns.Gear.applied, ns.chardb.gearBackup, equipped = false, nil, 6256; fire("PLAYER_EQUIPMENT_CHANGED", 16)
     local equip, refused = ns.Compat.EquipItemByName, 0
-    ns.Compat.EquipItemByName = function(...) if refused < 2 then refused = refused + 1 return end return equip(...) end
+    ns.Compat.EquipItemByName = function() refused = refused + 1 end
     fire("PLAYER_REGEN_DISABLED"); combat = true
-    check(equipped == 6256, "classic: (setup) the swap at the start of combat was refused")
-    advance(1.2)
-    check(equipped == nil, "classic: a refused combat swap is tried again until the weapon is on")
+    check(equipped == 6256 and refused > 0, "classic: (setup) the swap at the start of combat was refused")
+    local before = refused
+    advance(6)
+    check(refused == before, "classic: nothing is equipped from code once the fight is on (the game blocks it)")
+    check(bindings.F ~= nil and btn.attrs.type == "macro" and btn.attrs.macrotext == "/equipslot 16 cane"
+      and ns.Engine.nextLabel == "Equip weapon", "classic: in combat the fishing key puts the weapon back")
     ns.Compat.EquipItemByName = equip
     combat = false; fire("PLAYER_REGEN_ENABLED")
+    check(equipped == nil, "classic: a weapon the fight never got back goes on when the fight ends")
   end
   ns.db.alwaysOn = false
   btn.scripts.PreClick(btn); C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
