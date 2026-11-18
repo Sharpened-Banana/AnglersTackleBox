@@ -32,6 +32,11 @@ local function ValidColor(value)
   return ns.Cues:Color(value).key == value
 end
 
+-- A size or volume outside its slider's range would error where it is applied, every time.
+local function Within(low, high)
+  return function(value) return value >= low and value <= high end
+end
+
 Profiles.account = {
   { "key", "string" }, { "loginMessage" }, { "alwaysOn" }, { "softInteract" }, { "classicSoftInteract" },
   { "holdToCast" },
@@ -51,7 +56,11 @@ Profiles.account = {
   { "cues.castSound", check = ValidSound }, { "cues.catchSound", check = ValidSound },
   { "cues.missSound", check = ValidSound }, { "cues.glow" },
   { "cues.color", check = ValidColor }, { "cues.flashCatch" }, { "cues.flashMiss" },
-  { "hud.shown" }, { "hud.scale" }, { "hud.alpha" }, { "hud.locked" }, { "hud.tabs", "list:string" },
+  { "hud.shown" }, { "hud.scale", check = Within(0.3, 3) },
+  { "hud.alpha", check = Within(0, 1) },
+  { "theme", check = function(value) return ns.Theme:Valid(value) end },
+  { "windowOpacity", check = Within(0.3, 1) }, { "hud.locked" },
+  { "hud.compact" }, { "hud.motion" }, { "hud.tabs", "list:string" },
   { "briny.enabled" }, { "sessionGoals.catches" }, { "sessionGoals.gold" }, { "sessionGoals.minutes" },
 }
 

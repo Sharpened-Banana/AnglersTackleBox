@@ -69,7 +69,8 @@ wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
 -- TB_FLAVOR=classic runs the Classic Era configuration instead.
 local CLASSIC = os.getenv("TB_FLAVOR") == "classic"
 WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC = CLASSIC and 2 or 1, 1, 2
-issecretvalue = function() return false end
+secrets = {}
+issecretvalue = function(value) return value ~= nil and secrets[value] or false end
 C_Spell = { GetSpellName = function(id) if id == 131474 or id == 131476 then return "Fishing" end if id == 999 then return "Test Lure" end end }
 C_Item = { GetItemInfo = function(id) return "Item" .. id, "[Item" .. id .. "]", id == 777 and 0 or 1, 1, 1, "", "", 1, "", 1, 250 end,
   GetItemInfoInstant = function(id) return id, "", "", "", 1, 0, 0 end,
@@ -233,6 +234,8 @@ if CLASSIC then
   local equipped, bagPole, enchantMS = nil, 6256, nil
   C_Item.GetItemInfoInstant = function(id) if id == 6256 then return id, "", "", "", 1, 2, 20 end return id, "", "", "", 1, 0, 0 end
   C_Item.EquipItemByName = function(item)
+    -- WoW Forever blocks an addon's equip once a fight is on (the 1.2.6 bug): here it is an error.
+    if combat then error("EquipItemByName called in combat") end
     if item == 6256 then equipped, bagPole = 6256, nil
     elseif item == "cane" then equipped, bagPole = nil, 6256 end
   end
@@ -243,10 +246,10 @@ if CLASSIC then
   C_Spell.GetSpellName = function(id) if id == 7620 or id == 7731 then return "Fishing" end end
   TooltipDataProcessor = nil
 
-  for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Errors.lua", "Data/Classic.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
+  for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Errors.lua", "Data/Classic.lua", "Core.lua", "Theme.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
     "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "Cues.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua",
     "Spots.lua", "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua",
-    "Recommend.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
+    "Recommend.lua", "Probe.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
     assert(loadfile(ROOT .. file))("AnglersTackleBox", ns)
   end
   local btn = AnglersTackleBoxActionButton
@@ -334,6 +337,12 @@ if CLASSIC then
   fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7731); advance(0.06); fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
   fire("PLAYER_STARTED_MOVING"); advance(1); fire("PLAYER_STARTED_MOVING"); advance(0.6); fire("PLAYER_EQUIPMENT_CHANGED", 16)
   check(equipped == nil, "classic: a pole already on at login still goes back to the remembered weapon")
+  -- A /reload at the water with the pole on, then walking off without casting again.
+  ns.Gear.applied, ns.Gear.fished, ns.chardb.gearBackup, equipped = false, nil, { [16] = "cane" }, 6256
+  ns.Gear:Enable()
+  fire("PLAYER_STARTED_MOVING"); advance(2); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  check(equipped == nil and ns.chardb.gearBackup == nil,
+    "classic: after a reload with the pole on, walking away puts the weapon back without a new cast")
   ns.Gear.applied, ns.chardb.gearBackup, equipped = false, nil, 6256; fire("PLAYER_EQUIPMENT_CHANGED", 16)
   fire("PLAYER_REGEN_DISABLED"); combat = true
   check(equipped == nil, "classic: combat puts the remembered weapon back even with a pole from login")
@@ -357,6 +366,14 @@ if CLASSIC then
   btn.scripts.PreClick(btn); C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
   SlashCmdList.ANGLERSTACKLEBOX("")
   check(equipped == nil and ns.chardb.gearBackup == nil, "classic: mode off puts the weapon back after a fight")
+  do -- the pole put on by hand before the mode starts is not the weapon to go back to
+    ns.db.autoPole = false
+    C_Item.EquipItemByName(6256); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+    SlashCmdList.ANGLERSTACKLEBOX("")
+    check(ns.Core.mode and ns.chardb.gearBackup[16] == "cane", "classic: a pole already in hand is not saved as your weapon")
+    SlashCmdList.ANGLERSTACKLEBOX("")
+    check(equipped == nil, "classic: mode off then goes back to the remembered weapon")
+  end
   GetInventoryItemLink = noLink
   equipped, bagPole = 6256, nil
   local seen = {}
@@ -417,11 +434,39 @@ if CLASSIC then
   ns.Alerts.Fire = realFire
   check(belowValue == 0 and valueAlerts == 1, "classic: the value alert fires at a silver threshold")
   ns.db.valueAlert = 0
+  do -- the probe: silent until asked, then it notes what the game says while fishing
+    fire("UI_ERROR_MESSAGE", 1, "Your fish got away!")
+    check(ns.chardb.probe == nil, "classic: the probe records nothing until /tb probe")
+    SlashCmdList.ANGLERSTACKLEBOX("probe")
+    local probe = ns.chardb.probe
+    check(probe.on and probe.api.GetWeaponEnchantInfo ~= nil and probe.api.GetProfessionInfo ~= nil,
+      "classic: /tb probe records which APIs answer")
+    fire("UI_ERROR_MESSAGE", 1, "Your fish got away!")
+    local last = probe.events[#probe.events]
+    check(last.k == "UI_ERROR_MESSAGE" and last.v:find("got away", 1, true), "classic: the probe notes game messages")
+    advance(2)
+    -- A hidden ("secret") value may not even be compared; the probe notes that it was hidden.
+    secrets["hidden text"] = true
+    local before = #probe.events
+    GameTooltipTextLeft1 = { GetText = function() return "hidden text" end }
+    advance(2)
+    check(#probe.events == before, "classic: the probe skips a tooltip the game hides")
+    GameTooltipTextLeft1 = nil
+    fire("UI_ERROR_MESSAGE", 1, "hidden text")
+    check(probe.events[#probe.events].v:find("<secret>", 1, true), "classic: the probe marks a hidden message")
+    secrets["hidden text"] = nil
+    SlashCmdList.ANGLERSTACKLEBOX("probe off")
+    local count = #probe.events
+    fire("UI_ERROR_MESSAGE", 1, "Your fish got away!")
+    check(#probe.events == count, "classic: /tb probe off stops the notes")
+    SlashCmdList.ANGLERSTACKLEBOX("probe clear")
+    check(ns.chardb.probe == nil, "classic: /tb probe clear forgets them")
+  end
   SlashCmdList.ANGLERSTACKLEBOX("")
   print_real("classic run complete")
   os.exit(0)
 end
-for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Errors.lua", "Data/Retail.lua", "Core.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
+for _, file in ipairs({ "Locales/enUS.lua", "Compat.lua", "Errors.lua", "Data/Retail.lua", "Core.lua", "Theme.lua", "Profiles.lua", "Audio.lua", "Gear.lua",
   "Lures.lua", "Bobbers.lua", "Log.lua", "HUD.lua", "Alerts.lua", "Cues.lua", "SessionGoals.lua", "LogWindow.lua", "Events.lua", "Goals.lua", "Spots.lua",
   "Journal.lua", "Shopping.lua", "Gold.lua", "QoL.lua", "Broker.lua", "Records.lua", "Stats.lua", "Recommend.lua",
   "Midnight.lua", "BrinyJournal.lua", "Briny.lua", "Planner.lua", "Engine.lua", "Graph.lua", "Menu.lua", "Welcome.lua", "Options.lua" }) do
@@ -558,6 +603,33 @@ ns.db.valueAlert = 0.02; ns.db.camera = { enabled = true, zoom = 6 }
 
 -- session window tabs
 check(AnglersTackleBoxHUD and AnglersTackleBoxHUD.shown, "session window showing")
+do -- the Fishing Companion's look: headline numbers, the next-press strip, compact mode, motion
+  local hud = AnglersTackleBoxHUD
+  ns.db.hud.tab = "session"; ns.HUD:Refresh()
+  check(hud.hero.shown and hud.hero.cells[1].value:GetText():find(" / ", 1, true)
+    and hud.hero.cells[2].caption:GetText() == "Gold per hour", "companion: Session leads with two headline numbers")
+  check(hud.next.value:GetText() == (ns.Engine.nextLabel or ""), "companion: the next press has its own strip")
+  ns.db.hud.tab = "lures"; ns.HUD:Refresh()
+  check(not hud.hero.shown and hud.rows[1].shown, "companion: other tabs use all six rows")
+  ns.db.hud.compact = true; ns.HUD:Refresh()
+  check(not hud.rows[1].shown and not hud.tabs[1].shown and not hud.footer.shown and hud.next.value:GetText() ~= nil,
+    "companion: compact keeps only the header, cast bar and next press")
+  ns.db.hud.compact = false; ns.db.hud.tab = "session"; ns.HUD:Refresh()
+  check(hud.rows[1].shown and hud.tabs[1].shown, "companion: and comes back whole")
+  local channel = UnitChannelInfo
+  UnitChannelInfo = function() return "Fishing", nil, nil, GetTime() * 1000 - 5000, GetTime() * 1000 + 15000 end
+  local state = ns.Engine.state
+  ns.Engine.state = "CHANNELING"; ns.HUD:Animate(hud)
+  check(hud.cast.shown and math.abs(ns.Compat.ChannelFraction() - 0.75) < 0.01, "companion: the cast bar shows how much of the cast is left")
+  ns.Engine.state = "READY"; ns.HUD:Animate(hud)
+  check(not hud.cast.shown, "companion: no cast bar between casts")
+  ns.Engine.state = state; UnitChannelInfo = channel
+  ns.HUD.pulseAt = GetTime(); ns.HUD:Animate(hud)
+  check(hud.pulse.shown, "companion: a catch flares the window")
+  ns.db.hud.motion = false; ns.HUD:Animate(hud)
+  check(not hud.pulse.shown, "companion: not with motion switched off")
+  ns.db.hud.motion = true
+end
 for _, tab in ipairs({ "lures", "log", "session" }) do ns.db.hud.tab = tab; ns.HUD:Refresh() end
 check(ns.Events:Headline(true) == "STV Extravaganza in 10m", "session window footer uses short event names")
 counts[241145] = 2; ns.db.hud.tab = "lures"; ns.HUD:Refresh()
@@ -1078,6 +1150,45 @@ end
 check(#bad == 0, "profiles: garbage strings give an error, not a crash")
 combat = true
 check(P:Import(exported) == nil, "profiles: no import in combat")
+
+do -- themes: one palette, repainted in place
+  local T = ns.Theme
+  local painted = { Set = function(self, r, g, b, a) self.v = { r, g, b, a } end }
+  T:Paint(painted, "Set", T.C.brass, 0.5, true)
+  check(painted.v[1] == 0.85 and painted.v[4] == 0.5, "themes: a paint uses the current theme")
+  check(#T:Choices() == 7 and T:Current().key == "tacklebox", "themes: seven to pick from, Tackle Box by default")
+  local brass, before = T.C.brass, #printed
+  check(T:Set("deepsea") and T.C.brass == brass and brass[1] == 0.25 and painted.v[1] == 0.25,
+    "themes: picking one repaints what is already on screen")
+  ns:Print("x")
+  check(printed[#printed]:find("|cff40ccbfTackleBox", 1, true) and #printed == before + 1, "themes: chat prefix follows")
+  T:SetOpacity(0.5)
+  check(painted.v[4] == 0.25 and ns.db.windowOpacity == 0.5, "themes: window opacity fades backgrounds")
+  T:SetOpacity(0)
+  check(ns.db.windowOpacity == T.MIN_OPACITY, "themes: opacity never goes low enough to lose the window")
+  check(not T:Set("nope") and ns.db.theme == "deepsea", "themes: an unknown theme is refused")
+  SlashCmdList.ANGLERSTACKLEBOX("theme midnight")
+  check(ns.db.theme == "midnight", "themes: /tb theme picks one")
+  ns.Menu:Open("look")
+  ns.Menu.themePicker.pick({ key = "contrast" })
+  check(ns.db.theme == "contrast", "themes: the Appearance tab's picker sets the theme")
+  T:Set("tacklebox"); T:SetOpacity(1)
+  check(painted.v[1] == 0.85 and painted.v[4] == 0.5, "themes: back to the default")
+  -- Every theme defines every colour, and no file paints the old brass by hand.
+  local complete = true
+  for _, theme in ipairs(T.list) do
+    for name in pairs(T.list[1]) do if theme[name] == nil then complete = false end end
+  end
+  check(complete, "themes: every theme has every colour")
+  local stray
+  for _, file in ipairs({ "Menu.lua", "HUD.lua", "Graph.lua", "Welcome.lua", "LogWindow.lua" }) do
+    local handle = assert(io.open(ROOT .. file))
+    local source = handle:read("a")
+    handle:close()
+    if source:find("0.85, 0.66, 0.22", 1, true) or source:find("0.11, 0.22, 0.16", 1, true) then stray = file end
+  end
+  check(stray == nil, "themes: no window paints a fixed colour past the palette: " .. tostring(stray))
+end
 combat = false
 ns.db.bobber = nil; ns.db.lureWarn = expect.warn; ns.chardb.gearSwap = true; ns.db.audio.muteMusic = true
 

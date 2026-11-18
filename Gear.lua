@@ -66,6 +66,11 @@ local function Snapshot()
   for slot = FIRST_SLOT, LAST_SLOT do
     backup[slot] = GetInventoryItemLink("player", slot)
   end
+  -- A pole already in hand is not what to go back to: the remembered weapon is.
+  local last = ns.chardb.lastWeapon
+  if last and Compat.needsPole and Gear:PoleEquipped() then
+    backup[Compat.MAINHAND], backup[OFFHAND] = last[Compat.MAINHAND], last[OFFHAND]
+  end
   ns.chardb.gearBackup = backup
 end
 
@@ -87,7 +92,16 @@ function Gear:BeforeCastPress()
   if not self.applied and FishingSetID() then self:Enable() end
 end
 
+-- The mode started with the pole already in hand (a login or /reload at the water): walking away
+-- puts the weapon back without waiting for another cast first.
+function Gear:AdoptPoleInHand()
+  if not ns.chardb.gearWalkAway then return end
+  AdoptPole()
+  if self.applied and self:PoleEquipped() then self.fished, self.movedAt = true, nil end
+end
+
 function Gear:Enable()
+  self:AdoptPoleInHand()
   -- Always-on would mean fishing gear all day, so no swap.
   if ns.db.alwaysOn then return end
   if self.applied or not ns.chardb.gearSwap or InCombatLockdown() then return end
@@ -125,6 +139,9 @@ end
 
 function Gear:Disable()
   self.combatWeapon = nil
+  -- The mode ended during a fight whose swap may have been refused: finish it from that snapshot.
+  if self.suspendBackup and not ns.chardb.gearBackup then ns.chardb.gearBackup = self.suspendBackup end
+  self.suspendBackup = nil
   -- Equipping fails during logout; keep the backup and restore at next login.
   if ns.Core.loggingOut then return end
   self:Restore()
@@ -160,6 +177,9 @@ end
 function Gear:Suspend()
   if not ns.chardb.gearCombatRestore then return end
   self:CombatWeapon()
+  -- The game may refuse any of these swaps (mid-cast, armour in a fight), so the snapshot is kept
+  -- until the fight is over.
+  self.suspendBackup = ns.chardb.gearBackup
   self:Restore()
 end
 
@@ -171,9 +191,16 @@ function Gear:Resume()
   self.combatWeapon = nil
   if weapon and self:PoleEquipped() and not InCombatLockdown() then
     self.lastSwap = GetTime()
-    for slot, link in pairs(weapon) do Compat.EquipItemByName(link, slot) end
+    for _, slot in ipairs({ Compat.MAINHAND, OFFHAND }) do
+      if weapon[slot] then Compat.EquipItemByName(weapon[slot], slot) end
+    end
   end
+  local kept = self.suspendBackup
+  self.suspendBackup = nil
   if Compat.needsPole and not FishingSetID() then return end
+  -- The fishing set goes back on; what it replaces is still the gear from before the fight, not
+  -- whatever a refused swap left on.
+  if kept and not ns.chardb.gearBackup then ns.chardb.gearBackup = kept end
   self:Enable()
 end
 

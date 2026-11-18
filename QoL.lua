@@ -60,7 +60,8 @@ function Away:Tick()
   end
 end
 
-ns:OnModeEvent("PLAYER_FLAGS_CHANGED", function()
+ns:OnModeEvent("PLAYER_FLAGS_CHANGED", function(unit)
+  if unit ~= "player" then return end -- the event comes for every player nearby
   if not ns.db.afkWarning or not ns.Log.session then return end
   if UnitIsAFK("player") then
     ns.Alerts:Fire("afk", L["You are marked away. Press a key or you will be logged out."])

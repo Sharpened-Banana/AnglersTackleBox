@@ -16,7 +16,7 @@ function ns:NewModule(name)
 end
 
 function ns:Print(msg)
-  print("|cff4fc3f7TackleBox|r: " .. tostring(msg))
+  print("|cff" .. (ns.Theme and ns.Theme:Hex("chat") or "4fc3f7") .. "TackleBox|r: " .. tostring(msg))
 end
 
 -- Internal messages (CAST_LOOTED, CATCH, SESSION_START, SESSION_END), so the log needn't know optional modules.
@@ -100,6 +100,8 @@ ns.defaults = {
   alertTypes = {},      -- [category] = false turns one kind of alert off
   sessionGoals = { catches = 0, gold = 0, minutes = 0 }, -- per-session targets (0 = off)
   briny = { enabled = false }, -- The Briny Best tracker (Briny.lua, Retail)
+  theme = "tacklebox", -- key into Theme.list
+  windowOpacity = 1, -- backgrounds of the addon's windows; the Fishing Companion has hud.alpha
   alertSound = "raidWarning", -- key into Alerts.sounds; "none" plays nothing
   alertSounds = {},     -- [category] = sound key, overriding alertSound
   cues = {              -- cast, catch and miss cues (Cues.lua)
@@ -118,7 +120,8 @@ ns.defaults = {
     muteAmbience = true,
     backgroundSound = true,
   },
-  hud = { shown = true, scale = 1.0, alpha = 0.7, locked = false, tab = "session", tabs = { "lures", "log" } },
+  hud = { shown = true, scale = 1.0, alpha = 0.7, locked = false, compact = false, motion = true,
+    tab = "session", tabs = { "lures", "log" } },
   ids = {},             -- game IDs found at runtime (faction, currency)
   cvarBackup = {},
   errors = {},          -- recent Lua errors from this addon, newest first (Errors.lua, /tb errors)
@@ -474,7 +477,13 @@ local function OnEvent(_, event, arg1)
       -- Gear can't be swapped during logout, so restore it now.
       if ns.chardb.gearBackup then
         C_Timer.After(2, function()
-          if (not Core.mode or ns.db.alwaysOn) and not InCombatLockdown() then ns.Gear:Restore() end
+          -- Always-on with the pole in hand is fishing: walking away or a fight puts the weapon back.
+          local fishing = Core.mode and ns.Compat.needsPole and ns.Gear:PoleEquipped()
+          if (not Core.mode or ns.db.alwaysOn) and not fishing and not InCombatLockdown() then
+            ns.Gear:Restore()
+          elseif fishing then
+            ns.Gear:AdoptPoleInHand() -- in case the pole could not be read when the mode started
+          end
         end)
       end
     end

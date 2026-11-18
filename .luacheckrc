@@ -45,7 +45,7 @@ read_globals = {
   -- Midnight helpers
   "C_Reputation", "C_GossipInfo", "_G",
   -- Alerts, pools, log window, mounts
-  "UnitGUID", "strsplit", "GetLocale", "TooltipDataProcessor", "GameTooltip", "C_MountJournal",
+  "UnitGUID", "strsplit", "GetLocale", "TooltipDataProcessor", "GameTooltip", "C_SkillInfo", "GetItemStats", "GetContainerNumFreeSlots", "C_Calendar", "C_MountJournal",
   -- Menu
   "GetCursorInfo", "ClearCursor", "GetItemIcon", "GetSpellTexture", "SetItemRef",
   -- Spots, gold, comforts, broker, records, goals

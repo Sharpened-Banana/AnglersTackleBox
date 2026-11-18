@@ -258,6 +258,14 @@ local function BuildPanel()
     L["Casts, catches, value per hour and lure timer while fishing."], UpdateHUD)
   Checkbox(db.hud, defaults.hud, "locked", L["Lock the Fishing Companion in place"],
     L["Stops the window from being dragged by accident."])
+  Checkbox(db.hud, defaults.hud, "compact", L["Compact Fishing Companion"],
+    L["Shrinks the Fishing Companion to its header, the cast bar and what the key does next."], UpdateHUD)
+  Checkbox(db.hud, defaults.hud, "motion", L["Animate the Fishing Companion"],
+    L["Fades the window in and flashes it softly on a catch."])
+  Slider(db, defaults, "windowOpacity", L["Window background"],
+    L["How solid the backgrounds of TackleBox's windows are. Lower is more see-through; lettering stays solid. "
+      .. "The colour theme is on the Appearance tab of /tb menu."],
+    0.3, 1, 0.05, Percent, function() ns.Theme:Repaint() end)
   Slider(db.hud, defaults.hud, "scale", L["Fishing Companion scale"],
     L["Size of the Fishing Companion window."], 0.6, 2, 0.05, Percent, UpdateHUD)
   Slider(db.hud, defaults.hud, "alpha", L["Fishing Companion background"],
@@ -344,6 +352,7 @@ commands.help = function()
     L["/tb doubleclick [on|off] - double right-click does the same as the key"],
     L["/tb set <equipment set name> - fishing gear set (/tb set none)"],
     L["/tb hud - show or hide the Fishing Companion;  /tb tabs - choose its tabs"],
+    L["/tb theme <name> - colour theme (no argument lists them)"],
     L["/tb log - open the catch log window;  /tb export - the catch log as CSV"],
     L["/tb export settings - your settings as a string;  /tb import - paste one back in"],
     L["/tb sound [name|test] [alert kind] - the alert sound (no argument lists them)"],
@@ -367,6 +376,26 @@ commands.help = function()
   }) do
     print("   " .. line)
   end
+end
+
+-- WoW Forever only; not in the help list, it is asked for when a report is needed.
+commands.probe = function(rest)
+  if ns.Probe then ns.Probe:Run(rest) else commands.help() end
+end
+
+commands.theme = function(rest)
+  local wanted = rest:lower()
+  for _, choice in ipairs(ns.Theme:Choices()) do
+    if choice.key == wanted or choice.label:lower() == wanted then
+      ns.Theme:Set(choice.key)
+      ns:Print(string.format(L["Theme: %s."], choice.label))
+      return
+    end
+  end
+  local names = {}
+  for index, choice in ipairs(ns.Theme:Choices()) do names[index] = choice.key end
+  ns:Print(string.format(L["Themes: %s. Use /tb theme <name>, or the Appearance tab of /tb menu."],
+    table.concat(names, ", ")))
 end
 
 commands.bind = function() Options:CaptureKey() end

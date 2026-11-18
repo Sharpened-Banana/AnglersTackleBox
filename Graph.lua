@@ -11,7 +11,7 @@ local DOT = 4
 local function Solid(frame, layer, color, alpha)
   local texture = frame:CreateTexture(nil, layer)
   texture:SetTexture(SOLID)
-  texture:SetVertexColor(color[1], color[2], color[3], alpha or 1)
+  ns.Theme:Paint(texture, "SetVertexColor", color, alpha) -- a theme colour follows the theme
   return texture
 end
 
@@ -21,7 +21,7 @@ local function NewLine(frame, color)
   local ok, line = pcall(frame.CreateLine, frame, nil, "ARTWORK")
   if not ok or not line or not line.SetStartPoint then return nil end
   line:SetThickness(2)
-  line:SetColorTexture(color[1], color[2], color[3], 1)
+  ns.Theme:Paint(line, "SetColorTexture", color)
   return line
 end
 
@@ -149,17 +149,17 @@ function Methods:Clear(text)
 end
 
 -- A graph of the given size inside `parent`; place it with graph.frame.
--- color is the bar/line colour, background an optional { r, g, b, a }.
-function Graph.New(parent, width, height, color, background)
+-- color is the bar/line colour, background an optional colour drawn at backgroundAlpha.
+function Graph.New(parent, width, height, color, background, backgroundAlpha)
   local graph = setmetatable({
-    width = width, height = height, color = color or { 0.85, 0.66, 0.22 },
+    width = width, height = height, color = color or ns.Theme.C.brass,
     bars = {}, lines = {}, dots = {}, hits = {},
   }, { __index = Methods })
   local frame = CreateFrame("Frame", nil, parent)
   frame:SetSize(width, height)
   graph.frame = frame
   if background then
-    Solid(frame, "BACKGROUND", background, background[4] or 0.2):SetAllPoints()
+    Solid(frame, "BACKGROUND", background, backgroundAlpha or 0.2):SetAllPoints()
   end
   -- A baseline so an empty graph still reads as a graph.
   local base = Solid(frame, "BORDER", graph.color, 0.6)

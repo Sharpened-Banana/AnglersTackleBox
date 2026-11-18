@@ -9,7 +9,7 @@ ns.Welcome = Welcome
 
 local WIDTH, HEIGHT, PAD = 460, 310, 18
 local TEXT_WIDTH = WIDTH - 2 * PAD
-local BRASS = { 0.85, 0.66, 0.22 }
+local BRASS = ns.Theme.C.brass
 
 local function Tick(done, text)
   return (done and "|cff40ff40[x]|r  " or "|cffffd100[ ]|r  ") .. text
@@ -61,7 +61,7 @@ pages[1] = function(page)
     L["The box holds your catch log, gold, achievements, alerts and settings."],
   }
   for index, text in ipairs(bullets) do
-    Text(page, "GameFontHighlight", "|cffd9a838-|r  " .. text, -52 - (index - 1) * 26)
+    Text(page, "GameFontHighlight", "|cff" .. ns.Theme:Hex("brass") .. "-|r  " .. text, -52 - (index - 1) * 26)
   end
   Text(page, "GameFontNormal", L["Two quick steps and you're fishing."], -140)
 end
@@ -226,7 +226,7 @@ local function Build()
     edgeSize = 14,
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
   })
-  frame:SetBackdropColor(0.11, 0.22, 0.16, 0.97)
+  ns.Theme:Paint(frame, "SetBackdropColor", ns.Theme.C.shell, 0.97, true)
   frame:SetMovable(true)
   frame:EnableMouse(true)
   frame:RegisterForDrag("LeftButton")
@@ -241,7 +241,7 @@ local function Build()
   frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   frame.title:SetPoint("LEFT", logo, "RIGHT", 10, 0)
   local rule = frame:CreateTexture(nil, "ARTWORK")
-  rule:SetColorTexture(BRASS[1], BRASS[2], BRASS[3], 0.6)
+  ns.Theme:Paint(rule, "SetColorTexture", BRASS, 0.6)
   rule:SetPoint("TOPLEFT", PAD, -52)
   rule:SetPoint("TOPRIGHT", -PAD, -52)
   rule:SetHeight(1)

@@ -75,6 +75,18 @@ function Compat.IsFishingSpell(spellID)
   return name ~= nil and name == Compat.FishingName()
 end
 
+-- How much of the player's channel is left, 1 down to 0, or nil when there is none to read.
+function Compat.ChannelFraction()
+  if not UnitChannelInfo then return nil end
+  local ok, fraction = pcall(function()
+    local _, _, _, startMS, endMS = UnitChannelInfo("player")
+    if Compat.IsSecret(startMS) or Compat.IsSecret(endMS) then return nil end
+    if type(startMS) ~= "number" or type(endMS) ~= "number" or endMS <= startMS then return nil end
+    return math.max(0, math.min(1, (endMS - GetTime() * 1000) / (endMS - startMS)))
+  end)
+  return ok and fraction or nil
+end
+
 function Compat.IsFishingChannelActive()
   if not UnitChannelInfo then return false end
   local name, _, _, _, _, _, _, spellID = UnitChannelInfo("player")

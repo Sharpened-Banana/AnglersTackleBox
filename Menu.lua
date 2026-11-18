@@ -10,24 +10,14 @@ local SOLID = "Interface\\Buttons\\WHITE8x8"
 local WIDTH, HEIGHT, LID, TRAY = 660, 560, 48, 156
 local SLOT_HEIGHT, MIN_SLOT = 40, 28
 
--- Moulded-plastic greens, a cream tray, brass fittings.
-local COLOR = {
-  shell = { 0.11, 0.22, 0.16 },
-  lid = { 0.16, 0.33, 0.23 },
-  seam = { 0.03, 0.07, 0.05 },
-  tray = { 0.78, 0.72, 0.56 },
-  trayLifted = { 0.93, 0.88, 0.72 },
-  ridge = { 0.52, 0.47, 0.34 },
-  ink = { 0.22, 0.16, 0.08 },
-  brass = { 0.85, 0.66, 0.22 },
-  steel = { 0.35, 0.36, 0.38 },
-  well = { 0.04, 0.08, 0.06 },
-}
+-- Moulded-plastic greens, a cream tray, brass fittings by default; the theme decides.
+local Theme = ns.Theme
+local COLOR = Theme.C
 
 local function Fill(parent, layer, color, alpha)
   local texture = parent:CreateTexture(nil, layer)
   texture:SetTexture(SOLID)
-  texture:SetVertexColor(color[1], color[2], color[3], alpha or 1)
+  Theme:Paint(texture, "SetVertexColor", color, alpha, true) -- follows the theme and the opacity
   return texture
 end
 
@@ -84,8 +74,8 @@ local function OpenDropdown(owner)
       edgeSize = 12,
       insets = { left = 3, right = 3, top = 3, bottom = 3 },
     })
-    dropList:SetBackdropColor(COLOR.well[1], COLOR.well[2], COLOR.well[3], 0.98)
-    dropList:SetBackdropBorderColor(COLOR.brass[1], COLOR.brass[2], COLOR.brass[3], 1)
+    Theme:Paint(dropList, "SetBackdropColor", COLOR.well, 0.98)
+    Theme:Paint(dropList, "SetBackdropBorderColor", COLOR.brass)
     dropList:EnableMouse(true)
     dropList:EnableMouseWheel(true)
     dropList:SetScript("OnMouseWheel", function(self, delta)
@@ -223,7 +213,7 @@ local function Report(panel, getLines, top)
   local function Refresh()
     local out = {}
     for _, line in ipairs(getLines()) do
-      out[#out + 1] = line.header and ("|cffffd100" .. line.text .. "|r") or ("   " .. line.text)
+      out[#out + 1] = line.header and ("|cff" .. Theme:Hex("header") .. line.text .. "|r") or ("   " .. line.text)
     end
     text:SetText(table.concat(out, "\n"))
     content:SetHeight(math.max(10, text:GetStringHeight() or 10))
@@ -809,8 +799,7 @@ local function BuildGold(panel)
     Menu:Refresh()
   end)
   nextFish:SetPoint("LEFT", prevFish, "RIGHT", 4, 0)
-  local priceGraph = ns.Graph.New(panel, 410, PRICE_HEIGHT, COLOR.trayLifted,
-    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.2 })
+  local priceGraph = ns.Graph.New(panel, 410, PRICE_HEIGHT, COLOR.trayLifted, COLOR.tray, 0.2)
   priceGraph.frame:SetPoint("TOPLEFT", 0, -208)
 
   local function RefreshPrices()
@@ -1038,8 +1027,7 @@ local function BuildStats(panel)
   rateTitle:SetWidth(410)
   rateTitle:SetJustifyH("LEFT")
   rateTitle:SetWordWrap(false)
-  local rateGraph = ns.Graph.New(panel, 410, RATE_HEIGHT, COLOR.brass,
-    { COLOR.tray[1], COLOR.tray[2], COLOR.tray[3], 0.2 })
+  local rateGraph = ns.Graph.New(panel, 410, RATE_HEIGHT, COLOR.brass, COLOR.tray, 0.2)
   rateGraph.frame:SetPoint("TOPLEFT", 0, -50)
 
   local function RefreshRate()
@@ -1251,6 +1239,94 @@ local function EventLines()
   return lines
 end
 
+-- A plain horizontal slider with its value shown beside its name. Built from the base widget, so
+-- it does not depend on a slider template either client may lack.
+local function Slider(parent, width, low, high, step, get, set, format)
+  local slider = CreateFrame("Slider", nil, parent)
+  slider:SetSize(width, 16)
+  slider:SetOrientation("HORIZONTAL")
+  slider:SetMinMaxValues(low, high)
+  slider:SetValueStep(step)
+  if slider.SetObeyStepOnDrag then slider:SetObeyStepOnDrag(true) end
+  slider:EnableMouse(true)
+  local groove = Fill(slider, "BACKGROUND", COLOR.tray, 0.25)
+  groove:SetPoint("LEFT")
+  groove:SetPoint("RIGHT")
+  groove:SetHeight(4)
+  slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+  local thumb = slider:GetThumbTexture()
+  if thumb then thumb:SetSize(28, 22) end
+  slider.label = Label(parent, "GameFontHighlight")
+  slider.label:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
+  slider.Sync = function()
+    local value = get()
+    slider.syncing = true
+    slider:SetValue(value)
+    slider.syncing = false
+    slider.label:SetText(format(value))
+  end
+  slider:SetScript("OnValueChanged", function(self, value)
+    if self.syncing or not value then return end
+    value = math.floor(value / step + 0.5) * step
+    if value == get() then return end
+    set(value)
+    self.label:SetText(format(get()))
+  end)
+  return slider
+end
+
+-- Appearance: the colour theme and how see-through the windows are.
+local function BuildLook(panel)
+  local themeLabel = Label(panel, "GameFontNormal", L["Colour theme"])
+  themeLabel:SetPoint("TOPLEFT", 2, -2)
+  local theme = Dropdown(panel, 220,
+    function() return Theme:Choices() end,
+    function() return Theme:Current().key end,
+    function(choice) Theme:Set(choice.key) end)
+  Menu.themePicker = theme
+  theme:SetPoint("TOPLEFT", 0, -22)
+  local note = Label(panel, "GameFontDisableSmall",
+    L["Changes this window, the Fishing Companion, the catch log and the welcome tour at once."])
+  note:SetPoint("TOPLEFT", 2, -52)
+  note:SetWidth(400)
+  note:SetJustifyH("LEFT")
+
+  local function Percent(text)
+    return function(value) return string.format(text, math.floor(value * 100 + 0.5)) end
+  end
+  local window = Slider(panel, 260, Theme.MIN_OPACITY, 1, 0.05,
+    function() return Theme:Opacity() end,
+    function(value) Theme:SetOpacity(value) end,
+    Percent(L["Window background: %d%% solid"]))
+  window:SetPoint("TOPLEFT", 2, -110)
+  Menu.windowOpacity = window
+  local companion = Slider(panel, 260, 0, 1, 0.05,
+    function() return ns.db.hud.alpha or 0.7 end,
+    function(value)
+      ns.db.hud.alpha = value
+      ns.HUD:UpdateVisibility()
+    end,
+    Percent(L["Fishing Companion background: %d%% solid"]))
+  companion:SetPoint("TOPLEFT", 2, -166)
+  local hint = Label(panel, "GameFontDisableSmall",
+    L["Lower is more see-through. Lettering always stays solid."])
+  hint:SetPoint("TOPLEFT", 2, -196)
+
+  local compact = Check(panel, L["Compact Fishing Companion: just the cast bar and the next press"],
+    ns.db.hud, "compact", function() ns.HUD:UpdateVisibility() end)
+  compact:SetPoint("TOPLEFT", 0, -222)
+  local motion = Check(panel, L["Animate the Fishing Companion (fade in, flash on a catch)"], ns.db.hud, "motion")
+  motion:SetPoint("TOPLEFT", 0, -248)
+
+  panel.Refresh = function()
+    theme:SetText(Theme:Current().name)
+    window.Sync()
+    companion.Sync()
+    compact.Sync()
+    motion.Sync()
+  end
+end
+
 local function Compartments()
   local list = {
     { key = "top", name = L["Top Tray"], icon = "Interface\\Icons\\Trade_Fishing", build = BuildTopTray },
@@ -1279,6 +1355,8 @@ local function Compartments()
       if list[index].key == "gold" then table.remove(list, index) end
     end
   end
+  list[#list + 1] = { key = "look", name = L["Appearance"], icon = "Interface\\Icons\\INV_Misc_Gem_Variety_01",
+    build = BuildLook }
   list[#list + 1] = { key = "settings", name = L["Settings"], icon = "Interface\\Icons\\INV_Misc_Gear_01",
     build = BuildSettings }
   return list
@@ -1305,8 +1383,8 @@ local function BuildBox()
     edgeSize = 14,
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
   })
-  frame:SetBackdropColor(COLOR.shell[1], COLOR.shell[2], COLOR.shell[3], 0.97)
-  frame:SetBackdropBorderColor(COLOR.seam[1], COLOR.seam[2], COLOR.seam[3], 1)
+  Theme:Paint(frame, "SetBackdropColor", COLOR.shell, 0.97, true)
+  Theme:Paint(frame, "SetBackdropBorderColor", COLOR.seam)
   table.insert(UISpecialFrames, "AnglersTackleBoxMenu") -- Escape closes it
 
   -- Carry handle: two posts and a grip, standing proud of the lid.
@@ -1339,7 +1417,7 @@ local function BuildBox()
   icon:SetPoint("TOPLEFT", 14, -13)
   local title = Label(frame, "GameFontNormalHuge", "ANGLER'S TACKLEBOX")
   title:SetPoint("LEFT", icon, "RIGHT", 10, 0)
-  title:SetTextColor(COLOR.trayLifted[1], COLOR.trayLifted[2], COLOR.trayLifted[3])
+  Theme:Paint(title, "SetTextColor", COLOR.title)
   frame.status = Label(frame, "GameFontNormal")
   frame.status:SetPoint("TOPRIGHT", -44, -22)
 
@@ -1416,7 +1494,7 @@ local function BuildBox()
     slotIcon:SetTexture(compartment.icon or "Interface\\Icons\\Trade_Fishing")
     local name = Label(slot, "GameFontNormal", compartment.name)
     name:SetPoint("LEFT", slotIcon, "RIGHT", 10, 0)
-    name:SetTextColor(COLOR.ink[1], COLOR.ink[2], COLOR.ink[3])
+    Theme:Paint(name, "SetTextColor", COLOR.ink)
     name:SetShadowOffset(0, 0)
     slot:SetHighlightTexture(SOLID)
     slot:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.18)

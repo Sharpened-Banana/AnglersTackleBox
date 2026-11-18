@@ -25,6 +25,7 @@ local function KeyHeld(key)
 end
 
 local STUCK_KEY = 1.5 -- seconds a key can read as down before it counts as stuck
+local HOLD_FOR_POLE = 10
 
 local function ShouldPause()
   return IsMounted() or UnitIsDeadOrGhost("player")
@@ -58,7 +59,8 @@ function Engine:Rearm()
   else
     self.heldSince = nil
   end
-  if self.heldSince and GetTime() - self.heldSince < STUCK_KEY then
+  -- Holding for the pole (hold to cast) is a press however long it lasts, within reason.
+  if self.heldSince and GetTime() - self.heldSince < (self.poleCast and HOLD_FOR_POLE or STUCK_KEY) then
     if not self.retrying then
       self.retrying = true
       C_Timer.After(0.05, function()
@@ -151,6 +153,8 @@ function Engine:Enable()
   if self.state == "CHANNELING" then
     self.castOpen = true
     ns.Core:Focus()
+  else
+    self.castOpen = nil -- a cast that ended while events were held back is over
   end
   self:Evaluate()
 end
@@ -162,6 +166,7 @@ Engine.Resume = Engine.Enable
 function Engine:Suspend()
   Release()
   self.nextLabel = nil
+  self.otherChannel = nil -- its end would be missed, so it must not be learned as fishing
   -- An addon may not equip once the fight is on, so if the swap at this moment is refused the key
   -- itself puts the weapon back: bound here, while bindings can still change.
   local macro, key = ns.Gear:CombatWeaponMacro(), ns.db.key
@@ -177,7 +182,7 @@ end
 
 function Engine:Disable()
   if not InCombatLockdown() then Release() end
-  self.action, self.nextLabel = nil, nil
+  self.action, self.nextLabel, self.otherChannel = nil, nil, nil
   self.state = "OFF"
 end
 

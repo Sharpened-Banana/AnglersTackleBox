@@ -42,6 +42,8 @@ Set session goals for catches, gold or minutes fished and get one alert when you
 ### The box
 `/tb menu` opens a tackle-box styled window with a compartment for everything above. While you fish, the **Fishing Companion**, a small window, shows your session, with tabs you choose in the Top Tray. Its X hides it until your next cast.
 
+- **Seven colour themes** and opacity sliders on the Appearance tab: the original green and brass, Deep Sea, Parchment, Midnight, High Contrast, Forever Stone and Modern Slate. They recolour every TackleBox window at once.
+
 ### Settings travel with you
 Export your settings as a string and import them anywhere, or use one set of gear, pole and lure settings on all your characters.
 

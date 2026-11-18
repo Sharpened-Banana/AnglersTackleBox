@@ -17,6 +17,7 @@ Compat.lua
 Errors.lua
 Data/Classic.lua
 Core.lua
+Theme.lua
 Profiles.lua
 Audio.lua
 Gear.lua
@@ -39,6 +40,7 @@ Broker.lua
 Records.lua
 Stats.lua
 Recommend.lua
+Probe.lua
 Planner.lua
 Engine.lua
 Graph.lua

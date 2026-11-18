@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.8
+
+- Colour themes. The tackle-box window has a new Appearance tab with seven themes: Tackle Box (the original green and brass), Deep Sea, Parchment, Midnight, High Contrast, Forever Stone and Modern Slate. Picking one recolours the tackle box, the Fishing Companion, the catch log window, the graphs and the welcome tour at once. `/tb theme <name>` does the same.
+- The Fishing Companion has a new look. A header strip with the state as a coloured pill, a cast bar that drains while your line is out, catches and gold per hour as two large numbers on the Session tab, item icons on the lure and catch rows, a gauge under the lure that runs down with its timer, tabs that look like tabs, and "Next press" on its own highlighted strip on every tab. It fades in and flashes softly on a catch; "Animate the Fishing Companion" on the Appearance tab switches that off. It is about 30 pixels taller than before.
+- Compact Fishing Companion (Appearance tab): shrinks it to the header, the cast bar and the next press.
+- Two opacity sliders on the same tab: one for the backgrounds of TackleBox's windows, one for the Fishing Companion. Lower is more see-through, and lettering always stays solid. The window slider is also in the game's settings panel.
+
+### Fixes
+
+- WoW Forever: a pole you equipped yourself before turning fishing mode on was saved as "your weapon", so a fight or walking away did not bring the real one back the first time.
+- WoW Forever: holding the fishing key for more than a second and a half while waiting for the pole threw the cast away. A long hold now still casts when you let go.
+- WoW Forever: after a `/reload` at the water with always-on fishing, your weapon was swapped back in two seconds later, sometimes in the middle of a cast.
+- If the game refused a gear swap at the start of a fight and you turned fishing mode off during that fight, the pole stayed in your hand. With a fishing gear set, a refused swap could also make the set count as your normal gear. Both are put right when the fight ends.
+- The "You are marked away" warning went off whenever any player near you changed their away status. It now only watches you.
+- After a fight that began with your line out, the next unrelated spell could play the "missed" sound.
+- Retail: a spell you were channelling when a fight started could be learned as a way of fishing.
+- An imported settings string with an impossible tracker size or background no longer breaks the tracker.
+
 ## 1.2.7
 
 ### Fixes

@@ -17,6 +17,7 @@ Compat.lua
 Errors.lua
 Data/Retail.lua
 Core.lua
+Theme.lua
 Profiles.lua
 Audio.lua
 Gear.lua

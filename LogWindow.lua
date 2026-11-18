@@ -205,7 +205,7 @@ function ns.ShowCopyText(title, text)
       edgeSize = 14,
       insets = { left = 3, right = 3, top = 3, bottom = 3 },
     })
-    box:SetBackdropColor(0.04, 0.08, 0.06, 0.97)
+    ns.Theme:Paint(box, "SetBackdropColor", ns.Theme.C.well, 0.97, true)
     table.insert(UISpecialFrames, "AnglersTackleBoxExport")
     box.title = box:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     box.title:SetPoint("TOPLEFT", 12, -10)
