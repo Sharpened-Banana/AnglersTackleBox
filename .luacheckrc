@@ -27,7 +27,7 @@ read_globals = {
   "GetBindingAction", "GetBindingName", "IsKeyDown", "IsMouseButtonDown",
   "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown",
   -- Player state
-  "InCombatLockdown", "IsInInstance", "IsMounted", "IsSwimming", "UnitIsDeadOrGhost",
+  "InCombatLockdown", "IsInInstance", "IsMounted", "IsFlying", "IsSwimming", "UnitIsDeadOrGhost",
   "UnitChannelInfo", "GetTime", "GetZoneText", "GetSubZoneText", "UnitName", "GetRealmName",
   -- Spells, items, auras, gear
   "C_Spell", "GetSpellInfo", "C_Item", "GetItemInfo", "GetItemInfoInstant", "GetItemCount",

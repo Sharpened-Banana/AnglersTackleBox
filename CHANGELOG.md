@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.9
+
+- WoW Forever: the fishing key now works from a mount. On the ground, one press gets you off the mount and puts the pole in your hand; the next press casts. In the air the key is left alone.
+
 ## 1.2.8
 
 - Colour themes. The tackle-box window has a new Appearance tab with seven themes: Tackle Box (the original green and brass), Deep Sea, Parchment, Midnight, High Contrast, Forever Stone and Modern Slate. Picking one recolours the tackle box, the Fishing Companion, the catch log window, the graphs and the welcome tour at once. `/tb theme <name>` does the same.

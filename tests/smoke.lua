@@ -434,6 +434,22 @@ if CLASSIC then
   ns.Alerts.Fire = realFire
   check(belowValue == 0 and valueAlerts == 1, "classic: the value alert fires at a silver threshold")
   ns.db.valueAlert = 0
+  do -- on a mount the key gets you off it and asks for the pole
+    if not ns.Core.mode then SlashCmdList.ANGLERSTACKLEBOX("") end
+    ns.Gear:Restore(); ns.Gear.applied, ns.chardb.gearBackup, equipped, bagPole = false, nil, nil, 6256
+    fire("PLAYER_EQUIPMENT_CHANGED", 16)
+    mounted = true; fire("PLAYER_MOUNT_DISPLAY_CHANGED")
+    check(ns.Engine.state == "PAUSED" and btn.attrs.type == "macro"
+      and btn.attrs.macrotext == "/dismount\n/equip item:6256", "classic: mounted, the key dismounts and equips the pole")
+    btn.scripts.PreClick(btn, "LeftButton", true)
+    check(ns.chardb.gearBackup ~= nil and ns.Gear.applied, "classic: that press remembers the gear it replaces")
+    IsFlying = function() return true end; advance(1.1)
+    check(btn.attrs.type == "macro" and ns.Engine.armed == nil, "classic: in the air the key is handed back")
+    IsFlying = nil
+    mounted = false; equipped = 6256; fire("PLAYER_MOUNT_DISPLAY_CHANGED"); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+    check(btn.attrs.type == "spell" and btn.attrs.spell == "Fishing", "classic: off the mount with the pole on, the key casts")
+    ns.Gear:Restore(); fire("PLAYER_EQUIPMENT_CHANGED", 16)
+  end
   do -- the probe: silent until asked, then it notes what the game says while fishing
     fire("UI_ERROR_MESSAGE", 1, "Your fish got away!")
     check(ns.chardb.probe == nil, "classic: the probe records nothing until /tb probe")

@@ -107,7 +107,17 @@ function Engine:Rearm()
   ns.HUD:Refresh()
 end
 
--- Mounted or dead: hand the key back until that ends.
+-- WoW Forever: on a mount on the ground the key gets you off it, with the pole on its way too, so
+-- riding up to the water and pressing the key starts fishing. Never in the air.
+local function DismountMacro()
+  if not Compat.needsPole or not IsMounted() or UnitIsDeadOrGhost("player") then return nil end
+  if IsFlying and IsFlying() then return nil end
+  local pole = ns.Gear:PoleAction()
+  if pole then return "/dismount\n/equip " .. pole.value, true end
+  return "/dismount", false
+end
+
+-- Mounted or dead: hand the key back until that ends (but see DismountMacro).
 function Engine:Evaluate()
   if self.state == "OFF" or ns.Core.suspended or InCombatLockdown() then return end
   if ShouldPause() then
@@ -115,6 +125,22 @@ function Engine:Evaluate()
       Release()
       self.nextLabel = nil
       SetState("PAUSED")
+    end
+    local key = ns.db.key
+    local macro, withPole = DismountMacro()
+    if macro and key and self.armed ~= "dismount" then
+      btn:SetAttribute("type", "macro")
+      btn:SetAttribute("useOnKeyDown", nil)
+      btn:SetAttribute("macrotext", macro)
+      SetOverrideBindingClick(btn, true, key, "AnglersTackleBoxActionButton")
+      self.armed, self.action, self.prep = "dismount", nil, false
+      self.dismountPole = withPole
+      self.nextLabel = withPole and L["Dismount and equip pole"] or L["Dismount"]
+      ns.HUD:Refresh()
+    elseif not macro and self.armed == "dismount" then
+      Release() -- took off, or died in the saddle
+      self.nextLabel = nil
+      ns.HUD:Refresh()
     end
   else
     if self.state == "PAUSED" then
@@ -211,7 +237,7 @@ btn:SetScript("PreClick", function(_, _, down)
     if not ns.Gear:PoleEquipped() and not InCombatLockdown() then btn:SetAttribute("type", nil) end
     return
   end
-  if Engine.armed == "pole" then ns.Gear:BeforePolePress()
+  if Engine.armed == "pole" or (Engine.armed == "dismount" and Engine.dismountPole) then ns.Gear:BeforePolePress()
   elseif Engine.armed == "cast" then ns.Gear:BeforeCastPress() end
 end)
 
